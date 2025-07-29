@@ -45,6 +45,25 @@ export class User {
   @Column({ type: 'text', default: 'USER' })
   role: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN';
 
+  @Column({ type: 'text', nullable: true })
+  address: string;
+
+  @Column({ type: 'numeric', nullable: true })
+  phone: number;
+
+  @Column({ type: 'text', nullable: true })
+  country: string;
+
+
+  @Column({ type: 'text', nullable: true })
+  city: string;
+
+  @Column({ type: 'boolean', default: false })
+  isBlocked: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  deleted_at: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
