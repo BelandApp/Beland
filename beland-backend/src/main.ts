@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,7 +16,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
   app.useGlobalFilters(new HttpExceptionFilter());
-
+  app.use(RequestLoggerMiddleware);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
