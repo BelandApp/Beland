@@ -1,0 +1,76 @@
+import { Reward, RewardCategory } from "../types";
+
+export const REWARDS_DATA: Reward[] = [
+  {
+    id: 1,
+    title: "Café gratis",
+    description: "Café Martinez - Cualquier bebida",
+    cost: 150,
+    category: "Alimentación",
+    available: true,
+    image: "☕",
+    discount: "100%",
+    popular: true,
+  },
+  {
+    id: 2,
+    title: "Descuento supermercado",
+    description: "10% off en compras mayores a $14.29", // ~$5000 pesos convertidos
+    cost: 200,
+    category: "Compras",
+    available: true,
+    image: "🛒",
+    discount: "10%",
+  },
+  {
+    id: 3,
+    title: "Transporte público",
+    description: "1 viaje gratis en STM",
+    cost: 80,
+    category: "Transporte",
+    available: true,
+    image: "🚌",
+    discount: "100%",
+    popular: true,
+  },
+  {
+    id: 4,
+    title: "Entrada al cine",
+    description: "Movie - Cualquier función 2D",
+    cost: 300,
+    category: "Entretenimiento",
+    available: true,
+    image: "🎬",
+    discount: "100%",
+  },
+  {
+    id: 5,
+    title: "Planta de regalo",
+    description: "Vivero Green Life - Planta pequeña",
+    cost: 120,
+    category: "Ecológico",
+    available: true,
+    image: "🌱",
+    discount: "100%",
+    popular: true,
+  },
+  {
+    id: 6,
+    title: "Descuento restaurante",
+    description: "15% off en La Pasta Nostra",
+    cost: 180,
+    category: "Alimentación",
+    available: false,
+    image: "🍝",
+    discount: "15%",
+  },
+];
+
+export const REWARD_CATEGORIES: RewardCategory[] = [
+  "Todos",
+  "Alimentación",
+  "Compras",
+  "Transporte",
+  "Entretenimiento",
+  "Ecológico",
+];

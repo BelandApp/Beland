@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Beland",
+    "slug": "Beland",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "belandnative",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "statusBarStyle": "light",
+      "statusBarBackgroundColor": "#F88D2A",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Esta aplicación necesita acceso a tu ubicación para encontrar puntos de reciclaje cercanos.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Esta aplicación necesita acceso a tu ubicación para encontrar puntos de reciclaje cercanos."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "statusBar": {
+        "barStyle": "light-content",
+        "backgroundColor": "#F88D2A",
+        "hidden": false,
+        "translucent": false
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
