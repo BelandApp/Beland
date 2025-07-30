@@ -152,9 +152,9 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
   };
 
   // Funciones de manejo
-  const handleGroupNameChange = (text: string) => {
-    setGroupName(text);
-    if (errors.groupName && text.trim().length >= 3) {
+  const handleGroupNameChange = (value: string) => {
+    setGroupName(value);
+    if (errors.groupName && value) {
       clearError("groupName");
     }
   };
