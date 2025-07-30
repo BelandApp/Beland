@@ -9,6 +9,7 @@ interface GroupManagementContentProps {
   activeTab: TabType;
   isGroupAdmin: boolean;
   onGroupUpdated: (updatedGroup: Group) => void;
+  navigation?: any;
 }
 
 export const GroupManagementContent: React.FC<GroupManagementContentProps> = ({
@@ -16,6 +17,7 @@ export const GroupManagementContent: React.FC<GroupManagementContentProps> = ({
   activeTab,
   isGroupAdmin,
   onGroupUpdated,
+  navigation,
 }) => {
   switch (activeTab) {
     case "content":
@@ -24,6 +26,7 @@ export const GroupManagementContent: React.FC<GroupManagementContentProps> = ({
           group={currentGroup}
           onGroupUpdated={onGroupUpdated}
           isReadOnly={!isGroupAdmin}
+          navigation={navigation}
         />
       );
     case "payment":
