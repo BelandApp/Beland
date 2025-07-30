@@ -1,30 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Alert } from "react-native";
-import { Group, PaymentMode, Participant } from "../../types";
-import { useGroupManagement } from "../../hooks/useGroupManagement";
-import { colors } from "../../styles/colors";
-import { formStyles } from "../../styles/formStyles";
-
-// Importaciones de las nuevas utilidades
-import { PAYMENT_MODE_OPTIONS } from "../../constants/paymentModes";
-import {
-  validateCustomAmounts,
-  calculateCustomAmountsTotal,
-  validateAmount,
-  formatAmount,
-} from "../../business/validation/paymentValidation";
-import { formatUSDPrice, CURRENCY_CONFIG } from "../../constants";
+import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { Group, PaymentMode, Participant } from "../../../types";
+import { useGroupManagement } from "../../../hooks/useGroupManagement";
+import { colors } from "../../../styles/colors";
+import { formStyles } from "../../../styles/formStyles";
+import { PAYMENT_MODE_OPTIONS } from "../../../constants/paymentModes";
+import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants";
 
 interface PaymentModeManagerProps {
   group: Group;
   onGroupUpdated: (updatedGroup: Group) => void;
   isReadOnly?: boolean;
-}
-
-interface PaymentModeOption {
-  id: PaymentMode;
-  title: string;
-  description: string;
 }
 
 export const PaymentModeManager: React.FC<PaymentModeManagerProps> = ({

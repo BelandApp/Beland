@@ -9,7 +9,7 @@ import {
   getCostPerPerson,
   formatCurrency,
   formatBeCoins,
-} from "../../../business/costCalculations";
+} from "../business/costCalculations";
 import { productStyles } from "../styles";
 import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants";
 

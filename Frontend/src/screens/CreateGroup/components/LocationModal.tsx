@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
-import { MapSelector } from "../../../components/MapSelector";
+import { MapSelector } from "./MapSelector";
 import { modalStyles } from "../styles";
 
 interface LocationModalProps {
@@ -235,8 +235,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       {/* Selector de Mapa Integrado */}
       {Platform.OS === "web" ? (
         (() => {
-          const MapSelectorWeb =
-            require("../../../components/MapSelectorWeb").MapSelectorWeb;
+          const MapSelectorWeb = require("./MapSelectorWeb").MapSelectorWeb;
           return (
             <MapSelectorWeb
               visible={showMapSelector}

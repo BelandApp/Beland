@@ -7,13 +7,13 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { colors } from "../styles";
-import { LocationService } from "../services/locationService";
-import { PhoneMapSVG } from "./icons/PhoneMapSVG";
-import { PhoneMapSVGWeb } from "./icons/PhoneMapSVGWeb";
+import { colors } from "../../../styles";
+import { LocationService } from "../../../services/locationService";
+import { PhoneMapSVG } from "../../../components/icons/PhoneMapSVG";
+import { PhoneMapSVGWeb } from "../../../components/icons/PhoneMapSVGWeb";
 import { MiniMapContent } from "./MiniMapContent";
 import { MiniMapContentWeb } from "./MiniMapContentWeb";
-import { ConfirmationAlert } from "./ui/ConfirmationAlert";
+import { ConfirmationAlert } from "../../../components/ui/ConfirmationAlert";
 
 interface RecyclingMapWidgetProps {
   onPress?: () => void;

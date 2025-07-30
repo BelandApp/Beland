@@ -2,8 +2,8 @@
  * Lógica de negocio para cálculos de costos de grupos
  */
 
-import { Product, Participant } from "../types";
-import { formatUSDPrice, CURRENCY_CONFIG } from "../constants";
+import { Product, Participant } from "../../../types/index";
+import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants/currency";
 
 /**
  * Calcula el costo total estimado de todos los productos

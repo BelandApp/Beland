@@ -20,7 +20,7 @@ import {
   formatTimeInput,
   formatPersonName,
   formatEmail,
-} from "../../business/textUtils";
+} from "./business/textUtils";
 
 // Hooks personalizados
 import { useCreateGroupForm, useTimeModal, useLocationModal } from "./hooks";

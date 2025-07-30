@@ -1,8 +1,8 @@
 import React from "react";
 import { Group } from "../../../types";
 import { TabType } from "../types";
-import { GroupContentManager } from "../../../components/forms/GroupContentManager";
-import { PaymentModeManager } from "../../../components/forms/PaymentModeManager";
+import { GroupContentManager } from "./GroupContentManager";
+import { PaymentModeManager } from "./PaymentModeManager";
 
 interface GroupManagementContentProps {
   currentGroup: Group;

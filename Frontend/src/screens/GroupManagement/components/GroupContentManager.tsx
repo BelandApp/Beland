@@ -8,21 +8,21 @@ import {
   FlatList,
   Image,
 } from "react-native";
-import { Group, Participant, Product } from "../../types";
-import { useGroupManagement } from "../../hooks/useGroupManagement";
-import { generateId } from "../../utils/validation";
-import { colors } from "../../styles/colors";
-import { formStyles } from "../../styles/formStyles";
+import { Group, Participant, Product } from "../../../types";
+import { useGroupManagement } from "../../../hooks/useGroupManagement";
+import { generateId } from "../../../utils/validation";
+import { colors } from "../../../styles/colors";
+import { formStyles } from "../../../styles/formStyles";
 import {
   EnhancedCard,
   EnhancedButton,
   EnhancedInput,
   ConfirmationAlert,
   AddParticipantModal,
-} from "../ui";
-import { useCustomAlert } from "../../hooks/useCustomAlert";
-import { formatUSDPrice, CURRENCY_CONFIG } from "../../constants";
-import { InstagramUser } from "../../services/instagramService";
+} from "../../../components/ui";
+import { useCustomAlert } from "../../../hooks/useCustomAlert";
+import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants";
+import { InstagramUser } from "../../../services/instagramService";
 
 interface GroupContentManagerProps {
   group: Group;

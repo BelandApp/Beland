@@ -8,7 +8,7 @@ import {
   Image,
 } from "react-native";
 
-type PaymentAccountType = "payphone" | "bank" | null;
+export type PaymentAccountType = "payphone" | "bank" | null;
 
 interface PaymentPreferencesProps {
   showAccountModal: boolean;

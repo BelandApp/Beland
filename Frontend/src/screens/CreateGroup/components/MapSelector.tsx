@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import {
   detectCurrentLocation,
   requestLocationEnable,
-} from "../utils/locationUtils";
+} from "../../../utils/locationUtils";
 
 interface MapSelectorProps {
   visible: boolean;

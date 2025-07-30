@@ -1,30 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Animated, Platform } from "react-native";
-import { colors } from "../styles";
-import { RecyclingPoint, UserLocation } from "../types/recycling";
-import { MOCK_RECYCLING_POINTS } from "../constants/recyclingData";
-import { LocationService } from "../services/locationService";
+import { View, StyleSheet, Animated } from "react-native";
+import { colors } from "../../../styles";
+import { RecyclingPoint, UserLocation } from "../../../types/recycling";
+import { MOCK_RECYCLING_POINTS } from "../../../constants/recyclingData";
+import { LocationService } from "../../../services/locationService";
 
-export const MiniMapContentWeb: React.FC = () => {
+export const MiniMapContent: React.FC = () => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [nearestPoints, setNearestPoints] = useState<RecyclingPoint[]>([]);
   const [pulseAnim] = useState(new Animated.Value(1));
 
   useEffect(() => {
-    if (Platform.OS === "web") {
-      // En web, usar ubicación por defecto para evitar problemas de permisos
-      const defaultLocation = {
-        latitude: -34.6037,
-        longitude: -58.3816,
-        accuracy: 100,
-      };
-      setUserLocation(defaultLocation);
-      setNearestPoints(MOCK_RECYCLING_POINTS.slice(0, 5));
-    } else {
-      getUserLocation();
-    }
+    // NO pedir ubicación automáticamente, solo mostrar puntos estáticos
+    showStaticPoints();
     startPulseAnimation();
   }, []);
+
+  const showStaticPoints = () => {
+    // Mostrar ubicación por defecto (Buenos Aires) sin permisos
+    const defaultLocation = {
+      latitude: -34.6037,
+      longitude: -58.3816,
+      accuracy: 100,
+    };
+    setUserLocation(defaultLocation);
+
+    // Mostrar los primeros 5 puntos sin calcular distancia real
+    setNearestPoints(MOCK_RECYCLING_POINTS.slice(0, 5));
+  };
 
   const startPulseAnimation = () => {
     Animated.loop(
@@ -32,12 +35,12 @@ export const MiniMapContentWeb: React.FC = () => {
         Animated.timing(pulseAnim, {
           toValue: 1.3,
           duration: 1500,
-          useNativeDriver: Platform.OS !== "web", // Deshabilitar useNativeDriver en web
+          useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: Platform.OS !== "web",
+          useNativeDriver: true,
         }),
       ])
     ).start();
@@ -49,6 +52,7 @@ export const MiniMapContentWeb: React.FC = () => {
       if (location) {
         setUserLocation(location);
 
+        // Calcular puntos más cercanos
         const pointsWithDistance = MOCK_RECYCLING_POINTS.map((point) => ({
           ...point,
           distance: LocationService.calculateDistance(
@@ -65,6 +69,7 @@ export const MiniMapContentWeb: React.FC = () => {
       }
     } catch (error) {
       console.error("Error obteniendo ubicación:", error);
+      // Usar ubicación por defecto
       const defaultLocation = {
         latitude: -34.6037,
         longitude: -58.3816,
@@ -75,12 +80,14 @@ export const MiniMapContentWeb: React.FC = () => {
     }
   };
 
+  // Función para convertir coordenadas GPS a posiciones en el mini mapa
   const coordinatesToMiniMapPosition = (
     latitude: number,
     longitude: number
   ) => {
     if (!userLocation) return { left: 50, top: 50 };
 
+    // Área del mapa (Buenos Aires)
     const mapBounds = {
       north: -34.55,
       south: -34.65,
@@ -88,11 +95,13 @@ export const MiniMapContentWeb: React.FC = () => {
       east: -58.35,
     };
 
+    // Convertir a porcentajes
     const xPercent =
       (longitude - mapBounds.west) / (mapBounds.east - mapBounds.west);
     const yPercent =
       (mapBounds.north - latitude) / (mapBounds.north - mapBounds.south);
 
+    // Limitar al área visible y convertir a valores absolutos
     const constrainedX = Math.max(5, Math.min(95, xPercent * 100));
     const constrainedY = Math.max(5, Math.min(95, yPercent * 100));
 
@@ -104,9 +113,10 @@ export const MiniMapContentWeb: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Fondo del mapa */}
       <View style={styles.mapBackground} />
 
-      {/* Líneas de calles */}
+      {/* Líneas de calles simuladas */}
       <View
         style={[styles.street, { top: "30%", left: 0, right: 0, height: 1 }]}
       />
@@ -122,7 +132,7 @@ export const MiniMapContentWeb: React.FC = () => {
 
       {/* Ubicación del usuario */}
       {userLocation && (
-        <View
+        <Animated.View
           style={[
             styles.userLocationWrapper,
             {
@@ -141,16 +151,12 @@ export const MiniMapContentWeb: React.FC = () => {
             },
           ]}
         >
-          <Animated.View
-            style={{
-              transform: Platform.OS === "web" ? [] : [{ scale: pulseAnim }],
-            }}
-          >
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <View style={styles.userLocation}>
               <View style={styles.userDot} />
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
       )}
 
       {/* Puntos de reciclaje */}
@@ -233,7 +239,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#22C55E",
+    backgroundColor: colors.primary,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
@@ -244,7 +250,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  nearestPoint: {},
+  nearestPoint: {
+    // Estilos especiales para el punto más cercano
+  },
   nearestDot: {
     backgroundColor: "#F88D2A",
     width: 14,
