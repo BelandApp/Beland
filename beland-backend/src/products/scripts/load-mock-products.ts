@@ -11,7 +11,7 @@ async function bootstrap() {
 
   const filePath = path.join(__dirname, '../data/mock-products.json');
   const fileContent = fs.readFileSync(filePath, 'utf8');
-  const products: CreateProductDto[] = JSON.parse(fileContent);
+  const products = JSON.parse(fileContent) as unknown as CreateProductDto[];
 
   for (const product of products) {
     try {

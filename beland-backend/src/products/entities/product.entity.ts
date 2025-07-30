@@ -1,15 +1,15 @@
-// product.entity.ts
+// src/products/entities/product.entity.ts
+import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
+import { OrderItem } from 'src/order-items/entities/order-item.entity';
+import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   OneToMany,
 } from 'typeorm';
-// import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
-import { InventoryItem } from '../../inventory-items/entities/inventory-item.entity';
-import { OrderItem } from 'src/order-items/entities/order-item.entity';
-import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
 
 @Entity('products')
 export class Product {
@@ -34,6 +34,10 @@ export class Product {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
+  @DeleteDateColumn({ type: 'timestamptz', nullable: true })
+  deleted_at?: Date;
+
+  // Relaciones ...
   @OneToMany(() => InventoryItem, (inventory) => inventory.product)
   inventory_items: InventoryItem[];
 
