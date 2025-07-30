@@ -6,7 +6,8 @@ import {
   CreateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
+// import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
+import { InventoryItem } from '../../inventory-items/entities/inventory-item.entity';
 import { OrderItem } from 'src/order-items/entities/order-item.entity';
 import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
 
