@@ -33,7 +33,7 @@ import {
 import { containerStyles } from "./styles";
 
 // Types
-import { AvailableProduct } from "../../constants/products";
+import { AvailableProduct } from "../../data/products";
 
 export const CatalogScreen = () => {
   const navigation = useNavigation();

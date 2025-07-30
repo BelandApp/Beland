@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { productStyles } from "../styles";
-import { AvailableProduct } from "../../../constants/products";
+import { AvailableProduct } from "../../../data/products";
 import { ProductCard } from "./ProductCard";
 
 interface ProductGridProps {

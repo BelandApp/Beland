@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Group, PaymentMode, Participant } from "../../../types";
-import { useGroupManagement } from "../../../hooks/useGroupManagement";
+import { useGroupManagement } from "../hooks/useGroupManagement";
 import { colors } from "../../../styles/colors";
 import { formStyles } from "../../../styles/formStyles";
 import { PAYMENT_MODE_OPTIONS } from "../../../constants/paymentModes";

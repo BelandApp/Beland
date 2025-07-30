@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { Group } from "../types";
-import { GroupService } from "../services/groupService";
-import { groupStorage } from "../services/groupStorage";
-import { MOCK_GROUPS } from "../data/mockData";
+import { Group } from "../../../types";
+import { GroupService } from "../../../services/groupService";
+import { groupStorage } from "../../../services/groupStorage";
+import { MOCK_GROUPS } from "../../../data/mockData";
 
 export const useGroups = () => {
   const [refreshKey, setRefreshKey] = useState(0);

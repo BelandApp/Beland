@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { productStyles } from "../styles";
-import { AvailableProduct } from "../../../constants/products";
+import { AvailableProduct } from "../../../data/products";
 import { formatUSDPrice } from "../../../constants";
 
 interface ProductCardProps {

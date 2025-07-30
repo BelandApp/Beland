@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Animated, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 import { RecyclingPoint, UserLocation } from "../../../types/recycling";
-import { MOCK_RECYCLING_POINTS } from "../../../constants/recyclingData";
+import { MOCK_RECYCLING_POINTS } from "../../../data/recyclingData";
 import { LocationService } from "../../../services/locationService";
 
 export const MiniMapContentWeb: React.FC = () => {

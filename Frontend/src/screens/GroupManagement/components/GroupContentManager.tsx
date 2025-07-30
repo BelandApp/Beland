@@ -9,7 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Group, Participant, Product } from "../../../types";
-import { useGroupManagement } from "../../../hooks/useGroupManagement";
+import { useGroupManagement } from "../hooks/useGroupManagement";
 import { generateId } from "../../../utils/validation";
 import { colors } from "../../../styles/colors";
 import { formStyles } from "../../../styles/formStyles";
