@@ -3,7 +3,7 @@ import { APP_CONFIG } from "../constants";
 import { generateId, calculateBeCoins } from "../utils/validation";
 import { groupStorage } from "./groupStorage";
 import { MOCK_GROUPS } from "../data/mockData";
-import { CURRENT_USER_ID } from "../constants/user";
+import { CURRENT_USER_ID } from "../data/user";
 
 export interface CreateGroupData {
   name: string;

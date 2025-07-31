@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { styles } from "@screens/RecyclingMap/styles/PointCardStyles";
 import { RecyclingPoint } from "@screens/RecyclingMap/types/recycling";
-import { RECYCLING_TYPES } from "@constants/recyclingData";
+import { RECYCLING_TYPES } from "src/data/recyclingData";
 import { LocationService } from "@services/locationService";
 import { useRecyclingMapContext } from "../context/RecyclingMapContext";
 import { colors } from "@styles/colors";

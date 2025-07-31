@@ -8,32 +8,34 @@ import {
   FlatList,
   Image,
 } from "react-native";
-import { Group, Participant, Product } from "../../types";
-import { useGroupManagement } from "../../hooks/useGroupManagement";
-import { generateId } from "../../utils/validation";
-import { colors } from "../../styles/colors";
-import { formStyles } from "../../styles/formStyles";
+import { Group, Participant, Product } from "../../../types";
+import { useGroupManagement } from "../hooks/useGroupManagement";
+import { generateId } from "../../../utils/validation";
+import { colors } from "../../../styles/colors";
+import { formStyles } from "../../../styles/formStyles";
 import {
   EnhancedCard,
   EnhancedButton,
   EnhancedInput,
   ConfirmationAlert,
   AddParticipantModal,
-} from "../ui";
-import { useCustomAlert } from "../../hooks/useCustomAlert";
-import { formatUSDPrice, CURRENCY_CONFIG } from "../../constants";
-import { InstagramUser } from "../../services/instagramService";
+} from "../../../components/ui";
+import { useCustomAlert } from "../../../hooks/useCustomAlert";
+import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants";
+import { InstagramUser } from "../../../services/instagramService";
 
 interface GroupContentManagerProps {
   group: Group;
   onGroupUpdated: (updatedGroup: Group) => void;
   isReadOnly?: boolean;
+  navigation?: any;
 }
 
 export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
   group,
   onGroupUpdated,
   isReadOnly = false,
+  navigation,
 }) => {
   const {
     addParticipant,
@@ -73,9 +75,8 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
   // Funciones para participantes
   const handleAddParticipant = async (
     name: string,
-    instagramUser: InstagramUser
+    instagramUser?: InstagramUser | null
   ) => {
-    // Limpiar errores previos
     setParticipantErrors({});
 
     if (!name.trim()) {
@@ -83,20 +84,14 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
       return;
     }
 
-    if (!instagramUser) {
-      setParticipantErrors({
-        instagram: "Debes seleccionar un usuario de Instagram",
-      });
-      return;
-    }
-
+    // Permitir agregar sin usuario de Instagram
     const newParticipant: Participant = {
       id: generateId(),
       name: name.trim(),
-      instagramUsername: instagramUser.username,
-      instagramProfilePic: instagramUser.profile_pic_url,
-      instagramFullName: instagramUser.full_name,
-      isVerified: instagramUser.is_verified,
+      instagramUsername: instagramUser?.username ?? undefined,
+      instagramProfilePic: instagramUser?.profile_pic_url ?? undefined,
+      instagramFullName: instagramUser?.full_name ?? undefined,
+      isVerified: instagramUser?.is_verified ?? false,
     };
 
     const updatedGroup = await addParticipant(group.id, newParticipant);
@@ -106,7 +101,9 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
       setParticipantErrors({});
       showCustomAlert(
         "¡Participante agregado!",
-        `${newParticipant.name} (@${instagramUser.username}) se unió al grupo`,
+        instagramUser
+          ? `${newParticipant.name} (@${instagramUser.username}) se unió al grupo`
+          : `${newParticipant.name} se unió al grupo`,
         "success"
       );
     }
@@ -479,51 +476,15 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
         {!isReadOnly && (
           <EnhancedButton
             title="Agregar Producto"
-            onPress={() => setShowAddProduct(!showAddProduct)}
-            variant={showAddProduct ? "secondary" : "primary"}
-            icon={showAddProduct ? "✕" : "+"}
+            onPress={() => {
+              if (navigation) {
+                navigation.navigate("Catalog", { groupId: group.id });
+              }
+            }}
+            variant="primary"
+            icon="+"
             style={{ marginTop: 16 }}
           />
-        )}
-
-        {showAddProduct && !isReadOnly && (
-          <View style={styles.addForm}>
-            <EnhancedInput
-              label="Nombre del producto"
-              placeholder="Ej: Pizza Margarita"
-              value={newProductName}
-              onChangeText={setNewProductName}
-              icon="🍕"
-              required
-            />
-            <EnhancedInput
-              label="Precio estimado (USD)"
-              placeholder="0.00"
-              value={newProductPrice}
-              onChangeText={setNewProductPrice}
-              keyboardType="numeric"
-              icon="💰"
-              required
-            />
-            <View style={styles.addFormButtons}>
-              <EnhancedButton
-                title="Cancelar"
-                onPress={() => {
-                  setShowAddProduct(false);
-                  setNewProductName("");
-                  setNewProductPrice("");
-                }}
-                variant="ghost"
-                style={{ flex: 1, marginRight: 8 }}
-              />
-              <EnhancedButton
-                title="Agregar"
-                onPress={handleAddProduct}
-                loading={loading}
-                style={{ flex: 1, marginLeft: 8 }}
-              />
-            </View>
-          </View>
         )}
       </EnhancedCard>
 

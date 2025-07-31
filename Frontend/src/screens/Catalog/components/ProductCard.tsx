@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { productStyles } from "../styles";
-import { AvailableProduct } from "../../../constants/products";
+import { AvailableProduct } from "../../../data/products";
 import { formatUSDPrice } from "../../../constants";
 
 interface ProductCardProps {
@@ -15,11 +15,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   return (
     <View style={productStyles.productCard}>
-      <Image
-        source={{ uri: product.image }}
-        style={productStyles.productImage}
-        resizeMode="cover"
-      />
+      <View style={productStyles.productImageContainer}>
+        <Image
+          source={{ uri: product.image }}
+          style={productStyles.productImage}
+          resizeMode="cover"
+        />
+      </View>
       <Text style={productStyles.productBrand}>Productos Beland</Text>
       <Text style={productStyles.productName}>{product.name}</Text>
       <Text style={productStyles.productCategory}>{product.category}</Text>

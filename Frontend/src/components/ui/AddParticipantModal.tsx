@@ -71,12 +71,18 @@ export const AddParticipantModal: React.FC<AddParticipantModalProps> = ({
       return;
     }
 
-    if (!selectedInstagramUser) {
-      // Si no hay usuario de Instagram seleccionado, no proceder
-      return;
+    // Permitir agregar sin usuario de Instagram
+    if (selectedInstagramUser) {
+      onAddParticipant(name.trim(), selectedInstagramUser);
+    } else {
+      // Si no se seleccionó usuario, enviar solo el nombre y el texto de Instagram
+      onAddParticipant(name.trim(), {
+        username: instagramUsername.trim(),
+        profile_pic_url: "",
+        full_name: "",
+        is_verified: false,
+      });
     }
-
-    onAddParticipant(name.trim(), selectedInstagramUser);
     // Solo cerrar si no hay errores (esto se manejará desde el padre)
   };
 

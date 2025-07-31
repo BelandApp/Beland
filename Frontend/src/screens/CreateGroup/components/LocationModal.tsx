@@ -7,10 +7,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
-  Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MapSelector } from "../../../components/MapSelector";
+import { Platform } from "react-native";
+import { MapSelector } from "./MapSelector";
 import { modalStyles } from "../styles";
 
 interface LocationModalProps {
@@ -233,11 +233,24 @@ export const LocationModal: React.FC<LocationModalProps> = ({
       </View>
 
       {/* Selector de Mapa Integrado */}
-      <MapSelector
-        visible={showMapSelector}
-        onLocationSelect={handleMapLocationSelect}
-        onClose={() => setShowMapSelector(false)}
-      />
+      {Platform.OS === "web" ? (
+        (() => {
+          const MapSelectorWeb = require("./MapSelectorWeb").MapSelectorWeb;
+          return (
+            <MapSelectorWeb
+              visible={showMapSelector}
+              onLocationSelect={handleMapLocationSelect}
+              onClose={() => setShowMapSelector(false)}
+            />
+          );
+        })()
+      ) : (
+        <MapSelector
+          visible={showMapSelector}
+          onLocationSelect={handleMapLocationSelect}
+          onClose={() => setShowMapSelector(false)}
+        />
+      )}
     </Modal>
   );
 };

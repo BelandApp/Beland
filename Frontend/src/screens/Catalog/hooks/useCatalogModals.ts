@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AVAILABLE_PRODUCTS } from "../../../constants/products";
+import { AVAILABLE_PRODUCTS } from "../../../data/products";
 
 export const useCatalogModals = () => {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);

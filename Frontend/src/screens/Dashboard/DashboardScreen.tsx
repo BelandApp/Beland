@@ -2,7 +2,7 @@ import React from "react";
 import { View, ScrollView } from "react-native";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { RecyclingCard, RewardsCard, ActivitySection } from "./components";
-import { RecyclingMapWidget } from "../../components/RecyclingMapWidget";
+import { RecyclingMapWidget } from "./components/RecyclingMapWidget";
 import { useDashboardNavigation, useDashboardData } from "./hooks";
 import { containerStyles } from "./styles";
 

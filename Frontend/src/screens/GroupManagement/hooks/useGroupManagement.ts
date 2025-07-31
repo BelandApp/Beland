@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { Group, Participant, Product, PaymentMode } from "../types";
-import { GroupService } from "../services/groupService";
+import { Group, Participant, Product, PaymentMode } from "../../../types";
+import { GroupService } from "../../../services/groupService";
 
 export interface UseGroupManagementReturn {
   // Estados

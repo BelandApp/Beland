@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AVAILABLE_PRODUCTS } from "../../../constants/products";
+import { AVAILABLE_PRODUCTS } from "../../../data/products";
 import { FilterOptions } from "./useCatalogFilters";
 
 export const useProductFiltering = (

@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { productStyles } from "../styles";
-import { AvailableProduct } from "../../../constants/products";
+import { AvailableProduct } from "../../../data/products";
 import { ProductCard } from "./ProductCard";
 
 interface ProductGridProps {
@@ -23,10 +23,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     );
   }
 
-  // Organizar productos en filas de 2 columnas
+  // Organizar productos en filas: 3 columnas en web, 2 en mobile/tablet
+  const isWeb =
+    typeof window !== "undefined" &&
+    (window as any).navigator?.userAgent?.includes("Mozilla");
+  const columns = isWeb ? 3 : 2;
   const rows = [];
-  for (let i = 0; i < products.length; i += 2) {
-    rows.push(products.slice(i, i + 2));
+  for (let i = 0; i < products.length; i += columns) {
+    rows.push(products.slice(i, i + columns));
   }
 
   return (
