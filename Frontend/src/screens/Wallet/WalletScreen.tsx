@@ -5,7 +5,7 @@ import { WalletHeader, WalletBalanceCard, WalletActions } from "./components";
 import { BankAccountsSection } from "./components/BankAccountsSection";
 import { PayphoneSection } from "./components/PayphoneSection";
 import { PaymentPreferences } from "./components/PaymentPreferences";
-import type { PaymentAccountType } from "./components/PaymentPreferences";
+
 import { useWalletData, useWalletActions } from "./hooks";
 import { containerStyles } from "./styles";
 import { PayphoneWidget } from "../../components/ui/PayphoneWidget";
@@ -39,10 +39,7 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setBankAccounts(bankAccounts.filter((_, i) => i !== idx));
   };
 
-  // const handleBuyDigitalCurrency = (amount: string, currency: string) => {
-  //   // Aquí iría la lógica de compra
-  //   setShowBuyModal(false);
-  // };
+  type PaymentAccountType = "payphone" | "bank" | null;
   const { walletData } = useWalletData();
   const { walletActions } = useWalletActions();
   const [showPayphone, setShowPayphone] = useState(false);
@@ -131,14 +128,16 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 )}
               />
 
-              {/* Modal para elegir tipo de cuenta */}
+              {/* Preferencias de pago con edición directa */}
               <PaymentPreferences
-                showAccountModal={showAccountModal}
-                setShowAccountModal={setShowAccountModal}
                 selectedAccount={selectedAccount}
                 setSelectedAccount={setSelectedAccount}
                 payphoneLogo={payphoneLogo}
                 styles={styles}
+                payphoneData={payphoneData}
+                setPayphoneData={setPayphoneData}
+                bankData={bankData}
+                setBankData={setBankData}
               />
 
               {selectedAccount && (
