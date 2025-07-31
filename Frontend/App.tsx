@@ -12,6 +12,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootStackNavigator } from "./src/components/layout/RootStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { colors } from "./src/styles/colors";
+import { LoginScreen } from "src/screens/Login";
 
 export default function App() {
   // Hidratar solo el store de BeCoins antes de renderizar la app
@@ -81,6 +82,7 @@ export default function App() {
           </View>
         </NavigationContainer>
       </View>
+      {/* <LoginScreen /> */}
     </SafeAreaProvider>
   );
 }
