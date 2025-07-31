@@ -18,7 +18,12 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:products": "ts-node -r tsconfig-paths/register src/products/scripts/load-mock-products.ts"
+    "typeorm": "typeorm-ts-node-commonjs",
+    "migration:generate": "npm run typeorm -- migration:generate -d src/config/typeorm.ts",
+    "migration:run": "npm run typeorm -- migration:run -d src/config/typeorm.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d src/config/typeorm.ts",
+    "schema:sync": "npm run typeorm -- schema:sync -d src/config/typeorm.ts",
+    "schema:drop": "npm run typeorm -- schema:drop -d src/config/typeorm.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
