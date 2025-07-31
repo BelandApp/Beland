@@ -11,6 +11,14 @@ export class UsersService {
     return await this.usersRepository.create(createUserDto);
   }
 
+  async findByEmail(email: string) {
+    return await this.usersRepository.findByEmail(email);
+  }
+
+  async createInitialUser(createUserDto: CreateUserDto) {
+    return await this.usersRepository.createInitialUser(createUserDto);
+  }
+
   async findAll(page: number = 1, limit: number = 10) {
     return await this.usersRepository.findAll(page, limit);
   }

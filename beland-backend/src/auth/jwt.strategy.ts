@@ -12,6 +12,18 @@ import { ConfigService } from '@nestjs/config';
 import * as jwksRsa from 'jwks-rsa';
 import { UsersService } from 'src/users/users.service';
 import { User } from 'src/users/entities/users.entity';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+
+interface Auth0Payload {
+  sub: string;
+  email?: string;
+  name?: string;
+  nickname?: string;
+  email_verified?: boolean;
+  picture?: string;
+  exp?: number;
+  [key: string]: any;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -39,7 +51,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(req: Request, payload: any): Promise<User> {
+  async validate(req: Request, payload: Auth0Payload): Promise<User> {
     this.logger.debug('--- JwtStrategy: Iniciando validación de JWT ---');
     this.logger.debug(
       `JwtStrategy: Payload decodificado: ${JSON.stringify(payload)}`,
@@ -87,13 +99,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
-    const user = await this.usersService.createInitialUser(
-      auth0_id,
+    const createUserDto: CreateUserDto = {
+      oauth_provider: 'auth0',
       email,
-      name,
-      emailVerified,
-      picture,
-    );
+      full_name: name,
+      profile_picture_url: picture,
+      // Campos requeridos por el DTO
+      password: 'temp_password_for_auth0_user', // Contraseña temporal para usuarios Auth0
+      confirmPassword: 'temp_password_for_auth0_user',
+      address: 'Dirección pendiente',
+      phone: 0,
+      country: 'País pendiente',
+      city: 'Ciudad pendiente',
+    };
+
+    const user = await this.usersService.createInitialUser(createUserDto);
 
     if (!user) {
       this.logger.error(

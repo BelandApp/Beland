@@ -16,6 +16,16 @@ export class UsersRepository {
     return await this.usersRepository.save(user);
   }
 
+  async findByEmail(email: string) {
+    return await this.usersRepository.findOne({ where: { email } });
+  }
+
+  async createInitialUser(createUserDto: CreateUserDto) {
+    const user = this.usersRepository.create(createUserDto);
+    return await this.usersRepository.save(user);
+  }
+
+
   async findAll(page: number = 1, limit: number = 10) {
     let users = await this.usersRepository.find()
 
