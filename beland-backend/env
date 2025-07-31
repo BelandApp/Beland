@@ -1,0 +1,46 @@
+#  ----- Supabase -----
+DB_TYPE=postgres
+# Supabase database host
+DB_HOST=aws-0-us-east-2.pooler.supabase.com
+# Supabase database port
+DB_PORT=6543 
+# Supabase database username
+DB_USERNAME=postgres.jqyvwwlxvarvebxuabuh
+# Supabase database password
+DB_PASSWORD=k4OXYo4SxxK0NXAV
+# Supabase database name
+DB_DATABASE=postgres
+# Supabase URL
+SUPABASE_URL=https://jqyvwwlxvarvebxuabuh.supabase.co
+# Supabase API key
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxeXZ3d2x4dmFydmVieHVhYnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzODYzMjcsImV4cCI6MjA2ODk2MjMyN30.XqhEZ91JFbYy4Y_c_5R64_9y3UqTyMiQOiGpVwd6APE
+
+
+
+
+# --- Configuración de Auth0 Backend (Usando la 'Regular Web Application') ---
+# AUTH0_AUDIENCE: El "Identifier" de tu API de backend en Auth0.
+AUTH0_AUDIENCE=
+# AUTH0_DOMAIN: El dominio de tu inquilino de Auth0. ¡Sin incluir https:// y terminar con /!
+AUTH0_DOMAIN=
+# AUTH0_CLIENT_ID: El Client ID de tu aplicación Auth0 (Regular Web Application).
+AUTH0_CLIENT_ID=
+# AUTH0_CLIENT_SECRET: El Client Secret de tu aplicación Auth0.
+AUTH0_CLIENT_SECRET=
+# AUTH0_CONNECTION: El nombre de tu conexión de base de datos de usuario/contraseña en Auth0.
+AUTH0_CONNECTION=
+AUTH0_MANAGEMENT_CLIENT_ID=
+AUTH0_MANAGEMENT_CLIENT_SECRET=
+
+
+# --- Configuración de JWT ---
+JWT_SECRET=super_secret_key
+
+# JWT_EXPIRATION_TIME: Tiempo de expiración del token JWT (en segundos).
+JWT_EXPIRATION_TIME=3600
+
+
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+THROTTLE_TTL=60
+THROTTLE_LIMIT=10

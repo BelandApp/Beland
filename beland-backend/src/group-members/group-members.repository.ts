@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
-import { Payment } from './entities/payment.entity';
+import { GroupMember } from './entities/group-member.entity';
 
 @Injectable()
-export class PaymentsRepository {
+export class GroupMembersRepository {
   constructor(
-    @InjectRepository(Payment)
-    private repository: Repository<Payment>,
+    @InjectRepository(GroupMember)
+    private repository: Repository<GroupMember>,
   ) {}
 
   async findAll(
@@ -15,7 +15,7 @@ export class PaymentsRepository {
     user_id: string,
     page: number,
     limit: number,
-  ): Promise<[Payment[], number]> {
+  ): Promise<[GroupMember[], number]> {
     let where: Object; 
     if (group_id) {
         where = {group_id} 
@@ -25,25 +25,25 @@ export class PaymentsRepository {
 
     return this.repository.findAndCount({
         where,
-        order: { payment_date: 'DESC' },
+        order: { joined_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
         relations: ['group', 'user'],
     });
   }
 
-  async findOne(id: string): Promise<Payment> {
+  async findOne(id: string): Promise<GroupMember> {
     return this.repository.findOne({
       where: { id },
       relations: ['group', 'user'],
     });
   }
 
-  async create(body: Partial<Payment>): Promise<Payment> {
+  async create(body: Partial<GroupMember>): Promise<GroupMember> {
     return await this.repository.save(body);
   }
 
-  async update(id: string, body: Partial<Payment>): Promise<UpdateResult> {
+  async update(id: string, body: Partial<GroupMember>): Promise<UpdateResult> {
     return await this.repository.update(id, body);
   }
 

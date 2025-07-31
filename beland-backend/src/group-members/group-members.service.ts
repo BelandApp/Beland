@@ -1,26 +1,84 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGroupMemberDto } from './dto/create-group-member.dto';
-import { UpdateGroupMemberDto } from './dto/update-group-member.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { GroupMembersRepository } from './group-members.repository';
+import { GroupMember } from './entities/group-member.entity';
 
 @Injectable()
 export class GroupMembersService {
-  create(createGroupMemberDto: CreateGroupMemberDto) {
-    return 'This action adds a new groupMember';
+  private readonly completeMessage = 'el miembro de grupo';
+
+  constructor(private readonly repository: GroupMembersRepository) {}
+
+  async findAll(
+    group_id: string, 
+    user_id: string,
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[GroupMember[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        group_id,
+        user_id,
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all groupMembers`;
+  async findOne(id: string): Promise<GroupMember> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} groupMember`;
+  async create(body: Partial<GroupMember>): Promise<GroupMember> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updateGroupMemberDto: UpdateGroupMemberDto) {
-    return `This action updates a #${id} groupMember`;
+  async update(id: string, body: Partial<GroupMember>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} groupMember`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }

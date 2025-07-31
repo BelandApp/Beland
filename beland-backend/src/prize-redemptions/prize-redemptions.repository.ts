@@ -1,49 +1,49 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
-import { Payment } from './entities/payment.entity';
+import { PrizeRedemption } from './entities/prize-redemption.entity';
 
 @Injectable()
-export class PaymentsRepository {
+export class PrizeRedemptionsRepository {
   constructor(
-    @InjectRepository(Payment)
-    private repository: Repository<Payment>,
+    @InjectRepository(PrizeRedemption)
+    private repository: Repository<PrizeRedemption>,
   ) {}
 
   async findAll(
-    group_id: string, 
+    prize_id: string, 
     user_id: string,
     page: number,
     limit: number,
-  ): Promise<[Payment[], number]> {
+  ): Promise<[PrizeRedemption[], number]> {
     let where: Object; 
-    if (group_id) {
-        where = {group_id} 
+    if (prize_id) {
+        where = {prize_id} 
     } else {
         where = user_id ? {user_id} : {};
     }
 
     return this.repository.findAndCount({
         where,
-        order: { payment_date: 'DESC' },
+        order: { created_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
-        relations: ['group', 'user'],
+        relations: ['prize', 'user'],
     });
   }
 
-  async findOne(id: string): Promise<Payment> {
+  async findOne(id: string): Promise<PrizeRedemption> {
     return this.repository.findOne({
       where: { id },
-      relations: ['group', 'user'],
+      relations: ['prize', 'user'],
     });
   }
 
-  async create(body: Partial<Payment>): Promise<Payment> {
+  async create(body: Partial<PrizeRedemption>): Promise<PrizeRedemption> {
     return await this.repository.save(body);
   }
 
-  async update(id: string, body: Partial<Payment>): Promise<UpdateResult> {
+  async update(id: string, body: Partial<PrizeRedemption>): Promise<UpdateResult> {
     return await this.repository.update(id, body);
   }
 

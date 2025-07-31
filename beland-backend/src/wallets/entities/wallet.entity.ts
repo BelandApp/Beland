@@ -29,4 +29,6 @@ export class Wallet {
   @OneToOne(() => User, (user) => user.wallet)
   @JoinColumn({ name: 'user_id' })
   user: User;
+  @Column('uuid')
+  user_id: string;
 }
