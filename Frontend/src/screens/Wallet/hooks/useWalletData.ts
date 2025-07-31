@@ -1,5 +1,5 @@
-import { WalletData, FRSData } from "../types";
-import { formatUSDPrice, convertPesoToUSD } from "../../../constants";
+import { WalletData } from "../types";
+import { formatUSDPrice } from "../../../constants";
 import { useBeCoinsStore } from "../../../stores/useBeCoinsStore";
 
 export const useWalletData = () => {
@@ -10,16 +10,7 @@ export const useWalletData = () => {
     estimatedValue: formatUSDPrice(getBeCoinsInUSD()), // Valor real en USD
   };
 
-  const frsData: FRSData = {
-    title: "FRS",
-    rating: "★★★★★",
-    amount: formatUSDPrice(convertPesoToUSD(1000)), // ~$2.86
-    rate: formatUSDPrice(convertPesoToUSD(6500)), // ~$18.57
-    details: "1.2367 USD",
-  };
-
   return {
     walletData,
-    frsData,
   };
 };
