@@ -8,6 +8,10 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "belandnative",
+       "extra": {
+      "auth0Domain": "dev-vf7nz76r1qsjwysf.us.auth0.com",
+      "auth0ClientId": "vClasEqwzWYz1f8pz6J7IDQz0yzot445"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
