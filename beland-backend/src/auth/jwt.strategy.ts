@@ -11,7 +11,7 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import * as jwksRsa from 'jwks-rsa';
 import { UsersService } from 'src/users/users.service';
-import { User } from 'src/users/entities/users.entity';
+import { User } from 'src/users/entities/users.entity'; // Importar la entidad User
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 
 interface Auth0Payload {
@@ -52,6 +52,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: Request, payload: Auth0Payload): Promise<User> {
+    // ¡Retorna la entidad User!
     this.logger.debug('--- JwtStrategy: Iniciando validación de JWT ---');
     this.logger.debug(
       `JwtStrategy: Payload decodificado: ${JSON.stringify(payload)}`,
@@ -99,11 +100,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
+    // Aquí construimos el DTO con todas las propiedades requeridas
     const createUserDto: CreateUserDto = {
       oauth_provider: 'auth0',
-      email,
-      full_name: name,
-      profile_picture_url: picture,
+      email: email || `${auth0_id}@temp.com`, // Proporcionar un email por defecto si Auth0 no lo da
+      full_name: name || 'Usuario Auth0',
+      profile_picture_url: picture || '',
       // Campos requeridos por el DTO
       password: 'temp_password_for_auth0_user', // Contraseña temporal para usuarios Auth0
       confirmPassword: 'temp_password_for_auth0_user',
@@ -111,8 +113,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       phone: 0,
       country: 'País pendiente',
       city: 'Ciudad pendiente',
+      isBlocked: false, // ¡Añadido! Es requerido en CreateUserDto
+      deleted_at: null, // ¡Añadido! Es requerido en CreateUserDto
+      username: payload.nickname || auth0_id, // Usar nickname o auth0_id como username
+      // El campo 'role' se asignará por defecto en createInitialUser si no se especifica
     };
 
+    // createInitialUser ahora retorna la entidad User directamente
     const user = await this.usersService.createInitialUser(createUserDto);
 
     if (!user) {
@@ -144,6 +151,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     this.logger.debug(
       'JwtStrategy: Validación de JWT exitosa. Usuario activo y autorizado.',
     );
-    return user;
+    return user; // Retornar la entidad User
   }
 }
