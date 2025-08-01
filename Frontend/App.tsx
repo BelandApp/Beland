@@ -35,9 +35,17 @@ export default function App() {
     }
   };
 
-  // Solo mostrar el botón QR si no estamos en la pantalla QR ni en RecyclingMap
+  // Solo mostrar el botón QR si no estamos en la pantalla QR, RecyclingMap ni en screens de acciones de la wallet
+  const walletActionScreens = [
+    "CanjearScreen",
+    "SendScreen",
+    "ReceiveScreen",
+    "HistoryScreen",
+  ];
   const shouldShowQRButton =
-    currentRoute !== "QR" && currentRoute !== "RecyclingMap";
+    currentRoute !== "QR" &&
+    currentRoute !== "RecyclingMap" &&
+    !walletActionScreens.includes(currentRoute ?? "");
 
   if (!isBeCoinsLoaded) {
     return (

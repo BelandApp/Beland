@@ -1,37 +1,15 @@
 import React, { useState } from "react";
-import { createPayphonePayment } from "../../services/payphoneService";
-import {
-  View,
-  ScrollView,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, ScrollView, Dimensions } from "react-native";
 import { WaveBottomGray } from "../../components/icons";
-import {
-  WalletHeader,
-  WalletBalanceCard,
-  WalletActions,
-  FRSCard,
-} from "./components";
+import { WalletHeader, WalletBalanceCard, WalletActions } from "./components";
 import { BankAccountsSection } from "./components/BankAccountsSection";
 import { PayphoneSection } from "./components/PayphoneSection";
-import { BankAccountsList } from "./components/BankAccountsList";
-// import { BuyDigitalCurrencyModal } from "./components/BuyDigitalCurrencyModal";
 import { PaymentPreferences } from "./components/PaymentPreferences";
-import type { PaymentAccountType } from "./components/PaymentPreferences";
-import { PaymentAccountForm } from "./components/PaymentAccountForm";
+
 import { useWalletData, useWalletActions } from "./hooks";
 import { containerStyles } from "./styles";
 import { PayphoneWidget } from "../../components/ui/PayphoneWidget";
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Modal,
-  Pressable,
-  Image,
-} from "react-native";
+import { StyleSheet } from "react-native";
 
 const payphoneLogo = require("../../../assets/payphone-logo.png");
 
@@ -61,11 +39,8 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setBankAccounts(bankAccounts.filter((_, i) => i !== idx));
   };
 
-  // const handleBuyDigitalCurrency = (amount: string, currency: string) => {
-  //   // Aquí iría la lógica de compra
-  //   setShowBuyModal(false);
-  // };
-  const { walletData, frsData } = useWalletData();
+  type PaymentAccountType = "payphone" | "bank" | null;
+  const { walletData } = useWalletData();
   const { walletActions } = useWalletActions();
   const [showPayphone, setShowPayphone] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -125,28 +100,44 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     ? {
                         ...action,
                         onPress: () => {
-                          setShowAccountModal(true);
+                          navigation.navigate("SendScreen");
                         },
                       }
                     : action.id === "exchange"
                     ? {
                         ...action,
                         onPress: () => {
-                          navigation.navigate("BuyDigitalCurrencyScreen");
+                          navigation.navigate("CanjearScreen");
+                        },
+                      }
+                    : action.id === "receive"
+                    ? {
+                        ...action,
+                        onPress: () => {
+                          navigation.navigate("ReceiveScreen");
+                        },
+                      }
+                    : action.id === "history"
+                    ? {
+                        ...action,
+                        onPress: () => {
+                          navigation.navigate("HistoryScreen");
                         },
                       }
                     : action
                 )}
               />
 
-              {/* Modal para elegir tipo de cuenta */}
+              {/* Preferencias de pago con edición directa */}
               <PaymentPreferences
-                showAccountModal={showAccountModal}
-                setShowAccountModal={setShowAccountModal}
                 selectedAccount={selectedAccount}
                 setSelectedAccount={setSelectedAccount}
                 payphoneLogo={payphoneLogo}
                 styles={styles}
+                payphoneData={payphoneData}
+                setPayphoneData={setPayphoneData}
+                bankData={bankData}
+                setBankData={setBankData}
               />
 
               {selectedAccount && (

@@ -21,6 +21,7 @@
     "expo": "~53.0.20",
     "expo-auth-session": "^6.2.1",
     "expo-camera": "^16.1.11",
+    "expo-clipboard": "^7.1.5",
     "expo-constants": "^17.1.7",
     "expo-face-detector": "^13.0.2",
     "expo-haptics": "~14.1.4",
