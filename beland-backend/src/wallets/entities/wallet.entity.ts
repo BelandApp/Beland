@@ -17,11 +17,11 @@ export class Wallet {
   @Column({ type: 'text', nullable: true })
   address: string;
 
-  @Column({ type: 'text', nullable: true })
-  private_key_encrypted: string;
+  @Column('decimal', { precision: 14, scale: 2, default: 0 })
+  becoin_balance: number;             // saldo disponible en Becoin
 
   @Column({ type: 'numeric', default: 0 })
-  on_chain_balance: number;
+  locked_balance: number;             // opcional: fondos en proceso de retiro
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
@@ -31,4 +31,4 @@ export class Wallet {
   user: User;
   @Column('uuid')
   user_id: string;
-}
+} 

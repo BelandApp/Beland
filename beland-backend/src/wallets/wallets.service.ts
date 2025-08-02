@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -6,12 +7,26 @@ import {
 } from '@nestjs/common';
 import { WalletsRepository } from './wallets.repository';
 import { Wallet } from './entities/wallet.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PaymentMethod } from 'src/payment_methods/entities/payment_method.entity';
+import { Repository } from 'typeorm';
+import { PayphoneService } from 'src/payphone/payphone.service';
+import { RechargeDto } from './dto/recharge.dto';
+import { Transaction } from 'src/transactions/entities/transaction.entity';
+import { TransferDto } from './dto/transfer.dto';
+import { WithdrawDto } from './dto/withdraw.dto';
 
 @Injectable()
 export class WalletsService {
   private readonly completeMessage = 'la billetera virtual';
+  private readonly priceOneBecoin = 0.05;
 
-  constructor(private readonly repository: WalletsRepository) {}
+  constructor(
+    private readonly repository: WalletsRepository,
+    private readonly payphone: PayphoneService,
+    @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
+    @InjectRepository(PaymentMethod) private pmRepo: Repository<PaymentMethod>,
+  ) {}
 
   async findAll(
     pageNumber: number,
@@ -88,4 +103,130 @@ export class WalletsService {
       throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
     }
   }
+
+  async recharge(userId: string, dto: RechargeDto): Promise<{wallet: Wallet, tx: Transaction}> {
+    const wallet = await this.repository.findByUserId( userId );
+    const pm = await this.pmRepo.findOneBy({ id: dto.paymentMethodId, user_id: userId });
+    // 1) Llamar a PayPhone
+    const charge = await this.payphone.createCharge(dto.amountUsd, pm.token, `recarga-${Date.now()}`);
+    // 2) Convertir USD a Becoin
+    const becoinAmount = dto.amountUsd / this.priceOneBecoin;
+    // 3) Actualizar saldo
+    wallet.becoin_balance += becoinAmount;
+    await this.repository.create(wallet);
+    // 4) Registrar transacción
+    const tx = this.txRepo.create({
+      wallet_id: wallet.id,
+      type: 'RECHARGE',
+      amount: becoinAmount,
+      post_balance: wallet.becoin_balance,
+      reference: charge.id,
+    });
+    await this.txRepo.save(tx);
+    return { wallet, tx };
+  }
+
+  async withdraw(userId: string, dto: WithdrawDto): Promise<{wallet: Wallet, tx: Transaction}> {
+    const wallet = await this.repository.findByUserId( userId );
+    if (wallet.becoin_balance < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
+    // 1) Reservar fondos
+    wallet.becoin_balance -= dto.amountBecoin;
+    wallet.locked_balance += dto.amountBecoin;
+    await this.repository.create(wallet);
+    // 2) Llamar a PayPhone en USD
+    const usd = dto.amountBecoin * 0.05;
+    const payout = await this.payphone.createPayout(usd, dto.bankAccount, `retiro-${Date.now()}`);
+    // 3) Liberar locked y registrar
+    wallet.locked_balance -= dto.amountBecoin;
+    await this.repository.create(wallet);
+    const tx = this.txRepo.create({
+      wallet_id: wallet.id,
+      type: 'WITHDRAW',
+      amount: -dto.amountBecoin,
+      post_balance: wallet.becoin_balance,
+      reference: payout.id,
+      created_at: new Date(),
+    });
+    await this.txRepo.save(tx);
+    return { wallet, tx };
+  }
+
+  async transfer(userId: string, dto: TransferDto): Promise<{ from: Transaction, to: Transaction }> {
+    const from = await this.repository.findByUserId( userId );
+    if (from.becoin_balance < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
+    const to = await this.repository.findByUserId( dto.toUserId );
+    if (!to) throw new NotFoundException('Usuario destino no existe');
+    // 1) Debitar origen
+    from.becoin_balance -= dto.amountBecoin;
+    await this.repository.create(from);
+    const txFrom = this.txRepo.create({
+      wallet_id: from.id,
+      type: 'TRANSFER',
+      amount: -dto.amountBecoin,
+      post_balance: from.becoin_balance,
+      related_wallet_id: to.id,
+      created_at: new Date(),
+    });
+    await this.txRepo.save(txFrom);
+    // 2) Acreditar destino
+    to.becoin_balance += dto.amountBecoin;
+    await this.repository.create(to);
+    const txTo = this.txRepo.create({
+      wallet_id: to.id,
+      type: 'TRANSFER',
+      amount: dto.amountBecoin,
+      post_balance: to.becoin_balance,
+      related_wallet_id: from.id,
+      created_at: new Date(),
+    });
+    await this.txRepo.save(txTo);
+    return { from: txFrom, to: txTo };
+  }
+
+    /** CONFIRMAR que una recarga (charge) fue exitosa */
+  async confirmRecharge(reference: string): Promise<void> {
+    const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
+    if (!tx || tx.status !== 'PENDING') return;
+    // Marca la transacción como completada
+    tx.status = 'COMPLETED';
+    await this.txRepo.save(tx);
+    // (Opcional) aquí podrías emitir un evento o notificación al usuario
+  }
+
+  /** MARCAR recarga como fallida y revertir saldo si fuera necesario */
+  async failRecharge(reference: string, reason: string): Promise<void> {
+    const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
+    if (!tx || tx.status !== 'PENDING') return;
+    const wallet = await this.repository.findOne(tx.wallet_id);
+    // Revertir el saldo
+    wallet.becoin_balance -= tx.amount;
+    await this.repository.create(wallet);
+    tx.status = 'FAILED';
+    tx.reference += ` | reason: ${reason}`;
+    await this.txRepo.save(tx);
+  }
+
+  /** CONFIRMAR que un retiro (payout) fue completado */
+  async confirmWithdraw(reference: string): Promise<void> {
+    const tx = await this.txRepo.findOne({ where: { reference, type: 'WITHDRAW' } });
+    if (!tx || tx.status !== 'PENDING') return;
+    tx.status = 'COMPLETED';
+    await this.txRepo.save(tx);
+    // Los fondos ya estaban descontados y bloqueados en creación de payout
+  }
+
+  /** MARCAR retiro como fallido y deshacer lock de fondos */
+  async failWithdraw(reference: string, reason: string): Promise<void> {
+    const tx = await this.txRepo.findOne({ where: { reference, type: 'WITHDRAW' } });
+    if (!tx || tx.status !== 'PENDING') return;
+    const wallet = await this.repository.findOne( tx.wallet_id );
+    // Desbloquear y devolver el monto al balance disponible
+    wallet.locked_balance -= Math.abs(tx.amount);
+    wallet.becoin_balance += Math.abs(tx.amount);
+    await this.repository.create(wallet);
+    tx.status = 'FAILED';
+    tx.reference += ` | reason: ${reason}`;
+    await this.txRepo.save(tx);
+  }
+
 }
