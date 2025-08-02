@@ -92,7 +92,7 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** con `user_permission` buscar un usuario específico por su dirección de email.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // // @ApiBearerAuth('JWT-auth')
   @ApiQuery({
     name: 'email',
     description: 'Email del usuario a buscar',
@@ -136,7 +136,7 @@ export class UsersController {
     description:
       'Retorna el perfil completo del usuario que está autenticado en la sesión.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Información del usuario autenticado.',
@@ -172,7 +172,7 @@ export class UsersController {
     description:
       'Permite al usuario autenticado actualizar su propio nombre y foto de perfil.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Perfil de usuario actualizado exitosamente.',
@@ -228,7 +228,7 @@ export class UsersController {
     description:
       'Lista todos los usuarios en el sistema. Solo accesible por **Admin/Superadmin**. Soporta paginación, ordenación y filtrado por ID, email, rol y estado de bloqueo. Los **Admins/Superadmins** pueden ver usuarios desactivados.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios con paginación.',
@@ -331,7 +331,7 @@ export class UsersController {
     description:
       'Lista todos los usuarios que han sido marcados como desactivados (soft-deleted).',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios desactivados.',
@@ -363,7 +363,7 @@ export class UsersController {
     description:
       'Recupera los detalles de un usuario específico. Solo el **propietario** o un **Admin/Superadmin** puede acceder. Un Admin/Superadmin también puede incluir perfiles desactivados.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', description: 'ID del usuario', type: String })
   @ApiResponse({
     status: 200,
@@ -435,7 +435,7 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** actualizar cualquier perfil de usuario, incluyendo nombre, foto, rol, estado de bloqueo y estado de activación/desactivación.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a actualizar',
@@ -492,7 +492,7 @@ export class UsersController {
     description:
       'Marca un usuario como desactivado en la base de datos (soft-delete). Solo accesible por **Admin/Superadmin**. No elimina el registro físicamente.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a desactivar',
@@ -542,7 +542,7 @@ export class UsersController {
     description:
       'Marca un usuario previamente desactivado como activo. Solo accesible por **Admin/Superadmin**.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a reactivar',
@@ -592,7 +592,7 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** cambiar el estado de bloqueo (`isBlocked`) de un usuario.',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a bloquear/desbloquear',

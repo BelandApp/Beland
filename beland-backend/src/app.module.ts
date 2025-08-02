@@ -9,7 +9,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
-import { InitModule } from './init/init.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { CouponsModule } from './coupons/coupons.module';
@@ -27,8 +26,9 @@ import { GroupsModule } from './groups/groups.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { DatabaseModule } from './database/database.module';
 import { DataSourceOptions } from 'typeorm';
-import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
-import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware'; // Asegúrate de que este archivo exista
+import typeormConfig from './config/typeorm';
+import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware';
+import { DatabaseInitModule } from './database/init/database-init.module';
 
 @Module({
   imports: [
@@ -61,9 +61,9 @@ import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware
       inject: [ConfigService],
     }),
     DatabaseModule,
+    DatabaseInitModule,
     UsersModule,
     RolesModule,
-    InitModule,
     WalletsModule,
     GroupsModule,
     GroupMembersModule,
