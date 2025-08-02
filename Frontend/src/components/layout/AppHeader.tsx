@@ -1,37 +1,70 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { BeCoinIcon } from "../icons/BeCoinIcon";
-import { BelandLogo } from "../icons/BelandLogo";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { BeCoinsBalance } from "../ui/BeCoinsBalance";
 import { colors } from "../../styles/colors";
+import { BelandLogo } from "../icons/BelandLogo";
+import { useAuth } from "src/hooks/AuthContext";
+import * as AuthSession from "expo-auth-session";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
+
 
 interface AppHeaderProps {
   userName?: string;
-  coinsAmount?: number;
   onMenuPress?: () => void;
   onCoinsPress?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   userName = "Zaire",
-  coinsAmount, // Ya no se usa, se obtiene del store
   onMenuPress,
   onCoinsPress,
 }) => {
+  const { user, login, logout } = useAuth();
+  const isWeb = Platform.OS === "web";
+
+  const redirectUri = AuthSession.makeRedirectUri({
+    scheme: "belandnative",
+    native: "belandnative://callback",
+    ...(Platform.OS !== "web" ? { useProxy: true } : {}),
+  });
+
   return (
     <View style={styles.header}>
       <View style={styles.userSection}>
         <View style={styles.logoContainer}>
           <BelandLogo width={24} height={36} color="#FFFFFF" />
         </View>
-        <Text style={styles.greeting}>¡Hola, {userName}!</Text>
+        <Text style={styles.greeting}>¡Hola, {user?.name ?? userName}!</Text>
+        {/*<Text style={{ fontSize: 12, color: "white" }}>{redirectUri}</Text>*/}
       </View>
+
       <BeCoinsBalance
         size="medium"
         variant="header"
         onPress={onCoinsPress}
         style={styles.coinsSection}
       />
+
+      {user ? (
+        <View style={styles.userActions}>
+          {user.picture && (
+            <Image
+              source={{ uri: user.picture }}
+              style={styles.avatar}
+              resizeMode="cover"
+            />
+          )}
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.authButton}>Cerrar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={login}>
+          <Text style={styles.authButton}>Iniciar sesión</Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity style={styles.menuButton} onPress={onMenuPress}>
         <Text style={styles.menuIcon}>⋮</Text>
       </TouchableOpacity>
@@ -47,7 +80,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     elevation: 8,
     shadowColor: "#000",
@@ -58,8 +90,8 @@ const styles = StyleSheet.create({
   userSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     flex: 1,
+    gap: 12,
   },
   logoContainer: {
     width: 40,
@@ -68,38 +100,42 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   greeting: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "600",
   },
-  coinsSection: {
-    // El BeCoinsBalance se encarga de todos los estilos
-  },
-  headerCoinsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  coinsText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  coinsLabel: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    opacity: 0.8,
-  },
+  coinsSection: {},
   menuButton: {
     padding: 8,
-    marginLeft: 12,
+    marginLeft: 8,
   },
   menuIcon: {
     color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "bold",
+  },
+  authButton: {
+    color: "#FFFFFF",
+    padding: 8,
+    marginLeft: 8,
+  },
+  authButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  userActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 8,
   },
 });

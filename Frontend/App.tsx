@@ -14,6 +14,7 @@ import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { useSystemBars } from "./src/hooks/useImmersiveMode";
 import { colors } from "./src/styles/colors";
 import { LoginScreen } from "src/screens/Login";
+import { AuthProvider } from "src/hooks/AuthContext";
 
 export default function App() {
   // Hidratar solo el store de BeCoins antes de renderizar la app
@@ -45,47 +46,50 @@ export default function App() {
   if (!isBeCoinsLoaded) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-          <StatusBar style="light" />
-          <NavigationContainer
-            ref={navigationRef}
-            onStateChange={onNavigationStateChange}
-          >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: colors.background,
-              }}
-            >
-              <ActivityIndicator
-                size="large"
-                color={colors.primary || "#000"}
-              />
-            </View>
-          </NavigationContainer>
-        </View>
+        <AuthProvider>
+          <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+            <StatusBar style="light" />
+            <NavigationContainer
+              ref={navigationRef}
+              onStateChange={onNavigationStateChange}>
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: colors.background,
+                }}>
+                <ActivityIndicator
+                  size="large"
+                  color={colors.primary || "#000"}
+                />
+              </View>
+            </NavigationContainer>
+          </View>
+        </AuthProvider>
       </SafeAreaProvider>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        <StatusBar style="light" />
+      <AuthProvider>
+        <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+          <StatusBar style="light" />
 
-        <NavigationContainer
-          ref={navigationRef}
-          onStateChange={onNavigationStateChange}
-        >
-          <View style={{ flex: 1, backgroundColor: colors.background }}>
-            <RootStackNavigator />
-            {shouldShowQRButton && <FloatingQRButton onPress={handleQRPress} />}
-          </View>
-        </NavigationContainer>
-      </View>
-      {/* <LoginScreen /> */}
+          <NavigationContainer
+            ref={navigationRef}
+            onStateChange={onNavigationStateChange}>
+            <View style={{ flex: 1, backgroundColor: colors.background }}>
+              <RootStackNavigator />
+              {shouldShowQRButton && (
+                <FloatingQRButton onPress={handleQRPress} />
+              )}
+            </View>
+          </NavigationContainer>
+        </View>
+        {/* <LoginScreen /> */}
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
