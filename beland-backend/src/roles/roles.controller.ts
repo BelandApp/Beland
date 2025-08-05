@@ -9,6 +9,7 @@ import {
   NotFoundException,
   HttpStatus,
   HttpCode,
+  Logger, // Importar Logger
   // UseGuards, // Comentado temporalmente
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
@@ -33,6 +34,8 @@ import {
 @Controller('roles')
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
 export class RolesController {
+  private readonly logger = new Logger(RolesController.name); // Añadir logger
+
   constructor(private readonly rolesService: RolesService) {}
 
   @Post()
@@ -42,7 +45,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'Crear un nuevo rol (Solo Superadmin con permiso de usuario)',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 201,
     description: 'Rol creado exitosamente.',
@@ -56,6 +59,9 @@ export class RolesController {
   })
   @ApiResponse({ status: 409, description: 'El nombre del rol ya existe.' })
   async create(@Body() createRoleDto: CreateRoleDto): Promise<RoleDto> {
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /roles - Creando rol: ${createRoleDto.name}`,
+    );
     return this.rolesService.create(createRoleDto);
   }
 
@@ -63,7 +69,7 @@ export class RolesController {
   // @Roles('ADMIN', 'SUPERADMIN') // Revertido a ADMIN, SUPERADMIN
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener todos los roles (Solo Admin/Superadmin)' })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Lista de roles.',
@@ -75,6 +81,7 @@ export class RolesController {
     description: 'No autorizado (rol insuficiente).',
   })
   async findAll(): Promise<RoleDto[]> {
+    this.logger.log('🚧 [BACKEND] Ruta /roles - Obteniendo todos los roles.');
     return this.rolesService.findAll();
   }
 
@@ -82,7 +89,7 @@ export class RolesController {
   // @Roles('ADMIN', 'SUPERADMIN') // Revertido a ADMIN, SUPERADMIN
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener un rol por ID (Solo Admin/Superadmin)' })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', description: 'ID único del rol', type: String })
   @ApiResponse({
     status: 200,
@@ -96,10 +103,11 @@ export class RolesController {
   })
   @ApiResponse({ status: 404, description: 'Rol no encontrado.' })
   async findOne(@Param('id') id: string): Promise<RoleDto> {
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /roles/:id - Obteniendo rol con ID: ${id}`,
+    );
     const role = await this.rolesService.findOne(id);
-    if (!role) {
-      throw new NotFoundException(`Role with ID "${id}" not found.`);
-    }
+    // El servicio ya lanza NotFoundException, no es necesario verificar aquí de nuevo
     return role;
   }
 
@@ -111,7 +119,7 @@ export class RolesController {
     summary:
       'Obtener usuarios por ID de rol (Solo Admin/Superadmin con permiso de usuario)',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', description: 'ID único del rol', type: String })
   @ApiResponse({
     status: 200,
@@ -128,10 +136,11 @@ export class RolesController {
     description: 'No se encontraron usuarios para el rol o el rol no existe.',
   })
   async findUsersByRoleId(@Param('id') id: string): Promise<UserDto[]> {
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /roles/:id/users - Obteniendo usuarios para rol con ID: ${id}`,
+    );
     const users = await this.rolesService.findUsersByRoleId(id);
-    if (!users || users.length === 0) {
-      throw new NotFoundException(`No users found for role with ID "${id}".`);
-    }
+    // El servicio ya lanza NotFoundException si no hay usuarios o rol no existe
     return users;
   }
 
@@ -143,7 +152,7 @@ export class RolesController {
     summary:
       'Actualizar un rol por ID (Solo Superadmin con permiso de usuario)',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID único del rol a actualizar',
@@ -166,10 +175,11 @@ export class RolesController {
     @Param('id') id: string,
     @Body() updateRoleDto: UpdateRoleDto,
   ): Promise<RoleDto> {
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /roles/:id - Actualizando rol con ID: ${id}`,
+    );
     const updatedRole = await this.rolesService.update(id, updateRoleDto);
-    if (!updatedRole) {
-      throw new NotFoundException(`Role with ID "${id}" not found.`);
-    }
+    // El servicio ya lanza NotFoundException si no encuentra el rol
     return updatedRole;
   }
 
@@ -180,7 +190,7 @@ export class RolesController {
   @ApiOperation({
     summary: 'Eliminar un rol por ID (Solo Superadmin con permiso de usuario)',
   })
-  @ApiBearerAuth('JWT-auth')
+  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID único del rol a eliminar',
@@ -194,6 +204,9 @@ export class RolesController {
   })
   @ApiResponse({ status: 404, description: 'Rol no encontrado.' })
   async remove(@Param('id') id: string): Promise<void> {
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /roles/:id - Eliminando rol con ID: ${id}`,
+    );
     await this.rolesService.remove(id);
   }
 }
