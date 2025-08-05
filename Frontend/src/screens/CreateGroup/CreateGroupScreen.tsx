@@ -495,7 +495,10 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
         message={alertConfig.message}
         type={alertConfig.type}
         onClose={handleAlertClose}
-        buttonText="Entendido"
+        primaryButton={{
+          text: "Entendido",
+          onPress: handleAlertClose,
+        }}
       />
 
       {/* Alerta de confirmación para cancelar */}

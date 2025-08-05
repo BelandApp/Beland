@@ -90,7 +90,10 @@ export const CustomAlert = ({
 
           {/* Solo mostrar botones si no hay autoClose o si hay botones definidos */}
           {(!autoCloseDelay || primaryButton || secondaryButton) && (
-            <View style={styles.buttonContainer}>
+            <View style={[
+              styles.buttonContainer,
+              !secondaryButton && styles.singleButtonContainer
+            ]}>
               {secondaryButton && (
                 <TouchableOpacity
                   style={[styles.button, styles.secondaryButton]}
@@ -107,7 +110,7 @@ export const CustomAlert = ({
                   styles.button,
                   styles.primaryButton,
                   { backgroundColor: getColorByType() },
-                  !secondaryButton && { flex: 0, minWidth: 120 }, // Si es un solo botón, centrado
+                  !secondaryButton && styles.singleButton
                 ]}
                 onPress={primaryButton?.onPress || onClose}
               >
@@ -193,12 +196,21 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 4,
   },
+  singleButtonContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
   primaryButton: {
     elevation: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
+  },
+  singleButton: {
+    flex: 0,
+    minWidth: 140,
+    maxWidth: 200,
   },
   secondaryButton: {
     backgroundColor: "#F3F4F6",

@@ -20,7 +20,8 @@ type User = {
 };
 
 // Configuración para usar modo demo o producción
-const USE_DEMO_MODE = true; // Cambiar a false cuando tengas el backend listo
+const USE_DEMO_MODE =
+  Constants.expoConfig?.extra?.useDemoMode === "true" || true; // Fallback a true por ahora
 
 type AuthContextType = {
   user: User | null;

@@ -1,5 +1,7 @@
+import Constants from "expo-constants";
+
 // Configuración base para los servicios de API
-const API_BASE_URL = "YOUR_BACKEND_URL"; // Reemplazar con la URL real del backend
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || "YOUR_BACKEND_URL";
 
 // Configuración de headers por defecto
 const defaultHeaders = {
