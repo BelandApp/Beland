@@ -13,7 +13,7 @@ import {
   IsNumber,
   IsBoolean,
   IsDate,
-  IsEmpty,
+  // IsEmpty, // No se usa, se puede eliminar
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -60,13 +60,13 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'Rol del usuario',
-    // Revertido a los tipos de roles originales
-    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN'],
+    // ¡Añadido 'EMPRESA' aquí!
+    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
     default: 'USER',
   })
   @IsOptional() // El rol puede ser asignado por defecto en el servicio
-  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN'])
-  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN';
+  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'])
+  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
   @ApiProperty({
     required: true,
