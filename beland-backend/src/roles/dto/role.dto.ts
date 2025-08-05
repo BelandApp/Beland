@@ -9,15 +9,17 @@ export class RoleDto {
 
   @ApiProperty({
     description: 'Nombre del rol',
-    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN
+    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN, EMPRESA
   })
-  name: string;
+  // ¡ACTUALIZADO para incluir EMPRESA!
+  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
   @ApiProperty({
     description: 'Descripción del rol',
     example: 'Usuario básico del sistema',
+    nullable: true, // Añadido nullable para coincidir con la entidad
   })
-  description: string;
+  description: string | null; // Cambiado a string | null
 
   @ApiProperty({
     description: 'Si el rol está activo',

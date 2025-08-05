@@ -1,43 +1,65 @@
-import { Repository, DataSource, EntityManager } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { Repository, DataSource } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Role } from './entities/role.entity';
-import { User } from '../users/entities/users.entity';
-import { InjectRepository } from '@nestjs/typeorm'; // Importar InjectRepository si se usa
+import { User } from '../users/entities/users.entity'; // Importar User si se usa en findUsersByRoleId
+
+// Definición de tipo para todos los roles válidos (debe coincidir con UsersService y Role Entity)
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
 @Injectable()
-export class RolesRepository extends Repository<Role> {
-  // RolesRepository ahora hereda directamente de Repository<Role>
-  // y usa InjectRepository para obtener la instancia del repositorio de TypeORM.
-  // Los métodos save, create, find, remove, etc., se heredan automáticamente.
+export class RolesRepository {
+  private readonly logger = new Logger(RolesRepository.name);
+
   constructor(
     @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
-    private dataSource: DataSource, // Se mantiene DataSource si se usa para transacciones o query builders
+    private readonly roleORMRepository: Repository<Role>, // Inyectar directamente el repositorio de TypeORM
+    // private dataSource: DataSource, // DataSource solo si necesitas transacciones manuales o query builders complejos
   ) {
-    super(Role, dataSource.manager); // Llamar al constructor de la clase base
+    // Si inyectas Repository<Role>, no necesitas llamar a super()
+    // super(Role, dataSource.manager);
   }
 
-  async findByName(
-    name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN',
-    manager?: EntityManager,
-  ): Promise<Role | null> {
-    const repo = manager ? manager.getRepository(Role) : this.roleRepository; // Usar this.roleRepository
-    return repo.findOne({ where: { name } });
+  // Métodos CRUD básicos se obtienen de roleORMRepository
+  async findOne(id: string): Promise<Role | null> {
+    return this.roleORMRepository.findOne({ where: { role_id: id } });
   }
 
-  async findUsersByRoleId(roleId: string): Promise<User[]> {
-    const role = await this.roleRepository.findOne({
-      where: { role_id: roleId },
-    });
-    if (!role) {
-      return [];
-    }
-    return this.dataSource.getRepository(User).find({
-      where: { role_name: role.name },
-    });
+  async findByName(name: ValidRoleNames): Promise<Role | null> {
+    return this.roleORMRepository.findOne({ where: { name } });
   }
 
-  // Puedes añadir métodos personalizados aquí si necesitas lógica que no sea un simple CRUD
-  // Por ejemplo, si necesitas un método que haga algo más complejo que un simple findOne o save.
-  // Sin embargo, los métodos básicos como save(), create(), find(), remove() ya se heredan.
+  async save(role: Role): Promise<Role> {
+    return this.roleORMRepository.save(role);
+  }
+
+  // CORRECCIÓN: Este método debe ser SÍNCRONO y devolver Role directamente.
+  // El método .create() de TypeORM es síncrono y solo instancia la entidad.
+  create(rolePartial: Partial<Role>): Role {
+    return this.roleORMRepository.create(rolePartial);
+  }
+
+  async remove(role: Role): Promise<Role> {
+    return this.roleORMRepository.remove(role);
+  }
+
+  async find(): Promise<Role[]> {
+    return this.roleORMRepository.find();
+  }
+
+  // Si findUsersByRoleId necesita DataSource, se puede inyectar y usar:
+  // async findUsersByRoleId(roleId: string): Promise<User[]> {
+  //   const role = await this.roleORMRepository.findOne({
+  //     where: { role_id: roleId },
+  //   });
+  //   if (!role) {
+  //     return [];
+  //   }
+  //   // Asumiendo que tienes un UserRepository o acceso al manager para User
+  //   // return this.dataSource.getRepository(User).find({
+  //   //   where: { role_name: role.name },
+  //   // });
+  //   // Si no, esta lógica debería estar en UsersService o UserRepository
+  //   throw new Error('findUsersByRoleId not implemented in RolesRepository without DataSource');
+  // }
 }
