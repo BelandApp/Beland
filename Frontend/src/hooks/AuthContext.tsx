@@ -32,7 +32,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: !isWeb, // proxy solo en mobile
-  }as any);
+  } as Partial<AuthSession.AuthSessionRedirectUriOptions>);
+  Alert.alert("Redirect URI", redirectUri); // para debug
 
   const discovery = {
     authorizationEndpoint: `https://${domain}/authorize`,
@@ -87,11 +88,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [response]);
 
   const login = async () => {
-    Alert.alert("Redirect URI", redirectUri); // para debug
     try {
       await promptAsync({
         useProxy: !isWeb, // solo usamos proxy en móvil
-      } as any);
+      } as Partial<AuthSession.AuthRequestPromptOptions>);
     } catch (error) {
       console.error("Login error:", error);
     }

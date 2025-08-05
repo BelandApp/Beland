@@ -8,12 +8,15 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "belandnative",
-    "owner": "anonymous",
-       "extra": {
-         "auth0Domain": "dev-vf7nz76r1qsjwysf.us.auth0.com",
-         "auth0MobileClientId": "vClasEqwzWYz1f8pz6J7IDQz0yzot445",
-         "auth0WebClientId": "jNonnDIwGXK83rtiKGkGYxegh4S8eANt"
-       },
+    "owner": "beland",
+    "extra": {
+      "auth0Domain": "dev-vf7nz76r1qsjwysf.us.auth0.com",
+      "auth0MobileClientId": "vClasEqwzWYz1f8pz6J7IDQz0yzot445",
+      "auth0WebClientId": "jNonnDIwGXK83rtiKGkGYxegh4S8eANt",
+      "eas": {
+        "projectId": "962398b5-4d0e-410f-a3d5-7395fef19993"
+      }
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -41,10 +44,21 @@
         "translucent": false
       },
       "package": "com.belandapp.beland",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/962398b5-4d0e-410f-a3d5-7395fef19993"
     }
   }
 }
