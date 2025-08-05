@@ -4,6 +4,7 @@
 
 export interface FormErrors {
   groupName?: string;
+  groupType?: string;
   description?: string;
   location?: string;
   deliveryTime?: string;
@@ -78,6 +79,7 @@ export const validateParticipantInstagram = (
  */
 export const validateGroupForm = (data: {
   groupName: string;
+  groupType: string;
   location: string;
   deliveryTime: string;
   participants: any[];
@@ -90,6 +92,11 @@ export const validateGroupForm = (data: {
     errors.groupName = "El nombre del grupo es obligatorio";
   } else if (data.groupName.trim().length < 3) {
     errors.groupName = "El nombre debe tener al menos 3 caracteres";
+  }
+
+  // Validar tipo de grupo
+  if (!data.groupType.trim()) {
+    errors.groupType = "El tipo de grupo es obligatorio";
   }
 
   // Validar ubicación
