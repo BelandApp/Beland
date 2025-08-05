@@ -19,12 +19,14 @@ import {
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @ApiProperty({
     description: 'Rol del usuario',
-    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN'],
+    // ¡Añadido 'EMPRESA' aquí!
+    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
     required: false,
   })
   @IsOptional()
-  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN'])
-  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN'; // Revertido a role (string literal)
+  // ¡Añadido 'EMPRESA' aquí!
+  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'])
+  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA'; // Revertido a role (string literal)
 
   @ApiProperty({
     description: 'Si el usuario está bloqueado',
