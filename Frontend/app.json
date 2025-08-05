@@ -9,11 +9,11 @@
     "newArchEnabled": true,
     "scheme": "belandnative",
     "owner": "anonymous",
-       "extra": {
-         "auth0Domain": "dev-vf7nz76r1qsjwysf.us.auth0.com",
-         "auth0MobileClientId": "vClasEqwzWYz1f8pz6J7IDQz0yzot445",
-         "auth0WebClientId": "jNonnDIwGXK83rtiKGkGYxegh4S8eANt"
-       },
+    "extra": {
+      "auth0Domain": "dev-w8jzjvmdqjpwaf2c.us.auth0.com",
+      "auth0MobileClientId": "wdtU9MdOw9TbsiVgirlSLVWNrrlyxX2G",
+      "auth0WebClientId": "wdtU9MdOw9TbsiVgirlSLVWNrrlyxX2G"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -37,9 +37,14 @@
       "statusBar": {
         "barStyle": "light-content",
         "backgroundColor": "#F88D2A",
-        "hidden": false,
-        "translucent": false
+        "hidden": true,
+        "translucent": true
       },
+      "navigationBar": {
+        "visible": "sticky-immersive"
+      },
+      "softwareKeyboardLayoutMode": "adjustResize",
+      "userInterfaceStyle": "light",
       "package": "com.belandapp.beland",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },

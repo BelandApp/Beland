@@ -15,13 +15,17 @@ type User = {
 type AuthContextType = {
   user: User | null;
   login: () => Promise<void>;
+  loginWithEmailPassword: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  loginAsDemo: () => void;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const isWeb = Platform.OS === "web";
 
   const domain = Constants.expoConfig?.extra?.auth0Domain ?? "";
@@ -30,9 +34,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ? Constants.expoConfig?.extra?.auth0WebClientId ?? ""
     : Constants.expoConfig?.extra?.auth0MobileClientId ?? "";
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: !isWeb, // proxy solo en mobile
-  }as any);
+  // Configuración mejorada para mobile
+  const redirectUri =
+    Platform.OS === "web"
+      ? "http://localhost:8081"
+      : AuthSession.makeRedirectUri({
+          scheme: "exp", // Usar el esquema de Expo
+        });
 
   const discovery = {
     authorizationEndpoint: `https://${domain}/authorize`,
@@ -54,6 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const getAccessToken = async (code: string) => {
       try {
+        setIsLoading(true); // Mostrar loading durante el intercambio de tokens
+
         const tokenResult = await AuthSession.exchangeCodeAsync(
           {
             clientId,
@@ -76,24 +86,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const userInfo = await userInfoResponse.json();
         setUser(userInfo);
+
+        // Sin alert, transición directa y fluida
       } catch (error) {
-        console.error("Token exchange or user fetch failed:", error);
+        Alert.alert("Error", "No se pudo completar el inicio de sesión");
+      } finally {
+        setIsLoading(false); // Finalizar loading
       }
     };
 
     if (response?.type === "success" && response.params?.code) {
       getAccessToken(response.params.code);
+    } else if (response?.type === "error") {
+      setIsLoading(false);
     }
   }, [response]);
 
   const login = async () => {
-    Alert.alert("Redirect URI", redirectUri); // para debug
+    setIsLoading(true);
     try {
-      await promptAsync({
-        useProxy: !isWeb, // solo usamos proxy en móvil
-      } as any);
+      const result = await promptAsync();
+
+      if (result.type === "error") {
+        Alert.alert(
+          "Error de Autenticación",
+          "No se pudo completar el inicio de sesión. Por favor, intenta nuevamente."
+        );
+        setIsLoading(false);
+      } else if (result.type === "cancel") {
+        // Usuario canceló, no mostrar error
+        setIsLoading(false);
+      }
+      // Si es success, el loading se maneja en el useEffect
     } catch (error) {
-      console.error("Login error:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo completar el inicio de sesión. Por favor, intenta nuevamente."
+      );
+      setIsLoading(false);
+    }
+  };
+
+  const loginWithEmailPassword = async (
+    email: string,
+    password: string
+  ): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      // Aquí irían las llamadas reales a tu backend
+      // Por ahora simulamos un login exitoso para el demo
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Crear usuario simulado basado en el email
+      const simulatedUser: User = {
+        name:
+          email.split("@")[0].charAt(0).toUpperCase() +
+          email.split("@")[0].slice(1),
+        email: email,
+        picture: undefined,
+      };
+
+      setUser(simulatedUser);
+      return true;
+    } catch (error) {
+      console.error("Email login error:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -101,8 +160,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
   };
 
+  const loginAsDemo = () => {
+    const demoUser: User = {
+      name: "Usuario Demo",
+      email: "demo@beland.app",
+      picture: undefined,
+    };
+    setUser(demoUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        loginWithEmailPassword,
+        logout,
+        loginAsDemo,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 
 export const containerStyles = StyleSheet.create({
@@ -12,13 +12,14 @@ export const containerStyles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 16,
+    paddingBottom: Platform.OS === "android" ? 96 : 86, // Espacio extra para la nueva barra de navegación
   },
   titleContainer: {
     backgroundColor: colors.belandOrange,
     marginHorizontal: -16,
     marginTop: -16,
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: Platform.OS === "android" ? 30 : 60, // Reducido para Android porque la barra de estado está oculta
     paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
