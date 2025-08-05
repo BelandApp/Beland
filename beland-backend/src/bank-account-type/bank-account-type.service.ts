@@ -1,26 +1,80 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBankAccountTypeDto } from './dto/create-bank-account-type.dto';
-import { UpdateBankAccountTypeDto } from './dto/update-bank-account-type.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { BankAccountType } from './entities/bank-account-type.entity';
+import { BankAccountTypesRepository } from './bank-account-type.repository';
 
 @Injectable()
-export class BankAccountTypeService {
-  create(createBankAccountTypeDto: CreateBankAccountTypeDto) {
-    return 'This action adds a new bankAccountType';
+export class BankAccountTypesService {
+  private readonly completeMessage = 'el tipo de cuenta bancaria';
+
+  constructor(private readonly repository: BankAccountTypesRepository) {}
+
+  async findAll(
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[BankAccountType[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all bankAccountType`;
+  async findOne(id: string): Promise<BankAccountType> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} bankAccountType`;
+  async create(body: Partial<BankAccountType>): Promise<BankAccountType> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updateBankAccountTypeDto: UpdateBankAccountTypeDto) {
-    return `This action updates a #${id} bankAccountType`;
+  async update(id: string, body: Partial<BankAccountType>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} bankAccountType`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }

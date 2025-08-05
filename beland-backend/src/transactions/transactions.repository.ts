@@ -1,0 +1,61 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DeleteResult, Repository, UpdateResult } from 'typeorm';
+import { Transaction } from './entities/transaction.entity';
+
+@Injectable()
+export class TransactionsRepository {
+  constructor(
+    @InjectRepository(Transaction)
+    private repository: Repository<Transaction>,
+  ) {}
+
+  async findAll(
+    wallet_id: string,
+    status_id: string,
+    type_id: string,
+    page: number,
+    limit: number,
+  ): Promise<[Transaction[], number]> {
+    const where: any = {};
+
+    if (wallet_id) {
+        where.wallet_id = wallet_id;
+    }
+
+    if (status_id) {
+        where.status_id = status_id;
+    }
+
+    if (type_id) {
+        where.type_id = type_id;
+    }
+
+    return this.repository.findAndCount({
+        where,
+        order: { created_at: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relations: ['wallet', 'status', 'type'],
+    });
+  }
+
+  async findOne(id: string): Promise<Transaction> {
+    return this.repository.findOne({
+      where: { id },
+      relations: ['wallet', 'status', 'type'],
+    });
+  }
+
+  async create(body: Partial<Transaction>): Promise<Transaction> {
+    return await this.repository.save(body);
+  }
+
+  async update(id: string, body: Partial<Transaction>): Promise<UpdateResult> {
+    return await this.repository.update(id, body);
+  }
+
+  async remove(id: string): Promise<DeleteResult> {
+    return await this.repository.delete(id);
+  }
+}
