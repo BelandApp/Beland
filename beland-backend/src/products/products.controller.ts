@@ -23,6 +23,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { ProductQueryDto } from './dto/product-query.dto';
 
 @ApiTags('products')
 @Controller('products')
@@ -41,18 +42,16 @@ export class ProductsController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Listar productos con paginación y ordenamiento' })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  @ApiQuery({ name: 'sortBy', required: false })
-  @ApiQuery({ name: 'order', required: false })
-  @ApiQuery({ name: 'category', required: false })
-  async findAll(
-    @Query() pagination: PaginationDto,
-    @Query() order: OrderDto,
-    @Query('category') category?: string,
-  ) {
-    return this.productsService.findAll(pagination, order, category);
+  @ApiOperation({
+    summary: 'Listar productos con paginación, ordenamiento y filtrado',
+  })
+  async findAll(@Query() query: ProductQueryDto) {
+    const { page, limit, sortBy, order, category } = query;
+    return this.productsService.findAll(
+      { page, limit },
+      { sortBy, order },
+      category,
+    );
   }
 
   @Get(':id')

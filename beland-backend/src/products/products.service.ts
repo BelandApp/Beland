@@ -42,8 +42,9 @@ export class ProductsService {
     return this.repo.save(product);
   }
 
+  // src/products/products.service.ts
   async remove(id: string) {
     const product = await this.findOne(id);
-    await this.repo.remove(product);
+    await this.repo.softRemove(product);
   }
 }

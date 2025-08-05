@@ -1,7 +1,7 @@
 import React from "react";
 import { ScrollView, TouchableOpacity, Text } from "react-native";
 import { styles } from "@screens/RecyclingMap/styles/FilterStyles";
-import { RECYCLING_TYPES } from "@constants/recyclingData";
+import { RECYCLING_TYPES } from "src/data/recyclingData";
 
 interface FilterChipsProps {
   selectedFilters: string[];

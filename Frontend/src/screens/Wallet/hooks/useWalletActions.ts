@@ -16,7 +16,7 @@ export const useWalletActions = () => {
       onPress: () => console.log("Canjear pressed"),
     },
     {
-      id: "transactions",
+      id: "history",
       label: "Transacciones",
       icon: TransactionIcon,
       backgroundColor: "#FFFFFF",

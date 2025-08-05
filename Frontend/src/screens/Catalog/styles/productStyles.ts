@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 
 export const productStyles = StyleSheet.create({
@@ -8,8 +8,14 @@ export const productStyles = StyleSheet.create({
   },
   productRow: {
     flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
+    justifyContent: "flex-start" as const,
     marginBottom: 16,
+    ...(Platform.OS === "web"
+      ? {
+          gap: 16,
+          justifyContent: "center",
+        }
+      : {}),
   },
   // Product card
   productCard: {
@@ -21,15 +27,46 @@ export const productStyles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    flex: 1,
-    marginHorizontal: 4,
+    ...(Platform.OS === "web"
+      ? {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "20%",
+        }
+      : {
+          flex: 1,
+          marginHorizontal: 4,
+        }),
+  },
+  productImageContainer: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 8,
+    overflow: "hidden",
+    marginBottom: 8,
+    ...(Platform.OS === "web"
+      ? {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          maxWidth: 200,
+          maxHeight: 200,
+        }
+      : {}),
   },
   productImage: {
-    width: "100%" as const,
-    height: 120,
+    width: "100%",
+    height: "100%",
     borderRadius: 8,
-    backgroundColor: "#F0F0F0",
-    marginBottom: 8,
+    ...(Platform.OS === "web"
+      ? {
+          maxWidth: 320,
+          maxHeight: 200,
+        }
+      : {}),
   },
   productBrand: {
     fontSize: 12,
@@ -66,6 +103,11 @@ export const productStyles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center" as const,
     alignItems: "center" as const,
+    ...(Platform.OS === "web"
+      ? {
+          marginLeft: 8,
+        }
+      : {}),
   },
   addToCartText: {
     color: "white",

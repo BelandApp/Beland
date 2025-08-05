@@ -1,4 +1,4 @@
-# 🌱 Beland 
+# 🌱 Beland
 
 **Aplicación móvil de reciclaje inteligente con incentivos BeCoins**
 
@@ -143,36 +143,50 @@ Tradicionalmente, seleccionar ubicaciones en apps móviles requiere:
 
 - 📝 **Formulario modular** con validación TypeScript
 - 📍 **3 métodos de ubicación**:
-  - 🛰️ GPS automático
-  - 🎯 MapSelector integrado
-  - 📱 Apps externas (fallback)
-- ⏰ **Selector de horario** simplificado
-- 🎨 **Interfaz optimizada** para móviles
 
-### **✅ Sistema de Ubicación Completo**
+# 🌱 Beland Frontend
 
-```typescript
-// GPS Automático
-const location = await detectCurrentLocation();
+**Aplicación móvil de reciclaje inteligente con incentivos BeCoins**
 
-// MapSelector Integrado
-<MapSelector onLocationSelect={handleSelection} />
-
-// Servicios Centralizados
-locationUtils.ts: {
-  detectCurrentLocation(),
-  fetchLocationSuggestions(),
-  // openGoogleMapsForSelection() - REMOVIDO
-}
-```
+Beland Native es una app React Native que promueve el reciclaje responsable mediante recompensas gamificadas. Los usuarios reciclan botellas en máquinas inteligentes, ganan BeCoins y los canjean por productos sustentables.
 
 ---
 
-## 🚀 Instalación y Desarrollo
+## 📱 Características Principales
 
-### **Requisitos Previos**
+- Escáner QR para máquinas de reciclaje
+- Tracking de botellas recicladas en tiempo real
+- Visualización de impacto ambiental (árboles salvados)
+- Ubicación de máquinas con MapSelector integrado
+- Wallet digital con balance en tiempo real
+- Marketplace de recompensas
+- Historial de transacciones y actividades
+- Sistema de logros y niveles
+- Creación de grupos colaborativos
+- Selección automática de ubicación con mapa interactivo
+- Programación de entregas flexible
+- Metas grupales y seguimiento de progreso
+- Modo oscuro y personalización
 
-```bash
+---
+
+## 🏗️ Arquitectura Técnica
+
+### Stack Tecnológico
+
+- **Frontend:** React Native + Expo SDK 51
+- **Lenguaje:** TypeScript (100% tipado)
+- **Navegación:** Expo Router (file-based routing)
+- **Estado global:** Zustand
+- **Mapas:** OpenStreetMap + Leaflet.js + Nominatim API
+- **Cámara:** expo-camera
+- **Ubicación:** expo-location
+- **WebView:** react-native-webview
+- **Estilos:** StyleSheet nativo modular
+
+### Estructura de Carpetas
+
+```
 Node.js >= 18.0.0
 npm >= 9.0.0
 Expo CLI >= 6.0.0
@@ -181,7 +195,7 @@ Git >= 2.30.0
 
 ### **Instalación Rápida**
 
-```bash
+````bash
 # Clonar el repositorio
 git clone https://github.com/GabrieLZ19/Beland.git
 cd Beland
@@ -190,10 +204,156 @@ cd Beland
 npm install
 
 # Iniciar en modo desarrollo
+
+---
+
+## 🚀 Instalación y Desarrollo
+
+### Requisitos Previos
+
+- Node.js >= 18.0.0
+- npm >= 9.0.0
+- Expo CLI >= 6.0.0
+- Git >= 2.30.0
+
+### Instalación Rápida
+
+```bash
+# Clonar el repositorio
 npm start
-```
+````
+
+# Instalar dependencias
+
+# Iniciar en modo desarrollo
 
 ### **Dependencias Principales**
+
+````
+
+### Scripts Disponibles
+
+```bash
+npm start          # Desarrollo con Expo
+npm run android    # Ejecutar en Android
+npm run ios        # Ejecutar en iOS
+npm run web        # Ejecutar en navegador
+npm run build      # Build para producción
+````
+
+---
+
+## 🗺️ MapSelector: Selección de Ubicación Innovadora
+
+- Mapa embebido usando OpenStreetMap (sin API keys)
+- Selección automática con un toque
+- Geocodificación vía Nominatim API
+- Marcador visual en tiempo real
+- WebView nativo sin dependencias externas
+
+### Ejemplo de uso
+
+```tsx
+<MapSelector
+  visible={showMapSelector}
+  onLocationSelect={(address, coords) => setSelectedLocation(address)}
+  onClose={() => setShowMapSelector(false)}
+/>
+```
+
+---
+
+## 🎯 Funcionalidades Implementadas
+
+- Dashboard con balance de BeCoins y estadísticas
+- Contador de botellas recicladas
+- Impacto ambiental (árboles salvados)
+- Acceso rápido a recompensas
+- Historial de actividades
+- Navegación unificada por tabs
+- Creación de grupos avanzada con validación
+- Sistema de ubicación completo (GPS, MapSelector, apps externas)
+- Wallet digital con autenticación facial simulada
+- Sistema de logros y niveles
+
+---
+
+## 📄 Roadmap de Desarrollo
+
+### En Desarrollo
+
+- [ ] Integración con backend real
+- [ ] Sistema de notificaciones push
+- [ ] Modo offline con sincronización
+- [ ] Análisis avanzado de datos
+
+### Próximas Versiones
+
+- [ ] Sistema de referidos
+- [ ] Integración con redes sociales
+- [ ] Gamificación avanzada
+- [ ] AR para ubicación de máquinas
+
+### Metas a Largo Plazo
+
+- [ ] Expansión regional
+- [ ] Partnerships con marcas
+- [ ] Impacto medible CO2
+- [ ] Marketplace P2P
+
+---
+
+## 🤝 Contribución
+
+1. **Fork** el repositorio
+2. **Crea** una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'Add AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. **Abre** un Pull Request
+
+### Estándares de Código
+
+- TypeScript estricto
+- Componentes modulares y reutilizables
+- Hooks personalizados
+- Estilos organizados
+- Nomenclatura descriptiva
+
+---
+
+## 📄 Licencia
+
+Distribuido bajo la licencia MIT. Ver `LICENSE` para más información.
+
+---
+
+## 👤 Equipo
+
+**Gabriel Lazo** - _Full Stack Developer_
+📧 Email: gabriellazo48@gmail.com
+🔗 GitHub: [@GabrieLZ19](https://github.com/GabrieLZ19)
+
+---
+
+## 🙏 Agradecimientos
+
+- Expo Team
+- OpenStreetMap
+- Nominatim
+- React Native Community
+
+---
+
+## 📞 Soporte
+
+- Documentación: Wiki del proyecto
+- Reportar bugs: Issues en GitHub
+- Comunidad: Discord de Beland
+- Contacto directo: support@beland.com
+
+---
+
+**🌱 Juntos hacia un futuro más sustentable con Beland** 🌱
 
 ```json
 {

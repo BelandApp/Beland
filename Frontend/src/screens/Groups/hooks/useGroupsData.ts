@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import React from "react";
-import { useGroups } from "../../../hooks/useGroups";
+import { useGroups } from "../../Groups/hooks/useGroups";
 import { Group } from "../../../types";
 
 export const useGroupsData = () => {

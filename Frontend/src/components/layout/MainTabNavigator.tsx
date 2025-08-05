@@ -1,10 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { colors } from "../../styles/colors";
 import { DashboardScreen } from "../../screens/DashboardScreen";
-import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { WalletScreen } from "../../screens/WalletScreen";
 import { RewardsScreen } from "../../screens/RewardsScreen";
 import { CatalogScreen } from "../../screens/CatalogScreen";
@@ -16,7 +14,6 @@ import {
   QRIcon,
   WalletIcon,
   CatalogIcon,
-  ProfileIcon,
   GiftIcon,
   GroupIcon,
 } from "../icons";

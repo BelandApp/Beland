@@ -50,6 +50,7 @@ export const GroupManagementScreen: React.FC<GroupManagementScreenProps> = ({
             activeTab={activeTab}
             isGroupAdmin={isGroupAdmin}
             onGroupUpdated={handleGroupUpdated}
+            navigation={navigation}
           />
         </View>
       </ScrollView>

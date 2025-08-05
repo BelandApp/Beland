@@ -11,7 +11,6 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootStackNavigator } from "./src/components/layout/RootStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
-import { useSystemBars } from "./src/hooks/useImmersiveMode";
 import { colors } from "./src/styles/colors";
 import { LoginScreen } from "src/screens/Login";
 import { AuthProvider } from "src/hooks/AuthContext";
@@ -19,8 +18,6 @@ import { AuthProvider } from "src/hooks/AuthContext";
 export default function App() {
   // Hidratar solo el store de BeCoins antes de renderizar la app
   const isBeCoinsLoaded = useBeCoinsStoreHydration();
-  // Hook mejorado que maneja edge-to-edge automáticamente
-  useSystemBars();
 
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
   const [currentRoute, setCurrentRoute] = useState<string | undefined>(
@@ -39,9 +36,17 @@ export default function App() {
     }
   };
 
-  // Solo mostrar el botón QR si no estamos en la pantalla QR ni en RecyclingMap
+  // Solo mostrar el botón QR si no estamos en la pantalla QR, RecyclingMap ni en screens de acciones de la wallet
+  const walletActionScreens = [
+    "CanjearScreen",
+    "SendScreen",
+    "ReceiveScreen",
+    "HistoryScreen",
+  ];
   const shouldShowQRButton =
-    currentRoute !== "QR" && currentRoute !== "RecyclingMap";
+    currentRoute !== "QR" &&
+    currentRoute !== "RecyclingMap" &&
+    !walletActionScreens.includes(currentRoute ?? "");
 
   if (!isBeCoinsLoaded) {
     return (
