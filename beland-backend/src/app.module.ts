@@ -30,16 +30,15 @@ import { DataSourceOptions } from 'typeorm';
 import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
 import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware'; // Asegúrate de que este archivo exista
 import { TransactionsModule } from './transactions/transactions.module';
-import { TypeTransactionsModule } from './type-transactions/type-transactions.module';
 import { PaymentMethodsModule } from './payment_methods/payment_methods.module';
 import { RecyclePricesModule } from './recycle_prices/recycle_prices.module';
 import { PayphoneModule } from './payphone/payphone.module';
 import { BankAccountModule } from './bank-account/bank-account.module';
 import { MerchantsModule } from './merchants/merchants.module';
-import { TypeBankAccountModule } from './type-bank-account/type-bank-account.module';
 import { TransactionTypeModule } from './transaction-type/transaction-type.module';
 import { TransactionStateModule } from './transaction-state/transaction-state.module';
 import { CharityModule } from './charity/charity.module';
+import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
 
 @Module({
   imports: [
@@ -91,16 +90,15 @@ import { CharityModule } from './charity/charity.module';
     AuthModule,
     CommonModule,
     TransactionsModule,
-    TypeTransactionsModule,
     PaymentMethodsModule,
     RecyclePricesModule,
     PayphoneModule,
     BankAccountModule,
     MerchantsModule,
-    TypeBankAccountModule,
     TransactionTypeModule,
     TransactionStateModule,
     CharityModule,
+    BankAccountTypeModule,
   ],
   controllers: [],
   providers: [
