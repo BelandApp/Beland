@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackgroundWaves from "../../components/ui/BackgroundWaves";
 import SocialButtons from "../Login/components/SocialButtons";
+import { CustomAlert } from "../../components/ui/CustomAlert";
 import { useAuth } from "../../hooks/AuthContext";
 import { styles } from "./styles";
 
@@ -20,8 +22,33 @@ export default function RegisterScreen({ navigation }: any) {
     password: "",
     confirmPassword: "",
   });
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const {
+    registerWithGoogle,
+    registerWithEmailPassword,
+    isLoading: authLoading,
+  } = useAuth();
+
+  // Efecto para navegación automática después del alert
+  useEffect(() => {
+    if (showSuccessAlert) {
+      const timer = setTimeout(() => {
+        setShowSuccessAlert(false);
+        // Limpiar el formulario
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+        // Navegar al login
+        navigation.navigate("Login");
+      }, 2500); // 2.5 segundos
+
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessAlert, navigation]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -63,37 +90,28 @@ export default function RegisterScreen({ navigation }: any) {
   const handleRegister = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
-
     try {
-      // Aquí integrarías con tu backend para el registro
-      // Por ahora simularemos el registro
-      console.log("Registrando usuario:", formData);
-
-      // Simular delay de red
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      Alert.alert(
-        "¡Registro exitoso!",
-        "Tu cuenta ha sido creada correctamente",
-        [
-          {
-            text: "Iniciar sesión",
-            onPress: () => navigation.navigate("Login"),
-          },
-        ]
+      const success = await registerWithEmailPassword(
+        formData.name,
+        formData.email,
+        formData.password
       );
+
+      if (success) {
+        // Mostrar alert personalizado en lugar del alert nativo
+        setShowSuccessAlert(true);
+      } else {
+        Alert.alert("Error", "No se pudo crear la cuenta");
+      }
     } catch (error) {
       Alert.alert("Error", "Hubo un problema al crear tu cuenta");
       console.error("Register error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleGoogleRegister = async () => {
     try {
-      await login(); // Usar el método existente de Google
+      await registerWithGoogle(); // Usar la nueva función específica para registro
     } catch (error) {
       Alert.alert("Error", "No se pudo completar el registro con Google");
     }
@@ -147,12 +165,15 @@ export default function RegisterScreen({ navigation }: any) {
           />
 
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              (isLoading || authLoading) && styles.buttonDisabled,
+            ]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={isLoading || authLoading}
           >
             <Text style={styles.buttonText}>
-              {isLoading ? "Creando cuenta..." : "Crear cuenta"}
+              {isLoading || authLoading ? "Creando cuenta..." : "Crear cuenta"}
             </Text>
           </TouchableOpacity>
 
@@ -166,7 +187,15 @@ export default function RegisterScreen({ navigation }: any) {
             style={styles.googleButton}
             onPress={handleGoogleRegister}
           >
-            <Text style={styles.googleButtonText}>🌐 Continuar con Google</Text>
+            <View style={styles.googleButtonContent}>
+              <Image
+                source={{
+                  uri: "https://developers.google.com/identity/images/g-logo.png",
+                }}
+                style={styles.googleLogo}
+              />
+              <Text style={styles.googleButtonText}>Continuar con Google</Text>
+            </View>
           </TouchableOpacity>
 
           <View style={styles.loginPrompt}>
@@ -177,6 +206,16 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
         </View>
       </ScrollView>
+
+      {/* CustomAlert para registro exitoso */}
+      <CustomAlert
+        visible={showSuccessAlert}
+        type="success"
+        title="¡Registro exitoso!"
+        message="Tu cuenta ha sido creada correctamente. Redirigiendo al login..."
+        onClose={() => setShowSuccessAlert(false)}
+        autoCloseDelay={2500}
+      />
     </SafeAreaView>
   );
 }

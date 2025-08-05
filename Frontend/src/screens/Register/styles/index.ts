@@ -130,6 +130,16 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     minHeight: 60,
   },
+  googleButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  googleLogo: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
   googleButtonText: {
     color: "#374151",
     fontSize: 17,

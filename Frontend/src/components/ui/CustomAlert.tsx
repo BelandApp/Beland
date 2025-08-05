@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Modal,
   View,
@@ -15,7 +15,15 @@ interface CustomAlertProps {
   message: string;
   onClose: () => void;
   type?: "success" | "error" | "info";
-  buttonText?: string;
+  autoCloseDelay?: number; // Nuevo: tiempo en ms para cerrar automáticamente
+  primaryButton?: {
+    text: string;
+    onPress: () => void;
+  };
+  secondaryButton?: {
+    text: string;
+    onPress: () => void;
+  };
 }
 
 export const CustomAlert = ({
@@ -24,16 +32,28 @@ export const CustomAlert = ({
   message,
   onClose,
   type = "info",
-  buttonText = "OK",
+  autoCloseDelay,
+  primaryButton,
+  secondaryButton,
 }: CustomAlertProps) => {
+  // Efecto para cerrar automáticamente
+  useEffect(() => {
+    if (visible && autoCloseDelay) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, autoCloseDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible, autoCloseDelay, onClose]);
   const getIconByType = () => {
     switch (type) {
       case "success":
-        return "✓";
+        return "🎉";
       case "error":
-        return "✕";
+        return "❌";
       default:
-        return "ℹ";
+        return "ℹ️";
     }
   };
 
@@ -68,12 +88,35 @@ export const CustomAlert = ({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: getColorByType() }]}
-            onPress={onClose}
-          >
-            <Text style={styles.buttonText}>{buttonText}</Text>
-          </TouchableOpacity>
+          {/* Solo mostrar botones si no hay autoClose o si hay botones definidos */}
+          {(!autoCloseDelay || primaryButton || secondaryButton) && (
+            <View style={styles.buttonContainer}>
+              {secondaryButton && (
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton]}
+                  onPress={secondaryButton.onPress}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {secondaryButton.text}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  { backgroundColor: getColorByType() },
+                  !secondaryButton && { flex: 0, minWidth: 120 }, // Si es un solo botón, centrado
+                ]}
+                onPress={primaryButton?.onPress || onClose}
+              >
+                <Text style={styles.buttonText}>
+                  {primaryButton?.text || "OK"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -140,6 +183,33 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginTop: 4,
+  },
+  primaryButton: {
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  secondaryButton: {
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+  },
+  secondaryButtonText: {
+    color: "#374151",
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
   },
   buttonText: {
     color: "#FFFFFF",
