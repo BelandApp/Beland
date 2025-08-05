@@ -1,18 +1,22 @@
-import { IsString } from "class-validator";
+import { IsString, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateBankAccountDto {
-  /** Etiqueta para el usuario, p.ej. "Mi cuenta sueldo" */
   @IsString()
-  alias: string;
+  owner_name: string;
 
-  /** CBU o número de cuenta real, requerido por PayPhone */
+  @IsString()
+  bank_code: string;
+
+  @IsUUID()
+  account_type_id: string;
+
   @IsString()
   cbu: string;
 
-  /** Opcional: código de banco, tipo de cuenta, titular, etc. */
+  @IsOptional()
   @IsString()
-  bankName: string;
+  alias?: string;
 
-  @IsString()
-  holderName: string;
+  @IsUUID()
+  user_id:string;
 }

@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePaymentMethodDto } from './dto/create-payment_method.dto';
-import { UpdatePaymentMethodDto } from './dto/update-payment_method.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PaymentMethod } from './entities/payment_method.entity';
+import { PaymentMethodsRepository } from './payment_methods.repository';
 
 @Injectable()
 export class PaymentMethodsService {
-  create(createPaymentMethodDto: CreatePaymentMethodDto) {
-    return 'This action adds a new paymentMethod';
+  private readonly completeMessage = 'el metodo de pago';
+
+  constructor(private readonly repository: PaymentMethodsRepository) {}
+
+  async findAll(
+    user_id: string,
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[PaymentMethod[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        user_id,
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all paymentMethods`;
+  async findOne(id: string): Promise<PaymentMethod> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} paymentMethod`;
+  async create(body: Partial<PaymentMethod>): Promise<PaymentMethod> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updatePaymentMethodDto: UpdatePaymentMethodDto) {
-    return `This action updates a #${id} paymentMethod`;
+  async update(id: string, body: Partial<PaymentMethod>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} paymentMethod`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }

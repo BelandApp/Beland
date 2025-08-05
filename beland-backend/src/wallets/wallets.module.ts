@@ -4,10 +4,14 @@ import { WalletsController } from './wallets.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { WalletsRepository } from './wallets.repository';
+import { PayphoneService } from 'src/payphone/payphone.service';
+import { Transaction } from 'src/transactions/entities/transaction.entity';
+import { PaymentMethod } from 'src/payment_methods/entities/payment_method.entity';
+import { HttpModule, HttpService } from '@nestjs/axios';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Wallet])],
+  imports: [TypeOrmModule.forFeature([Wallet, Transaction, PaymentMethod]), HttpModule],
   controllers: [WalletsController],
-  providers: [WalletsService, WalletsRepository],
+  providers: [WalletsService, WalletsRepository, PayphoneService],
 })
 export class WalletsModule {}

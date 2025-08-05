@@ -5,13 +5,12 @@ import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PayphoneService {
-  constructor(
-    private readonly http: HttpService,
-    private readonly logger = new Logger(PayphoneService.name),
-    private clientId = process.env.PAYPHONE_CLIENT_ID,
-    private clientSecret = process.env.PAYPHONE_CLIENT_SECRET,
-    private baseUrl = process.env.PAYPHONE_BASE_URL,
-  ) {}
+ private readonly logger = new Logger(PayphoneService.name);
+  private readonly clientId = process.env.PAYPHONE_CLIENT_ID;
+  private readonly clientSecret = process.env.PAYPHONE_CLIENT_SECRET;
+  private readonly baseUrl = process.env.PAYPHONE_BASE_URL;
+
+  constructor(private readonly http: HttpService) {}
   
   private async getAuthToken(): Promise<string> {
     const url = `${this.baseUrl}/oauth/token`;

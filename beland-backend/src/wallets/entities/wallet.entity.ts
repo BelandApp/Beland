@@ -23,6 +23,12 @@ export class Wallet {
   @Column({ type: 'numeric', default: 0 })
   locked_balance: number;             // opcional: fondos en proceso de retiro
 
+  @Column({ type: 'text', nullable: true })
+  private_key_encrypted: string;
+
+  //@Column({ type: 'numeric', default: 0 })
+  //on_chain_balance: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

@@ -1,3 +1,5 @@
+import { TransactionState } from "src/transaction-state/entities/transaction-state.entity";
+import { TransactionType } from "src/transaction-type/entities/transaction-type.entity";
 import { Wallet } from "src/wallets/entities/wallet.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 
@@ -12,13 +14,21 @@ export class Transaction {
   @Column('uuid')
   wallet_id: string;
 
-  @Column({ type: 'enum', enum: ['RECHARGE','WITHDRAW','TRANSFER','PURCHASE','RECYCLE'] })
-  type: 'RECHARGE' | 'WITHDRAW' | 'TRANSFER' | 'PURCHASE' | 'RECYCLE';
+  //type: 'RECARGA' | 'RETIRO' | 'TRANSFERENCIA' | 'COMPRA' | 'RECICLAJE' | 'DONACIÓN';
+  @ManyToOne(() => TransactionType)
+  @JoinColumn({ name: 'type_id' })
+  type: TransactionType;
+  @Column('uuid')
+  type_id: string;
 
-  @Column({ type: 'enum', enum: ['PENDING','COMPLETED','FAILED'], default: 'PENDING' })
-  status: 'PENDING' | 'COMPLETED' | 'FAILED'
+  // status: 'PENDING' | 'COMPLETED' | 'FAILED'
+  @ManyToOne(() => TransactionState)
+  @JoinColumn({ name: 'status_id' })
+  status: TransactionState;
+  @Column('uuid')
+  status_id: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'decimal',  })
   amount: number;                     // importe en Becoin (positivo o negativo según tipo)
 
   @Column({ type: 'numeric' })
@@ -26,9 +36,6 @@ export class Transaction {
 
   @Column({ type: 'uuid', nullable: true })
   related_wallet_id: string | null;   // para TRANSFER, id de la wallet destino
-
-  @Column({ type: 'uuid', nullable: true })
-  merchant_id: string | null;         // para PURCHASE, referencia al comercio
 
   @Column({ type: 'text', nullable: true })
   reference: string | null;           // QR, código de transacción, o nota

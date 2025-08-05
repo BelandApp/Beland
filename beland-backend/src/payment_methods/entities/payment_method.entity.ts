@@ -1,6 +1,5 @@
 import { User } from "src/users/entities/users.entity";
-import { Wallet } from "src/wallets/entities/wallet.entity";
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('payment_methods')
 export class PaymentMethod {
@@ -16,15 +15,21 @@ export class PaymentMethod {
   @Column({ type: 'text' })
   token: string;                      // token devuelto por PayPhone
 
+  @Column({ type: 'text', nullable: true })
+  description: string; 
+
   @Column({ type: 'text' })
   brand: string;                      // Visa, Mastercard…
 
   @Column({ type: 'text' })
   last4: string;                      // últimos 4 dígitos
 
-  @Column({ type: 'timestamptz' })
-  added_at: Date;
-
   @Column({ type: 'boolean', default: false })
   is_default: boolean;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updated_at: Date;
 }

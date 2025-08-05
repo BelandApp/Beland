@@ -21,6 +21,8 @@ import { PrizeRedemption } from '../../prize-redemptions/entities/prize-redempti
 import { Coupon } from '../../coupons/entities/coupon.entity';
 import { Role } from '../../roles/entities/role.entity';
 import { Exclude } from 'class-transformer';
+import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
+import { Merchant } from 'src/merchants/entities/merchant.entity';
 
 @Entity('users')
 export class User {
@@ -121,4 +123,10 @@ export class User {
 
   @OneToMany(() => Coupon, (coupon) => coupon.redeemed_by_user)
   redeemed_coupons: Coupon[];
+
+  @OneToMany(() => BankAccount, (account) => account.user)
+  bank_accounts: BankAccount[];
+
+  @OneToOne(() => Merchant, (merchant) => merchant.user)
+  merchant: Merchant;
 }

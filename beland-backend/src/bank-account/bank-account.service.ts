@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBankAccountDto } from './dto/create-bank-account.dto';
-import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { BankAccountsRepository } from './bank-account.repository';
+import { BankAccount } from './entities/bank-account.entity';
 
 @Injectable()
-export class BankAccountService {
-  create(createBankAccountDto: CreateBankAccountDto) {
-    return 'This action adds a new bankAccount';
+export class BankAccountsService {
+  private readonly completeMessage = 'la cuenta de banco';
+
+  constructor(private readonly repository: BankAccountsRepository) {}
+
+  async findAll(
+    user_id: string,
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[BankAccount[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        user_id,
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all bankAccount`;
+  async findOne(id: string): Promise<BankAccount> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} bankAccount`;
+  async create(body: Partial<BankAccount>): Promise<BankAccount> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updateBankAccountDto: UpdateBankAccountDto) {
-    return `This action updates a #${id} bankAccount`;
+  async update(id: string, body: Partial<BankAccount>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} bankAccount`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }
