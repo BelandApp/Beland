@@ -13,9 +13,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { PaymentMethod } from 'src/payment_methods/entities/payment_method.entity';
+import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 
 @Module({
-  imports: [ConfigModule, HttpModule, TypeOrmModule.forFeature([Wallet, Transaction, PaymentMethod])],
+  imports: [ConfigModule, HttpModule, TypeOrmModule.forFeature([Wallet, Transaction, PaymentMethod, TransactionType])],
   controllers: [PayphoneWebhookController],
   providers: [WebhookService, PayphoneWebhookGuard, PayphoneService, WalletsService, WalletsRepository],
 })

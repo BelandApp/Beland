@@ -15,6 +15,7 @@ import { RechargeDto } from './dto/recharge.dto';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
+import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 
 @Injectable()
 export class WalletsService {
@@ -24,6 +25,7 @@ export class WalletsService {
   constructor(
     private readonly repository: WalletsRepository,
     private readonly payphone: PayphoneService,
+    @InjectRepository(TransactionType) private typeRepo: Repository<TransactionType>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
     @InjectRepository(PaymentMethod) private pmRepo: Repository<PaymentMethod>,
   ) {}
@@ -114,10 +116,12 @@ export class WalletsService {
     // 3) Actualizar saldo
     wallet.becoin_balance += becoinAmount;
     await this.repository.create(wallet);
+    const type = await this.typeRepo.findOneBy({code:'RECHARGE'})
+    if (!type) throw new ConflictException ("No se encuentra el tipo 'RECHARGE'")
     // 4) Registrar transacción
     const tx = this.txRepo.create({
       wallet_id: wallet.id,
-      type: 'RECHARGE',
+      type,
       amount: becoinAmount,
       post_balance: wallet.becoin_balance,
       reference: charge.id,
@@ -139,9 +143,11 @@ export class WalletsService {
     // 3) Liberar locked y registrar
     wallet.locked_balance -= dto.amountBecoin;
     await this.repository.create(wallet);
+    const type = await this.typeRepo.findOneBy({code:'WITHDRAW'})
+    if (!type) throw new ConflictException ("No se encuentra el tipo 'WITHDRAW'")
     const tx = this.txRepo.create({
       wallet_id: wallet.id,
-      type: 'WITHDRAW',
+      type,
       amount: -dto.amountBecoin,
       post_balance: wallet.becoin_balance,
       reference: payout.id,
@@ -159,9 +165,11 @@ export class WalletsService {
     // 1) Debitar origen
     from.becoin_balance -= dto.amountBecoin;
     await this.repository.create(from);
+    const type = await this.typeRepo.findOneBy({code:'TRANSFER'})
+    if (!type) throw new ConflictException ("No se encuentra el tipo 'TRANSFER'")
     const txFrom = this.txRepo.create({
       wallet_id: from.id,
-      type: 'TRANSFER',
+      type,
       amount: -dto.amountBecoin,
       post_balance: from.becoin_balance,
       related_wallet_id: to.id,
@@ -173,7 +181,7 @@ export class WalletsService {
     await this.repository.create(to);
     const txTo = this.txRepo.create({
       wallet_id: to.id,
-      type: 'TRANSFER',
+      type,
       amount: dto.amountBecoin,
       post_balance: to.becoin_balance,
       related_wallet_id: from.id,
@@ -185,17 +193,17 @@ export class WalletsService {
 
     /** CONFIRMAR que una recarga (charge) fue exitosa */
   async confirmRecharge(reference: string): Promise<void> {
-    const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
+    /*const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
     if (!tx || tx.status !== 'PENDING') return;
     // Marca la transacción como completada
     tx.status = 'COMPLETED';
-    await this.txRepo.save(tx);
+    await this.txRepo.save(tx);*/
     // (Opcional) aquí podrías emitir un evento o notificación al usuario
   }
 
   /** MARCAR recarga como fallida y revertir saldo si fuera necesario */
   async failRecharge(reference: string, reason: string): Promise<void> {
-    const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
+    /*const tx = await this.txRepo.findOne({ where: { reference, type: 'RECHARGE' } });
     if (!tx || tx.status !== 'PENDING') return;
     const wallet = await this.repository.findOne(tx.wallet_id);
     // Revertir el saldo
@@ -203,28 +211,31 @@ export class WalletsService {
     await this.repository.create(wallet);
     tx.status = 'FAILED';
     tx.reference += ` | reason: ${reason}`;
-    await this.txRepo.save(tx);
+    await this.txRepo.save(tx);*/
   }
 
   /** CONFIRMAR que un retiro (payout) fue completado */
   async confirmWithdraw(reference: string): Promise<void> {
-    const tx = await this.txRepo.findOne({ where: { reference, type: 'WITHDRAW' } });
+    /*const tx = await this.txRepo.findOne({ where: { reference, type: 'WITHDRAW' } });
     if (!tx || tx.status !== 'PENDING') return;
     tx.status = 'COMPLETED';
-    await this.txRepo.save(tx);
+    await this.txRepo.save(tx);*/
     // Los fondos ya estaban descontados y bloqueados en creación de payout
   }
 
   /** MARCAR retiro como fallido y deshacer lock de fondos */
   async failWithdraw(reference: string, reason: string): Promise<void> {
-    const tx = await this.txRepo.findOne({ where: { reference, type: 'WITHDRAW' } });
-    if (!tx || tx.status !== 'PENDING') return;
+    const tx = await this.txRepo.findOne({ 
+      where: { reference, type: { code: 'WITHDRAW'} },
+      relations: ['state', 'type'], 
+    });
+    if (!tx || tx.status.code !== 'PENDING') return;
     const wallet = await this.repository.findOne( tx.wallet_id );
     // Desbloquear y devolver el monto al balance disponible
     wallet.locked_balance -= Math.abs(tx.amount);
     wallet.becoin_balance += Math.abs(tx.amount);
     await this.repository.create(wallet);
-    tx.status = 'FAILED';
+    //tx.status = 'FAILED';
     tx.reference += ` | reason: ${reason}`;
     await this.txRepo.save(tx);
   }

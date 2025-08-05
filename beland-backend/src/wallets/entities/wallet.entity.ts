@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
+  ManyToOne,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
+import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 
 @Entity('wallets')
 export class Wallet {
@@ -32,9 +34,15 @@ export class Wallet {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @OneToOne(() => User, (user) => user.wallet)
+  @ManyToOne(() => User, (user) => user.wallets)
   @JoinColumn({ name: 'user_id' })
   user: User;
   @Column('uuid')
   user_id: string;
+
+  @OneToOne(() => BankAccount, (account) => account.wallet)
+  @JoinColumn({name:'bank_account_id'})
+  bank_account: BankAccount;
+  @Column('uuid')
+  bank_account_id: string;
 } 

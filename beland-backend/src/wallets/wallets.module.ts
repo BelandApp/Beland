@@ -8,9 +8,10 @@ import { PayphoneService } from 'src/payphone/payphone.service';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { PaymentMethod } from 'src/payment_methods/entities/payment_method.entity';
 import { HttpModule, HttpService } from '@nestjs/axios';
+import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Wallet, Transaction, PaymentMethod]), HttpModule],
+  imports: [TypeOrmModule.forFeature([Wallet, Transaction, PaymentMethod, TransactionType]), HttpModule],
   controllers: [WalletsController],
   providers: [WalletsService, WalletsRepository, PayphoneService],
 })

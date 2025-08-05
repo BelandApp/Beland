@@ -95,8 +95,8 @@ export class User {
   role_relation: Role | null; // La propiedad que representa la relación con Role
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
-  @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
-  wallet: Wallet;
+  @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
+  wallets: Wallet[];
 
   @OneToMany(() => Group, (group) => group.leader)
   led_groups: Group[];

@@ -5,9 +5,11 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity'; 
-import { TypeBankAccount } from 'src/type-bank-account/entities/type-bank-account.entity';
+import { Wallet } from 'src/wallets/entities/wallet.entity';
+import { BankAccountType } from 'src/bank-account-type/entities/bank-account-type.entity';
 
 @Entity('bank_accounts')
 export class BankAccount {
@@ -21,9 +23,9 @@ export class BankAccount {
   bank_code: string;
 
   // hacer la relacion con la table todavia no creadad+ de typo de ciuenta
-  @ManyToOne(() => TypeBankAccount)
+  @ManyToOne(() => BankAccountType)
   @JoinColumn({ name: 'account_type_id' })
-  account_type: TypeBankAccount
+  account_type: BankAccountType
   @Column({ type: 'varchar' })
   account_type_id: string;
 
@@ -38,6 +40,10 @@ export class BankAccount {
   user: User;
   @Column('uuid')
   user_id: string;
+
+  @OneToOne(() => Wallet, (wallet) => wallet.bank_account, { onDelete: 'CASCADE' })
+  wallet: Wallet;
+
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
