@@ -48,7 +48,8 @@ export class User {
   current_balance: number;
 
   @Column({ type: 'text', default: 'USER', name: 'role_name' })
-  role_name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN'; // Columna para el nombre del rol
+  // ¡ACTUALIZADO para incluir 'EMPRESA'!
+  role_name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA'; // Columna para el nombre del rol
 
   @Column({ type: 'uuid', nullable: true, name: 'role_id' })
   role_id: string | null; // Clave foránea al ID del rol
@@ -68,7 +69,7 @@ export class User {
   @Column({ type: 'text', nullable: true })
   city: string | null;
 
-  @Column({ type: 'boolean', default: false, name: 'isblocked' }) 
+  @Column({ type: 'boolean', default: false, name: 'isblocked' })
   isBlocked: boolean;
 
   @Column({ type: 'timestamptz', nullable: true })

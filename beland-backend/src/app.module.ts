@@ -9,7 +9,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
-import { InitModule } from './init/init.module';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { CouponsModule } from './coupons/coupons.module';
@@ -71,9 +70,9 @@ import { BankAccountTypeModule } from './bank-account-type/bank-account-type.mod
       inject: [ConfigService],
     }),
     DatabaseModule,
+   // DatabaseInitModule,
     UsersModule,
     RolesModule,
-    InitModule,
     WalletsModule,
     GroupsModule,
     GroupMembersModule,

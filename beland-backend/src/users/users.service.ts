@@ -8,7 +8,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
-import { RolesRepository } from '../roles/roles.repository'; // Importación corregida
+import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/users.entity';
@@ -19,12 +19,17 @@ import { UserDto } from './dto/user.dto';
 import { DataSource, Not } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
+import { GetUsersQueryDto } from './dto/get-users-query.dto'; // ¡Importar el nuevo DTO!
 
-// Constantes para los nombres de roles
+// Constantes para los nombres de roles - ¡ACTUALIZADAS PARA INCLUIR 'EMPRESA'!
 const ROLE_USER = 'USER';
 const ROLE_LEADER = 'LEADER';
 const ROLE_ADMIN = 'ADMIN';
 const ROLE_SUPERADMIN = 'SUPERADMIN';
+const ROLE_EMPRESA = 'EMPRESA'; // ¡Nuevo rol!
+
+// Definición de tipo para todos los roles válidos
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
 @Injectable()
 export class UsersService {
@@ -56,14 +61,16 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    let assignedRoleName: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' =
-      ROLE_USER;
+    // Usar el tipo ValidRoleNames
+    let assignedRoleName: ValidRoleNames = ROLE_USER;
     if (createUserDto.role) {
-      const validRoles: ('USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN')[] = [
+      // Lista de roles válidos - ¡ACTUALIZADA PARA INCLUIR 'EMPRESA'!
+      const validRoles: ValidRoleNames[] = [
         ROLE_USER,
         ROLE_LEADER,
         ROLE_ADMIN,
         ROLE_SUPERADMIN,
+        ROLE_EMPRESA, // ¡Añadido!
       ];
       if (!validRoles.includes(createUserDto.role)) {
         throw new BadRequestException(
@@ -108,7 +115,6 @@ export class UsersService {
   }
 
   // Método para la creación del usuario inicial (SUPERADMIN) desde el seeder externo
-  // ¡Este método debe retornar la entidad User, no UserDto!
   async createInitialUser(createUserDto: CreateUserDto): Promise<User> {
     this.logger.debug(
       `createInitialUser(): Procesando usuario inicial con email: ${createUserDto.email}.`,
@@ -126,14 +132,16 @@ export class UsersService {
 
     const hashedPassword = createUserDto.password;
 
-    let assignedRoleName: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' =
-      ROLE_USER;
+    // Usar el tipo ValidRoleNames
+    let assignedRoleName: ValidRoleNames = ROLE_USER;
     if (createUserDto.role) {
-      const validRoles: ('USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN')[] = [
+      // Lista de roles válidos - ¡ACTUALIZADA PARA INCLUIR 'EMPRESA'!
+      const validRoles: ValidRoleNames[] = [
         ROLE_USER,
         ROLE_LEADER,
         ROLE_ADMIN,
         ROLE_SUPERADMIN,
+        ROLE_EMPRESA, // ¡Añadido!
       ];
       if (!validRoles.includes(createUserDto.role)) {
         throw new BadRequestException(
@@ -187,13 +195,14 @@ export class UsersService {
     return plainToInstance(UserDto, user);
   }
 
+  // ¡ACTUALIZADO para usar GetUsersQueryDto!
   async findAll(
-    paginationOptions: PaginationDto,
-    orderOptions: OrderDto,
+    paginationOptions: PaginationDto, // Mantener si PaginationDto y OrderDto se usan internamente
+    orderOptions: OrderDto, // Mantener si PaginationDto y OrderDto se usan internamente
     includeDeleted: boolean = false,
     filterId?: string,
     filterEmail?: string,
-    filterRoleName?: string,
+    filterRoleName?: ValidRoleNames,
     filterIsBlocked?: boolean,
   ): Promise<{ users: UserDto[]; total: number }> {
     this.logger.debug(`findAll(): Buscando todos los usuarios.`);
@@ -327,8 +336,9 @@ export class UsersService {
         updateUserDto.role !== undefined &&
         updateUserDto.role !== existingUser.role_name
       ) {
+        // Asegúrate de que findByName acepte el nuevo tipo
         const newRoleEntity = await this.rolesRepository.findByName(
-          updateUserDto.role,
+          updateUserDto.role as ValidRoleNames, // ¡CASTING AQUI!
         );
         if (!newRoleEntity) {
           throw new BadRequestException(
