@@ -1,13 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { Transaction } from './entities/transaction.entity';
+import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
 
 @Injectable()
 export class TransactionsRepository {
   constructor(
     @InjectRepository(Transaction)
     private repository: Repository<Transaction>,
+    @InjectRepository(TransactionState)
+    private stateRepository: Repository<TransactionState>,
   ) {}
 
   async findAll(
@@ -48,7 +51,9 @@ export class TransactionsRepository {
   }
 
   async create(body: Partial<Transaction>): Promise<Transaction> {
-    return await this.repository.save(body);
+    const state = await this.stateRepository.findOneBy({code: 'PENDING'})
+    if (!state) throw new ConflictException ("No se encuentra el estado para 'PENDING'"); 
+    return await this.repository.save({...body, status_id: state.id});
   }
 
   async update(id: string, body: Partial<Transaction>): Promise<UpdateResult> {
