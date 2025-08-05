@@ -90,10 +90,12 @@ export const CustomAlert = ({
 
           {/* Solo mostrar botones si no hay autoClose o si hay botones definidos */}
           {(!autoCloseDelay || primaryButton || secondaryButton) && (
-            <View style={[
-              styles.buttonContainer,
-              !secondaryButton && styles.singleButtonContainer
-            ]}>
+            <View
+              style={[
+                styles.buttonContainer,
+                !secondaryButton && styles.singleButtonContainer,
+              ]}
+            >
               {secondaryButton && (
                 <TouchableOpacity
                   style={[styles.button, styles.secondaryButton]}
@@ -110,7 +112,7 @@ export const CustomAlert = ({
                   styles.button,
                   styles.primaryButton,
                   { backgroundColor: getColorByType() },
-                  !secondaryButton && styles.singleButton
+                  !secondaryButton && styles.singleButton,
                 ]}
                 onPress={primaryButton?.onPress || onClose}
               >
