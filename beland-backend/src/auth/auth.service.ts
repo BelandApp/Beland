@@ -107,10 +107,10 @@ export class AuthService {
 
       if (!wallet) throw new ConflictException('Error al crear la billetera');
 
+      const userSavePayload = await this.userRepository.getUserById(userSave.id)
+
       const userPayload = {
-        user_id: userSave.id,
-        role_name: userRole.name,
-        role_id: userRole.role_id,
+        ...userSavePayload
       };
 
       const token = this.jwtService.sign(userPayload, {

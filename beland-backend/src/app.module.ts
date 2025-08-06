@@ -29,9 +29,7 @@ import { DataSourceOptions } from 'typeorm';
 import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
 import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware'; // Asegúrate de que este archivo exista
 import { TransactionsModule } from './transactions/transactions.module';
-import { PaymentMethodsModule } from './payment_methods/payment_methods.module';
 import { RecyclePricesModule } from './recycle_prices/recycle_prices.module';
-import { PayphoneModule } from './payphone/payphone.module';
 import { BankAccountModule } from './bank-account/bank-account.module';
 import { MerchantsModule } from './merchants/merchants.module';
 import { TransactionTypeModule } from './transaction-type/transaction-type.module';
@@ -107,9 +105,7 @@ import { AdminsModule } from './admins/admins.module';
     AuthModule,
     CommonModule,
     TransactionsModule,
-    PaymentMethodsModule,
     RecyclePricesModule,
-    PayphoneModule,
     BankAccountModule,
     MerchantsModule,
     TransactionTypeModule,

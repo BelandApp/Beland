@@ -22,9 +22,7 @@ import { WalletsService } from './wallets.service';
 import { Wallet } from './entities/wallet.entity';
 import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
-import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { RechargeDto } from './dto/recharge.dto';
-import { WithdrawDto } from './dto/withdraw.dto';
 import { TransferDto } from './dto/transfer.dto';
 
 @ApiTags('wallets')
@@ -108,27 +106,27 @@ export class WalletsController {
   @Post('recharge')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva recarga o compra de Beicon' })
-  @ApiParam({ name: 'userId', description: 'UUID del usuario' })
   @ApiResponse({ status: 201, description: 'Recarga Exitosamente' })
-  async  recharge(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: RechargeDto): Promise<{wallet: Wallet, tx: Transaction}> {
-    return await this.service.recharge(userId, dto);
+  async recharge(@Body() dto: RechargeDto): Promise<{wallet: Wallet}> {
+    return await this.service.recharge(dto);
   }
 
+  /*// tenemos que resolver que hacer con este
   @Post('withdraw')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear un nuevo Retiro' })
   @ApiParam({ name: 'userId', description: 'UUID del usuario' })
   @ApiResponse({ status: 201, description: 'Retira exitosamente' })
-  async withdraw(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: WithdrawDto): Promise<{wallet: Wallet, tx: Transaction}> {
+  async withdraw(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: WithdrawDto): Promise<void> {
     return await this.service.withdraw(userId, dto);
-  }
+  }*/
   
   @Post('transfer')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva transferencia' })
   @ApiParam({ name: 'userId', description: 'UUID del usuario' })
   @ApiResponse({ status: 201, description: 'Transferencia Exitosa' })
-  async transfer(userId: string, dto: TransferDto): Promise<{ from: Transaction, to: Transaction }> {
+  async transfer(userId: string, dto: TransferDto): Promise<{ wallet: Wallet }> {
     return await this.service.transfer(userId, dto);
   }
 

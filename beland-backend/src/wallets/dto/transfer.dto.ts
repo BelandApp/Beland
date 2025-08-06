@@ -1,6 +1,6 @@
 import { IsNumber, IsUUID } from 'class-validator';
 
 export class TransferDto {
-  @IsUUID() toUserId: string;
+  @IsUUID() toWalletId: string;
   @IsNumber() amountBecoin: number;
 }

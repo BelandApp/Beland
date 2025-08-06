@@ -10,6 +10,8 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +19,19 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Charity } from './entities/charity.entity';
 import { CharitiesService } from './charity.service';
 import { CreateCharityDto } from './dto/create-charity.dto';
 import { UpdateCharityDto } from './dto/update-charity.dto';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { Request } from 'express';
 
 @ApiTags('charities')
 @Controller('charities')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class CharitiesController {
   constructor(private readonly service: CharitiesService) {}
 
@@ -33,17 +40,16 @@ export class CharitiesController {
   @ApiOperation({ summary: 'Listar fundaciones con paginación y filtrado por usuario' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-  @ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar fundaciones por ID de usuario, si no se envia retorna todas las fundaciones' })
   @ApiResponse({ status: 200, description: 'Listado de fundaciones retornado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Query('user_id') user_id = '',
+    @Req() req: Request,
   ): Promise<[Charity[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(user_id, pageNumber, limitNumber);
+    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
   }
 
   @Get(':id')

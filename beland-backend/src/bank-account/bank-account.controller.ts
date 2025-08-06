@@ -10,6 +10,8 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +19,19 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { BankAccountsService } from './bank-account.service';
 import { BankAccount } from './entities/bank-account.entity';
 import { CreateBankAccountDto } from './dto/create-bank-account.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { Request } from 'express';
 
 @ApiTags('bank_account')
 @Controller('bank_account')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class BankAccountsController {
   constructor(private readonly service: BankAccountsService) {}
 
@@ -33,17 +40,16 @@ export class BankAccountsController {
   @ApiOperation({ summary: 'Listar cuentas de banco con paginación y filtrado por usuario' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-  @ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar cuentas de banco por ID de usuario, si no se envia retorna todas las cuentas de banco' })
   @ApiResponse({ status: 200, description: 'Listado de cuentas de banco retornado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Query('user_id') user_id = '',
+    @Req() req: Request,
   ): Promise<[BankAccount[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(user_id, pageNumber, limitNumber);
+    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
   }
 
   @Get(':id')

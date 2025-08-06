@@ -10,6 +10,8 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { CouponsService } from './coupons.service';
 import { Coupon } from './entities/coupon.entity';
@@ -21,10 +23,15 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { Request } from 'express';
 
 @ApiTags('coupons')
 @Controller('coupons')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class CouponsController {
   constructor(private readonly service: CouponsService) {}
 
@@ -33,17 +40,16 @@ export class CouponsController {
   @ApiOperation({ summary: 'Listar cupones con paginación y filtrado por usuario' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-  @ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar cupones por ID de usuario que lo canjeó, si no se envia retorna todos los cupones' })
   @ApiResponse({ status: 200, description: 'Listado de cupones retornado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Query('user_id') user_id = '',
+    @Req() req: Request,
   ): Promise<[Coupon[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(user_id, pageNumber, limitNumber);
+    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
   }
 
   @Get(':id')

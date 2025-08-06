@@ -15,14 +15,12 @@ export class GroupMembersService {
 
   async findAll(
     group_id: string, 
-    user_id: string,
     pageNumber: number,
     limitNumber: number,
   ): Promise<[GroupMember[], number]> {
     try {
       const response = await this.repository.findAll(
         group_id,
-        user_id,
         pageNumber,
         limitNumber,
       );

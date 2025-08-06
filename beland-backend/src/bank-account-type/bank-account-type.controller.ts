@@ -10,6 +10,7 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +18,18 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { BankAccountType } from './entities/bank-account-type.entity';
 import { BankAccountTypesService } from './bank-account-type.service';
 import { CreateBankAccountTypeDto } from './dto/create-bank-account-type.dto';
 import { UpdateBankAccountTypeDto } from './dto/update-bank-account-type.dto';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('bank-account-types')
 @Controller('bank-account-types')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class BankAccountTypesController {
   constructor(private readonly service: BankAccountTypesService) {}
 

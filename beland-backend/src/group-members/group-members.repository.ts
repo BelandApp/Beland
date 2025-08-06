@@ -11,17 +11,11 @@ export class GroupMembersRepository {
   ) {}
 
   async findAll(
-    group_id: string, 
-    user_id: string,
+    group_id: string,
     page: number,
     limit: number,
   ): Promise<[GroupMember[], number]> {
-    let where: Object; 
-    if (group_id) {
-        where = {group_id} 
-    } else {
-        where = user_id ? {user_id} : {};
-    }
+    const where = group_id ? {group_id} : {}; 
 
     return this.repository.findAndCount({
         where,

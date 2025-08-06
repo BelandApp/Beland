@@ -10,6 +10,8 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +19,19 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GroupsService } from './groups.service';
 import { Group } from './entities/group.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { Request } from 'express';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('groups')
 @Controller('groups')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class GroupsController {
   constructor(private readonly service: GroupsService) {}
 
@@ -33,17 +40,16 @@ export class GroupsController {
   @ApiOperation({ summary: 'Listar grupos con paginación y filtrado por usuario' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-  @ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar grupos por ID de usuario creador, si no se envia retorna todos los grupos' })
   @ApiResponse({ status: 200, description: 'Listado de grupos retornado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Query('user_id') user_id = '',
+    @Req() req: Request,
   ): Promise<[Group[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(user_id, pageNumber, limitNumber);
+    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
   }
 
   @Get(':id')
