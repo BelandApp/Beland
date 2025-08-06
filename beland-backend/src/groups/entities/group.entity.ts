@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { GroupMember } from 'src/group-members/entities/group-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
@@ -38,7 +39,10 @@ export class Group {
     nullable: true,
     onDelete: 'SET NULL',
   })
+  @JoinColumn({name:'loader_id'})
   leader: User;
+  @Column('uuid')
+  loader_id: string
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members: GroupMember[];

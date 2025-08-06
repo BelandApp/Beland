@@ -5,6 +5,7 @@ export const MOCK_GROUPS: Group[] = [
   {
     id: "1",
     name: "Cumpleaños de Ana",
+    type: "Cumpleaños",
     description: "Celebración del cumpleaños de Ana con comida y bebidas",
     location: "Palermo, CABA",
     deliveryTime: "19:30",
@@ -44,6 +45,7 @@ export const MOCK_GROUPS: Group[] = [
   {
     id: "2",
     name: "Asado Familiar",
+    type: "Almuerzo",
     description: "Asado en familia para el domingo",
     location: "Villa Urquiza, CABA",
     deliveryTime: "13:00",
@@ -89,6 +91,7 @@ export const MOCK_GROUPS: Group[] = [
   {
     id: "3",
     name: "Cena de Trabajo",
+    type: "Cena",
     description: "Cena con el equipo de desarrollo",
     location: "Puerto Madero, CABA",
     deliveryTime: "20:00",

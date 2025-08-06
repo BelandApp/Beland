@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
   headerDecor: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 38,
+    paddingTop: Platform.OS === "android" ? 8 : 38, // Reducido para Android porque la barra de estado está oculta
     paddingHorizontal: 18,
     marginBottom: 2,
     backgroundColor: "#fffbe6",

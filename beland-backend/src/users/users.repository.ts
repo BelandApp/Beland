@@ -5,6 +5,9 @@ import { User } from './entities/users.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
 
+// Definición de tipo para todos los roles válidos (debe coincidir con UsersService)
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+
 @Injectable()
 export class UsersRepository {
   private readonly logger = new Logger(UsersRepository.name);
@@ -16,6 +19,20 @@ export class UsersRepository {
 
   private createQueryBuilder(alias = 'user') {
     return this.userORMRepository.createQueryBuilder(alias);
+  }
+
+  async getUserById(id: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { id },
+      relations: {role_relation:true, wallets:true}
+    });
+  }
+
+  async getUserByEmail(email: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { email },
+      relations: {role_relation:true, wallets:true}
+    });
   }
 
   async findOne(
@@ -40,8 +57,8 @@ export class UsersRepository {
       .getOne();
   }
 
-  create(userPartial: Partial<User>): User {
-    return this.userORMRepository.create(userPartial);
+  async create(userPartial: Partial<User>): Promise<User> {
+    return await this.userORMRepository.save(userPartial);
   }
 
   async findAllPaginated(
@@ -50,7 +67,7 @@ export class UsersRepository {
     includeDeleted: boolean = false,
     filterId?: string,
     filterEmail?: string,
-    filterRoleName?: string,
+    filterRoleName?: ValidRoleNames,
     filterIsBlocked?: boolean,
   ): Promise<{ users: User[]; total: number }> {
     const { page, limit } = paginationOptions;
@@ -86,7 +103,7 @@ export class UsersRepository {
       email: 'user.email',
       username: 'user.username',
       full_name: 'user.full_name',
-      role: 'user.role_name',
+      role: 'user.role_name', // Asegúrate de que 'role' mapee a 'role_name'
       isBlocked: 'user.isBlocked',
     };
 
