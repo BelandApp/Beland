@@ -19,6 +19,12 @@ export class Wallet {
   @Column({ type: 'text', nullable: true })
   address: string;
 
+  @Column({ type: 'text', nullable: true })
+  alias: string;
+
+  @Column({ type: 'text', nullable: true })
+  qr: string;
+
   @Column('decimal', { precision: 14, scale: 2, default: 0 })
   becoin_balance: number;             // saldo disponible en Becoin
 
@@ -43,6 +49,6 @@ export class Wallet {
   @OneToOne(() => BankAccount, (account) => account.wallet)
   @JoinColumn({name:'bank_account_id'})
   bank_account: BankAccount;
-  @Column('uuid')
+  @Column('uuid', {nullable:true})
   bank_account_id: string;
 } 

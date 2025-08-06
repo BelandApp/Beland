@@ -38,13 +38,28 @@ import { TransactionTypeModule } from './transaction-type/transaction-type.modul
 import { TransactionStateModule } from './transaction-state/transaction-state.module';
 import { CharityModule } from './charity/charity.module';
 import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
+import { DatabaseInitModule } from './database/init/database-init.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [typeormConfig],
-      envFilePath: '.env',
+    }),
+    // modulo para generar los token
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        console.log('JWT_SECRET cargado:', secret); // Debug
+        return {
+          secret,
+          signOptions: { expiresIn: '12h' },
+        };
+      },
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -69,8 +84,10 @@ import { BankAccountTypeModule } from './bank-account-type/bank-account-type.mod
       },
       inject: [ConfigService],
     }),
+    
+    
     DatabaseModule,
-   // DatabaseInitModule,
+    //DatabaseInitModule,
     UsersModule,
     RolesModule,
     WalletsModule,
