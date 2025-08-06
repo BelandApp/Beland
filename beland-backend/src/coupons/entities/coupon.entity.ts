@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
 
@@ -34,6 +35,9 @@ export class Coupon {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @ManyToOne(() => User, (user) => user.coupons)
+  @ManyToOne(() => User, (user) => user.redeemed_coupons, { nullable: true })
+  @JoinColumn({name: 'redeemed_by_user_id'})
   redeemed_by_user: User;
+  @Column('uuid', { nullable: true } )
+  redeemed_by_user_id: string;
 }

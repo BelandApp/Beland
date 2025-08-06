@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
@@ -28,11 +29,20 @@ export class OrderItem {
   created_at: Date;
 
   @ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
+  @JoinColumn({name:'order_id'})
   order: Order;
+  @Column('uuid')
+  order_id: string;
 
   @ManyToOne(() => Product, (product) => product.order_items)
+  @JoinColumn({name:'product_id'})
   product: Product;
+  @Column('uuid')
+  product_id: string;
 
   @ManyToOne(() => User, (user) => user.consumed_items, { nullable: true })
+  @JoinColumn({name:'consumed_by_user_id'})
   consumed_by_user: User;
+  @Column('uuid')
+  consumed_by_user_id: string;
 }

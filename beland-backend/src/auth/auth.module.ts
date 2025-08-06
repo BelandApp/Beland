@@ -6,6 +6,14 @@ import { AuthService } from './auth.service';
 import { HttpModule } from '@nestjs/axios';
 import { AuthController } from './auth.controller';
 import { UsersModule } from 'src/users/users.module';
+import { UsersRepository } from 'src/users/users.repository';
+import { RolesRepository } from 'src/roles/roles.repository';
+import { WalletsRepository } from 'src/wallets/wallets.repository';
+import { JwtService } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/users.entity';
+import { Wallet } from 'src/wallets/entities/wallet.entity';
+import { Role } from 'src/roles/entities/role.entity';
 
 @Module({
   imports: [
@@ -13,9 +21,10 @@ import { UsersModule } from 'src/users/users.module';
     HttpModule.register({}), // usa HttpModule.register({}) en version @nestjs/axios >= 10
     forwardRef(() => UsersModule),
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    TypeOrmModule.forFeature([User, Role, Wallet])
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, UsersRepository, RolesRepository, WalletsRepository, JwtService],
   exports: [AuthService],
 })
 export class AuthModule {}

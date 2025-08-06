@@ -22,6 +22,8 @@ import { Coupon } from '../../coupons/entities/coupon.entity';
 import { Role } from '../../roles/entities/role.entity';
 import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
+import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
+import { Merchant } from 'src/merchants/entities/merchant.entity';
 
 @Entity('users')
 export class User {
@@ -98,8 +100,8 @@ export class User {
   admin: Admin;
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
-  @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
-  wallet: Wallet;
+  @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
+  wallets: Wallet[];
 
   @OneToMany(() => Group, (group) => group.leader)
   led_groups: Group[];
@@ -126,5 +128,12 @@ export class User {
   prize_redemptions: PrizeRedemption[];
 
   @OneToMany(() => Coupon, (coupon) => coupon.redeemed_by_user)
-  coupons: Coupon[];
+  redeemed_coupons: Coupon[];
+
+  @OneToMany(() => BankAccount, (account) => account.user)
+  bank_accounts: BankAccount[];
+
+  @OneToOne(() => Merchant, (merchant) => merchant.user)
+  merchant: Merchant;
+
 }

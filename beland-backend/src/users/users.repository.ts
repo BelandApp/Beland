@@ -21,6 +21,20 @@ export class UsersRepository {
     return this.userORMRepository.createQueryBuilder(alias);
   }
 
+  async getUserById(id: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { id },
+      relations: {role_relation:true, wallets:true}
+    });
+  }
+
+  async getUserByEmail(email: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { email },
+      relations: {role_relation:true, wallets:true}
+    });
+  }
+
   async findOne(
     id: string,
     includeDeleted: boolean = false,
@@ -43,8 +57,8 @@ export class UsersRepository {
       .getOne();
   }
 
-  create(userPartial: Partial<User>): User {
-    return this.userORMRepository.create(userPartial);
+  async create(userPartial: Partial<User>): Promise<User> {
+    return await this.userORMRepository.save(userPartial);
   }
 
   async findAllPaginated(

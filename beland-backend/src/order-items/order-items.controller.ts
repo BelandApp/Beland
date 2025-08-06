@@ -1,34 +1,94 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Query,
+  ParseUUIDPipe,
+  Put,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { OrderItemsService } from './order-items.service';
+import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
 
+@ApiTags('order-items')
 @Controller('order-items')
 export class OrderItemsController {
-  constructor(private readonly orderItemsService: OrderItemsService) {}
-
-  @Post()
-  create(@Body() createOrderItemDto: CreateOrderItemDto) {
-    return this.orderItemsService.create(createOrderItemDto);
-  }
+  constructor(private readonly service: OrderItemsService) {}
 
   @Get()
-  findAll() {
-    return this.orderItemsService.findAll();
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Listar items de Ordenes con paginación y filtrado por orden' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
+  @ApiQuery({ name: 'order_id', required: false, type: String, description: 'Filtrar items de ordenes por ID de orden, si no se envia retorna todos los items' })
+  @ApiResponse({ status: 200, description: 'Listado de items de Orden retornado correctamente' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async findAll(
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @Query('order_id') order_id = '',
+  ): Promise<[OrderItem[], number]> {
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    return await this.service.findAll(order_id, pageNumber, limitNumber);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderItemsService.findOne(+id);
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener un item de Orden por su ID' })
+  @ApiParam({ name: 'id', description: 'UUID del item de Orden' })
+  @ApiResponse({ status: 200, description: 'item de Orden encontrado' })
+  @ApiResponse({ status: 404, description: 'No se encontró el item de Orden' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<OrderItem> {
+    return await this.service.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderItemDto: UpdateOrderItemDto) {
-    return this.orderItemsService.update(+id, updateOrderItemDto);
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear un nuevo item de Orden' })
+  @ApiResponse({ status: 201, description: 'item de Orden creado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos para crear el item de Orden' })
+  @ApiResponse({ status: 500, description: 'No se pudo crear el item de Orden' })
+  async create(@Body() body: CreateOrderItemDto): Promise<OrderItem> {
+    return await this.service.create(body);
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar un item de Orden existente' })
+  @ApiParam({ name: 'id', description: 'UUID del item de Orden' })
+  @ApiResponse({ status: 200, description: 'item de Orden actualizado correctamente' })
+  @ApiResponse({ status: 404, description: 'No se encontró el item de Orden a actualizar' })
+  @ApiResponse({ status: 500, description: 'Error al actualizar el item de Orden' })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateOrderItemDto,
+  ) {
+    return this.service.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderItemsService.remove(+id);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Eliminar un item de Orden por su ID' })
+  @ApiParam({ name: 'id', description: 'UUID del item de Orden' })
+  @ApiResponse({ status: 204, description: 'item de Orden eliminado correctamente' })
+  @ApiResponse({ status: 404, description: 'No se encontró el item de Orden a eliminar' })
+  @ApiResponse({ status: 409, description: 'No se puede eliminar el item de Orden (conflicto)' })
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.service.remove(id);
   }
 }
