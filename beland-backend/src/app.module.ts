@@ -29,6 +29,7 @@ import { DataSourceOptions } from 'typeorm';
 import typeormConfig from './config/typeorm';
 import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware';
 import { DatabaseInitModule } from './database/init/database-init.module';
+import { AdminsModule } from './admins/admins.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { DatabaseInitModule } from './database/init/database-init.module';
     CouponsModule,
     AuthModule,
     CommonModule,
+    AdminsModule,
   ],
   controllers: [],
   providers: [

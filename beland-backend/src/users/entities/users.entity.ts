@@ -20,6 +20,7 @@ import { RecycledItem } from '../../recycled-items/entities/recycled-item.entity
 import { PrizeRedemption } from '../../prize-redemptions/entities/prize-redemption.entity';
 import { Coupon } from '../../coupons/entities/coupon.entity';
 import { Role } from '../../roles/entities/role.entity';
+import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
 
 @Entity('users')
@@ -42,18 +43,17 @@ export class User {
   @Column({ type: 'text', nullable: true })
   profile_picture_url: string | null;
 
-  @Column({ type: 'numeric', default: 0 })
-  current_balance: number;
+  @Column({ type: 'numeric', nullable: true, default: 0 })
+  current_balance: number | null;
 
-  @Column({ type: 'text', default: 'USER', name: 'role_name' })
-  // ¡ACTUALIZADO para incluir 'EMPRESA'!
-  role_name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA'; // Columna para el nombre del rol
+  @Column({ type: 'text', default: 'USER' })
+  role_name: string; // Nombre del rol (ej. 'USER', 'ADMIN')
 
-  @Column({ type: 'uuid', nullable: true, name: 'role_id' })
-  role_id: string | null; // Clave foránea al ID del rol
+  @Column({ type: 'uuid', nullable: true })
+  role_id: string | null; // ID del rol (FK)
 
   @Column({ type: 'text', nullable: true })
-  auth0_id: string | null; // ID de Auth0, se mantiene como columna secundaria
+  auth0_id: string | null; // ID de Auth0 (se mantiene para usuarios OAuth)
 
   @Column({ type: 'text', nullable: true })
   address: string | null;
@@ -67,6 +67,7 @@ export class User {
   @Column({ type: 'text', nullable: true })
   city: string | null;
 
+  // CORREGIDO: Mapeo explícito a 'isblocked' en la base de datos
   @Column({ type: 'boolean', default: false, name: 'isblocked' })
   isBlocked: boolean;
 
@@ -79,18 +80,22 @@ export class User {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 
+  @Exclude() // Excluir la contraseña de las respuestas JSON
   @Column({ type: 'text', nullable: true })
-  @Exclude({ toPlainOnly: true }) // Excluir la contraseña del DTO por seguridad
-  password?: string | null; // Campo de contraseña
+  password: string | null;
 
   // Relación ManyToOne con la entidad Role
   @ManyToOne(() => Role, (role) => role.users, {
-    eager: false, // No cargar automáticamente para evitar ciclos y mejorar rendimiento
-    onDelete: 'SET NULL', // Si el rol es eliminado, se establece a NULL
-    nullable: true, // Un usuario puede no tener un rol asignado (aunque en la lógica se asigna por defecto)
+    eager: false,
+    onDelete: 'SET NULL',
+    nullable: true,
   })
-  @JoinColumn({ name: 'role_id', referencedColumnName: 'role_id' }) // Unir por role_id
-  role_relation: Role | null; // La propiedad que representa la relación con Role
+  @JoinColumn({ name: 'role_id', referencedColumnName: 'role_id' })
+  role_relation: Role | null;
+
+  // ¡NUEVA RELACIÓN OneToOne con Admin!
+  @OneToOne(() => Admin, (admin) => admin.user)
+  admin: Admin;
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
   @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
@@ -121,5 +126,5 @@ export class User {
   prize_redemptions: PrizeRedemption[];
 
   @OneToMany(() => Coupon, (coupon) => coupon.redeemed_by_user)
-  redeemed_coupons: Coupon[];
+  coupons: Coupon[];
 }
