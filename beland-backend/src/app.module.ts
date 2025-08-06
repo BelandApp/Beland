@@ -40,6 +40,7 @@ import { CharityModule } from './charity/charity.module';
 import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
 import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
+import { AdminsModule } from './admins/admins.module';
 
 @Module({
   imports: [
@@ -115,6 +116,7 @@ import { JwtModule } from '@nestjs/jwt';
     TransactionStateModule,
     CharityModule,
     BankAccountTypeModule,
+    AdminsModule,
   ],
   controllers: [],
   providers: [

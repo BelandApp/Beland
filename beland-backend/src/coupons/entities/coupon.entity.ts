@@ -1,4 +1,4 @@
-// coupon.entity.ts
+// src/coupons/entities/coupon.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,

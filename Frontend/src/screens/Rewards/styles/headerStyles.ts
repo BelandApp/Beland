@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 
 export const headerStyles = StyleSheet.create({
@@ -6,7 +6,7 @@ export const headerStyles = StyleSheet.create({
     backgroundColor: colors.belandOrange,
     paddingHorizontal: 16,
     paddingVertical: 24,
-    paddingTop: 50, // Para la status bar
+    paddingTop: Platform.OS === "android" ? 20 : 50, // Reducido para Android porque la barra de estado está oculta
     flexDirection: "row" as const,
     justifyContent: "space-between" as const,
     alignItems: "flex-start" as const,

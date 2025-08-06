@@ -185,12 +185,14 @@ const styles = {
   headerMediumContainer: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
-    minWidth: 80,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    paddingHorizontal: 8, // Reducido de 10 a 8
+    paddingVertical: 4, // Reducido de 6 a 4
+    borderRadius: 14, // Reducido de 16 a 14
+    gap: 4, // Reducido de 5 a 4
+    alignSelf: "center", // Para que se centre
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
   },
   headerLargeContainer: {
     flexDirection: "row" as const,
@@ -210,7 +212,7 @@ const styles = {
     color: "#FFFFFF",
   },
   headerMediumText: {
-    fontSize: 14,
+    fontSize: 13, // Reducido de 14 a 13
     fontWeight: "700" as const,
     color: "#FFFFFF",
   },
@@ -226,9 +228,9 @@ const styles = {
     color: "#FFFFFF",
   },
   headerMediumValue: {
-    fontSize: 11,
+    fontSize: 10, // Reducido de 11 a 10
     fontWeight: "500" as const,
-    color: "#FFFFFF",
+    color: "rgba(255,255,255,0.9)",
   },
   headerLargeValue: {
     fontSize: 13,
