@@ -1,4 +1,4 @@
-// coupon.entity.ts
+// src/coupons/entities/coupon.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -34,6 +34,6 @@ export class Coupon {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @ManyToOne(() => User, (user) => user.redeemed_coupons)
+  @ManyToOne(() => User, (user) => user.coupons)
   redeemed_by_user: User;
 }
