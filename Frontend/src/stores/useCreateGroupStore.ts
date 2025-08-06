@@ -8,6 +8,7 @@ interface CreateGroupState {
   setConsumo: (consumo: "mucho" | "poco" | "normal") => void;
   // Datos del grupo
   groupName: string;
+  groupType: string;
   description: string;
   location: string;
   deliveryTime: string;
@@ -19,6 +20,7 @@ interface CreateGroupState {
 
   // Acciones para el grupo
   setGroupName: (name: string) => void;
+  setGroupType: (type: string) => void;
   setDescription: (description: string) => void;
   setLocation: (location: string) => void;
   setDeliveryTime: (time: string) => void;
@@ -41,6 +43,7 @@ interface CreateGroupState {
 
 const initialState = {
   groupName: "",
+  groupType: "",
   description: "",
   location: "",
   deliveryTime: "",
@@ -59,6 +62,7 @@ export const useCreateGroupStore = create<CreateGroupState>((set, get) => ({
 
   // Acciones para el grupo
   setGroupName: (name: string) => set({ groupName: name }),
+  setGroupType: (type: string) => set({ groupType: type }),
   setDescription: (description: string) => set({ description }),
   setLocation: (location: string) => set({ location }),
   setDeliveryTime: (time: string) => set({ deliveryTime: time }),

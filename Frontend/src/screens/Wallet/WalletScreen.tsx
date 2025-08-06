@@ -1,39 +1,46 @@
 import React, { useState } from "react";
-import { createPayphonePayment } from "../../services/payphoneService";
-import {
-  View,
-  ScrollView,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, ScrollView, Dimensions } from "react-native";
 import { WaveBottomGray } from "../../components/icons";
-import {
-  WalletHeader,
-  WalletBalanceCard,
-  WalletActions,
-  FRSCard,
-} from "./components";
+import { WalletHeader, WalletBalanceCard, WalletActions } from "./components";
+import { BankAccountsSection } from "./components/BankAccountsSection";
+import { PayphoneSection } from "./components/PayphoneSection";
 import { PaymentPreferences } from "./components/PaymentPreferences";
-import { PaymentAccountForm } from "./components/PaymentAccountForm";
+
 import { useWalletData, useWalletActions } from "./hooks";
 import { containerStyles } from "./styles";
 import { PayphoneWidget } from "../../components/ui/PayphoneWidget";
-import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Modal,
-  Pressable,
-  Image,
-} from "react-native";
+import { StyleSheet } from "react-native";
 
 const payphoneLogo = require("../../../assets/payphone-logo.png");
 
-type PaymentAccountType = "payphone" | "bank" | null;
+export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [bankAccounts, setBankAccounts] = useState<
+    {
+      holder: string;
+      idNumber: string;
+      bank: string;
+      accountNumber: string;
+    }[]
+  >([]);
+  // const [showBuyModal, setShowBuyModal] = useState(false);
+  const handleAddBankAccount = () => {
+    if (
+      bankData.holder &&
+      bankData.idNumber &&
+      bankData.bank &&
+      bankData.accountNumber
+    ) {
+      setBankAccounts([...bankAccounts, bankData]);
+      setBankData({ holder: "", idNumber: "", bank: "", accountNumber: "" });
+    }
+  };
 
-export const WalletScreen: React.FC = () => {
-  const { walletData, frsData } = useWalletData();
+  const handleRemoveBankAccount = (idx: number) => {
+    setBankAccounts(bankAccounts.filter((_, i) => i !== idx));
+  };
+
+  type PaymentAccountType = "payphone" | "bank" | null;
+  const { walletData } = useWalletData();
   const { walletActions } = useWalletActions();
   const [showPayphone, setShowPayphone] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -67,50 +74,10 @@ export const WalletScreen: React.FC = () => {
     backgroundColor: "#6610f2",
     urlMobile: payphoneUrl,
   };
+  // Necesita acceso a navigation
+  // @ts-ignore
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Modal para elegir tipo de cuenta */}
-      <Modal
-        visible={showAccountModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAccountModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Añadir método de pago</Text>
-            <Pressable
-              style={styles.accountOption}
-              onPress={() => {
-                setSelectedAccount("payphone");
-                setShowAccountModal(false);
-              }}
-            >
-              <Image source={payphoneLogo} style={styles.accountLogo} />
-              <Text style={styles.accountText}>Cuenta de Payphone</Text>
-            </Pressable>
-            <Pressable
-              style={styles.accountOption}
-              onPress={() => {
-                setSelectedAccount("bank");
-                setShowAccountModal(false);
-              }}
-            >
-              <Text style={styles.bankIcon}>🏦</Text>
-              <Text style={styles.accountText}>Cuenta Bancaria</Text>
-            </Pressable>
-            <TouchableOpacity
-              style={styles.closeModalBtn}
-              onPress={() => setShowAccountModal(false)}
-            >
-              <Text style={{ color: "#6610f2", fontWeight: "bold" }}>
-                Cerrar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Widget Payphone solo si está seleccionado y showPayphone */}
       {showPayphone && selectedAccount === "payphone" ? (
         <PayphoneWidget
@@ -133,224 +100,79 @@ export const WalletScreen: React.FC = () => {
                     ? {
                         ...action,
                         onPress: () => {
-                          if (selectedAccount === "payphone") {
-                            // Usar el browser_fallback_url directo para pruebas en mobile
-                            setPayphoneUrl(
-                              process.env.EXPO_PUBLIC_PAYPHONE_BUTTON_URL || ""
-                            );
-                            setShowPayphone(true);
-                          }
-                          // Aquí podrías manejar lógica para banco si lo deseas
+                          navigation.navigate("SendScreen");
+                        },
+                      }
+                    : action.id === "exchange"
+                    ? {
+                        ...action,
+                        onPress: () => {
+                          navigation.navigate("CanjearScreen");
+                        },
+                      }
+                    : action.id === "receive"
+                    ? {
+                        ...action,
+                        onPress: () => {
+                          navigation.navigate("ReceiveScreen");
+                        },
+                      }
+                    : action.id === "history"
+                    ? {
+                        ...action,
+                        onPress: () => {
+                          navigation.navigate("HistoryScreen");
                         },
                       }
                     : action
                 )}
               />
 
+              {/* Preferencias de pago con edición directa */}
               <PaymentPreferences
-                showAccountModal={showAccountModal}
-                setShowAccountModal={setShowAccountModal}
                 selectedAccount={selectedAccount}
-                setSelectedAccount={(type) => {
-                  setSelectedAccount(type);
-                  setEditAccount(true);
-                }}
+                setSelectedAccount={setSelectedAccount}
                 payphoneLogo={payphoneLogo}
                 styles={styles}
+                payphoneData={payphoneData}
+                setPayphoneData={setPayphoneData}
+                bankData={bankData}
+                setBankData={setBankData}
               />
-              {/* Formulario de datos de cuenta y aclaraciones */}
+
               {selectedAccount && (
                 <View style={{ marginTop: 12, marginBottom: 8 }}>
-                  {editAccount ? (
-                    <View
-                      style={{
-                        backgroundColor: "#f6f8ff",
-                        borderRadius: 14,
-                        padding: 16,
-                        shadowColor: "#000",
-                        shadowOpacity: 0.06,
-                        shadowRadius: 4,
-                        elevation: 2,
-                        borderWidth: 1,
-                        borderColor:
-                          selectedAccount === "bank" ? "#4caf50" : "#6610f2",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: 16,
-                          color:
-                            selectedAccount === "bank" ? "#388e3c" : "#6610f2",
-                          marginBottom: 8,
-                          textAlign: "center",
-                        }}
-                      >
-                        {selectedAccount === "bank"
-                          ? "Datos de cuenta bancaria"
-                          : "Datos de PayPhone"}
-                      </Text>
-                      <PaymentAccountForm
-                        type={selectedAccount}
-                        value={
-                          selectedAccount === "bank" ? bankData : payphoneData
-                        }
-                        onChange={
-                          selectedAccount === "bank"
-                            ? (data) => setBankData(data as typeof bankData)
-                            : (data) =>
-                                setPayphoneData(data as typeof payphoneData)
-                        }
-                      />
-                      <Text
-                        style={{
-                          color:
-                            selectedAccount === "bank" ? "#388e3c" : "#6610f2",
-                          fontSize: 13,
-                          marginBottom: 10,
-                          textAlign: "center",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {selectedAccount === "bank"
-                          ? "La carga de monedas es gratuita."
-                          : "Con PayPhone hay un recargo del 5% + IVA."}
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          alignSelf: "center",
-                          backgroundColor:
-                            selectedAccount === "bank" ? "#4caf50" : "#6610f2",
-                          borderRadius: 8,
-                          paddingVertical: 8,
-                          paddingHorizontal: 24,
-                          marginTop: 4,
-                        }}
-                        onPress={() => setEditAccount(false)}
-                      >
-                        <Text
-                          style={{
-                            color: "#fff",
-                            fontWeight: "bold",
-                            fontSize: 15,
-                          }}
-                        >
-                          Guardar
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View
-                      style={{
-                        backgroundColor: "#f8f8f8",
-                        borderRadius: 12,
-                        padding: 14,
-                        borderWidth: 1,
-                        borderColor:
-                          selectedAccount === "bank" ? "#4caf50" : "#6610f2",
-                        marginBottom: 4,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color:
-                            selectedAccount === "bank" ? "#388e3c" : "#6610f2",
-                          fontWeight: "bold",
-                          fontSize: 15,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {selectedAccount === "bank"
-                          ? "Cuenta bancaria"
-                          : "Cuenta PayPhone"}
-                      </Text>
-                      {selectedAccount === "bank" && (
-                        <View>
-                          <Text style={{ color: "#444", marginBottom: 2 }}>
-                            Titular:{" "}
-                            <Text style={{ fontWeight: "bold" }}>
-                              {bankData.holder || "-"}
-                            </Text>
-                          </Text>
-                          <Text style={{ color: "#444", marginBottom: 2 }}>
-                            Cédula:{" "}
-                            <Text style={{ fontWeight: "bold" }}>
-                              {bankData.idNumber || "-"}
-                            </Text>
-                          </Text>
-                          <Text style={{ color: "#444", marginBottom: 2 }}>
-                            Banco:{" "}
-                            <Text style={{ fontWeight: "bold" }}>
-                              {bankData.bank || "-"}
-                            </Text>
-                          </Text>
-                          <Text style={{ color: "#444", marginBottom: 2 }}>
-                            N° cuenta:{" "}
-                            <Text style={{ fontWeight: "bold" }}>
-                              {bankData.accountNumber || "-"}
-                            </Text>
-                          </Text>
-                        </View>
-                      )}
-                      {selectedAccount === "payphone" && (
-                        <View>
-                          <Text style={{ color: "#444", marginBottom: 2 }}>
-                            Teléfono:{" "}
-                            <Text style={{ fontWeight: "bold" }}>
-                              {payphoneData.phone || "-"}
-                            </Text>
-                          </Text>
-                        </View>
-                      )}
-                      <Text
-                        style={{
-                          color:
-                            selectedAccount === "bank" ? "#388e3c" : "#6610f2",
-                          fontSize: 13,
-                          marginTop: 8,
-                          marginBottom: 6,
-                          textAlign: "center",
-                          fontWeight: "500",
-                        }}
-                      >
-                        {selectedAccount === "bank"
-                          ? "La carga de monedas es gratuita."
-                          : "Con PayPhone hay un recargo del 5% + IVA."}
-                      </Text>
-                      <TouchableOpacity
-                        style={{
-                          alignSelf: "center",
-                          backgroundColor:
-                            selectedAccount === "bank" ? "#4caf50" : "#6610f2",
-                          borderRadius: 8,
-                          paddingVertical: 7,
-                          paddingHorizontal: 22,
-                          marginTop: 2,
-                        }}
-                        onPress={() => setEditAccount(true)}
-                      >
-                        <Text
-                          style={{
-                            color: "#fff",
-                            fontWeight: "bold",
-                            fontSize: 15,
-                          }}
-                        >
-                          Editar
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                  {editAccount && selectedAccount === "bank" && (
+                    <BankAccountsSection
+                      bankAccounts={bankAccounts}
+                      bankData={bankData}
+                      editAccount={editAccount}
+                      onChangeBankData={(data) =>
+                        setBankData(data as typeof bankData)
+                      }
+                      onAddBankAccount={handleAddBankAccount}
+                      onRemoveBankAccount={handleRemoveBankAccount}
+                    />
+                  )}
+                  {editAccount && selectedAccount === "payphone" && (
+                    <PayphoneSection
+                      payphoneData={payphoneData}
+                      editAccount={editAccount}
+                      onChangePayphoneData={(data) =>
+                        setPayphoneData(data as typeof payphoneData)
+                      }
+                    />
                   )}
                 </View>
               )}
             </View>
+            <View style={containerStyles.waveContainer}>
+              <WaveBottomGray
+                width={Dimensions.get("window").width}
+                height={120}
+              />
+            </View>
           </ScrollView>
-          <View style={containerStyles.waveContainer}>
-            <WaveBottomGray
-              width={Dimensions.get("window").width}
-              height={120}
-            />
-          </View>
         </View>
       )}
     </View>

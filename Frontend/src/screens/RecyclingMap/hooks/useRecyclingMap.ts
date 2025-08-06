@@ -1,10 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Alert, ScrollView } from "react-native";
 import { RecyclingPoint } from "@screens/RecyclingMap/types/recycling";
-import {
-  MOCK_RECYCLING_POINTS,
-  RECYCLING_TYPES,
-} from "@constants/recyclingData";
+import { MOCK_RECYCLING_POINTS, RECYCLING_TYPES } from "src/data/recyclingData";
 import { LocationService } from "@services/locationService";
 import { useUserLocation } from "@screens/RecyclingMap/hooks/useUserLocation";
 import { useMapAnimation } from "@screens/RecyclingMap/hooks/useMapAnimation";

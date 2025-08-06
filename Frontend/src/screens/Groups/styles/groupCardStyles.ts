@@ -36,6 +36,23 @@ export const groupCardStyles = StyleSheet.create({
     color: colors.textPrimary,
     flex: 1,
   },
+  badgeContainer: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d0d0d0",
+  },
+  typeText: {
+    color: "#666666",
+    fontSize: 11,
+    fontWeight: "500" as const,
+  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,

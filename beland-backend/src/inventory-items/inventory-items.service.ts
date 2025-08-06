@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
-import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InventoryItemsRepository } from './inventory-items.repository';
+import { InventoryItem } from './entities/inventory-item.entity';
 
 @Injectable()
 export class InventoryItemsService {
-  create(createInventoryItemDto: CreateInventoryItemDto) {
-    return 'This action adds a new inventoryItem';
+  private readonly completeMessage = 'el item del inventario';
+
+  constructor(private readonly repository: InventoryItemsRepository) {}
+
+  async findAll(
+    product_id: string,
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[InventoryItem[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        product_id,
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all inventoryItems`;
+  async findOne(id: string): Promise<InventoryItem> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} inventoryItem`;
+  async create(body: Partial<InventoryItem>): Promise<InventoryItem> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updateInventoryItemDto: UpdateInventoryItemDto) {
-    return `This action updates a #${id} inventoryItem`;
+  async update(id: string, body: Partial<InventoryItem>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} inventoryItem`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }

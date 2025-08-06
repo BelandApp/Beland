@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Alert } from "react-native";
 import { Group } from "../../../types";
-import { useGroups } from "../../../hooks/useGroups";
-import { CURRENT_USER_ID } from "../../../constants/user";
+import { useGroups } from "../../Groups/hooks/useGroups";
+import { CURRENT_USER_ID } from "../../../data/user";
 
 export const useGroupManagementData = (groupId: string, navigation: any) => {
   const { getGroupById, refreshKey } = useGroups();

@@ -10,7 +10,8 @@ export const containerStyles = {
   tabContent: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingTop: 20, // Margin superior para separar del navbar
+    paddingBottom: 120, // Espacio extra para la navegación sticky-immersive
   },
 
   // Loading

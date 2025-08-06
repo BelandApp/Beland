@@ -33,12 +33,20 @@ import {
 import { containerStyles } from "./styles";
 
 // Types
-import { AvailableProduct } from "../../constants/products";
+import { AvailableProduct } from "../../data/products";
 
 export const CatalogScreen = () => {
   const navigation = useNavigation();
+  const route =
+    (navigation as any)
+      .getState?.()
+      ?.routes?.find?.((r: any) => r.name === "Catalog") || {};
+  // Si se navega desde la gestión de grupo, se espera groupId en params
+  const groupId = route?.params?.groupId;
   const { addProduct, setIsCreatingGroup, isCreatingGroup, products } =
     useCreateGroupStore();
+  const { addProductToGroup } =
+    require("../../stores/groupStores").useExistingGroupStore();
 
   // Verificar si realmente hay productos en el grupo al montar el componente
   useEffect(() => {
@@ -92,8 +100,30 @@ export const CatalogScreen = () => {
 
   // Función para agregar producto
   const handleAddProduct = (product: AvailableProduct) => {
-    if (isCreatingGroup) {
-      // Si estamos creando un grupo, agregar directamente al store
+    if (groupId) {
+      // Lógica para agregar producto a grupo existente
+      const newProduct = {
+        id: product.id,
+        name: product.name,
+        quantity: 1,
+        estimatedPrice: product.basePrice,
+        totalPrice: product.basePrice,
+        category: product.category,
+        basePrice: product.basePrice,
+        image: product.image,
+      };
+      addProductToGroup(groupId, newProduct);
+      // Sincronizar con el modelo principal
+      const { GroupService } = require("../../services/groupService");
+      GroupService.addProductToGroup(groupId, newProduct);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Navegar de vuelta a gestión de grupo (stack anidado)
+      (navigation as any).navigate("Groups", {
+        screen: "GroupManagement",
+        params: { groupId },
+      });
+    } else if (isCreatingGroup) {
+      // Lógica para crear grupo nuevo
       const newProduct = {
         id: product.id,
         name: product.name,
@@ -105,11 +135,7 @@ export const CatalogScreen = () => {
         image: product.image,
       };
       addProduct(newProduct);
-
-      // Feedback háptico de éxito
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      // Mostrar modal personalizado de confirmación
       openProductAddedModal(product);
     } else {
       // Comportamiento normal: mostrar modal de opciones

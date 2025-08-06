@@ -9,7 +9,7 @@ import { Animated } from "react-native";
 import { ConfirmationAlert } from "../../../components/ui";
 import * as Location from "expo-location";
 import { RecyclingPoint } from "@screens/RecyclingMap/types/recycling";
-import { MOCK_RECYCLING_POINTS } from "@constants/recyclingData";
+import { MOCK_RECYCLING_POINTS } from "src/data/recyclingData";
 
 interface RecyclingMapContextProps {
   filteredPoints: RecyclingPoint[];

@@ -5,6 +5,7 @@ import {
   Column,
   UpdateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Product } from 'src/products/entities/product.entity';
 
@@ -28,5 +29,8 @@ export class InventoryItem {
   @ManyToOne(() => Product, (product) => product.inventory_items, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({name:'product_id'})
   product: Product;
+  @Column('uuid')
+  product_id: string;
 }

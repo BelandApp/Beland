@@ -1,4 +1,3 @@
-// users.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,62 +6,75 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { Wallet } from 'src/wallets/entities/wallet.entity';
-import { Group } from 'src/groups/entities/group.entity';
-import { GroupMember } from 'src/group-members/entities/group-member.entity';
-import { Order } from 'src/orders/entities/order.entity';
-import { OrderItem } from 'src/order-items/entities/order-item.entity';
-import { Payment } from 'src/payments/entities/payment.entity';
-import { Action } from 'src/actions/entities/action.entity';
-import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
-import { PrizeRedemption } from 'src/prize-redemptions/entities/prize-redemption.entity';
-import { Coupon } from 'src/coupons/entities/coupon.entity';
+import { Wallet } from '../../wallets/entities/wallet.entity';
+import { Group } from '../../groups/entities/group.entity';
+import { GroupMember } from '../../group-members/entities/group-member.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { OrderItem } from '../../order-items/entities/order-item.entity';
+import { Payment } from '../../payments/entities/payment.entity';
+import { Action } from '../../actions/entities/action.entity';
+import { RecycledItem } from '../../recycled-items/entities/recycled-item.entity';
+import { PrizeRedemption } from '../../prize-redemptions/entities/prize-redemption.entity';
+import { Coupon } from '../../coupons/entities/coupon.entity';
+import { Role } from '../../roles/entities/role.entity';
+import { Admin } from '../../admins/entities/admin.entity';
+import { Exclude } from 'class-transformer';
+import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
+import { Merchant } from 'src/merchants/entities/merchant.entity';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: string; // Clave primaria UUID
 
   @Column({ type: 'text', nullable: true })
-  oauth_provider: string;
+  oauth_provider: string | null;
 
   @Column({ type: 'text', unique: true })
   email: string;
 
   @Column({ type: 'text', nullable: true })
-  username: string;
+  username: string | null;
 
   @Column({ type: 'text', nullable: true })
-  full_name: string;
+  full_name: string | null;
 
   @Column({ type: 'text', nullable: true })
-  profile_picture_url: string;
+  profile_picture_url: string | null;
 
-  @Column({ type: 'numeric', default: 0 })
-  current_balance: number;
+  @Column({ type: 'numeric', nullable: true, default: 0 })
+  current_balance: number | null;
 
   @Column({ type: 'text', default: 'USER' })
-  role: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN';
+  role_name: string; // Nombre del rol (ej. 'USER', 'ADMIN')
+
+  @Column({ type: 'uuid', nullable: true })
+  role_id: string | null; // ID del rol (FK)
 
   @Column({ type: 'text', nullable: true })
-  address: string;
+  auth0_id: string | null; // ID de Auth0 (se mantiene para usuarios OAuth)
+
+  @Column({ type: 'text', nullable: true })
+  address: string | null;
 
   @Column({ type: 'numeric', nullable: true })
-  phone: number;
+  phone: number | null;
 
   @Column({ type: 'text', nullable: true })
-  country: string;
-
+  country: string | null;
 
   @Column({ type: 'text', nullable: true })
-  city: string;
+  city: string | null;
 
-  @Column({ type: 'boolean', default: false })
+  // CORREGIDO: Mapeo explícito a 'isblocked' en la base de datos
+  @Column({ type: 'boolean', default: false, name: 'isblocked' })
   isBlocked: boolean;
 
   @Column({ type: 'timestamptz', nullable: true })
-  deleted_at: Date;
+  deleted_at: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
@@ -70,8 +82,26 @@ export class User {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
 
-  @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
-  wallet: Wallet;
+  @Exclude() // Excluir la contraseña de las respuestas JSON
+  @Column({ type: 'text', nullable: true })
+  password: string | null;
+
+  // Relación ManyToOne con la entidad Role
+  @ManyToOne(() => Role, (role) => role.users, {
+    eager: false,
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'role_id', referencedColumnName: 'role_id' })
+  role_relation: Role | null;
+
+  // ¡NUEVA RELACIÓN OneToOne con Admin!
+  @OneToOne(() => Admin, (admin) => admin.user)
+  admin: Admin;
+
+  // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
+  @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
+  wallets: Wallet[];
 
   @OneToMany(() => Group, (group) => group.leader)
   led_groups: Group[];
@@ -99,4 +129,11 @@ export class User {
 
   @OneToMany(() => Coupon, (coupon) => coupon.redeemed_by_user)
   redeemed_coupons: Coupon[];
+
+  @OneToMany(() => BankAccount, (account) => account.user)
+  bank_accounts: BankAccount[];
+
+  @OneToOne(() => Merchant, (merchant) => merchant.user)
+  merchant: Merchant;
+
 }

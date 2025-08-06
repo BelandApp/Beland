@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { GroupsRepository } from './groups.repository';
+import { Group } from './entities/group.entity';
 
 @Injectable()
 export class GroupsService {
-  create(createGroupDto: CreateGroupDto) {
-    return 'This action adds a new group';
+  private readonly completeMessage = 'el grupo';
+
+  constructor(private readonly repository: GroupsRepository) {}
+
+  async findAll(
+    user_id: string,
+    pageNumber: number,
+    limitNumber: number,
+  ): Promise<[Group[], number]> {
+    try {
+      const response = await this.repository.findAll(
+        user_id,
+        pageNumber,
+        limitNumber,
+      );
+      return response;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findAll() {
-    return `This action returns all groups`;
+  async findOne(id: string): Promise<Group> {
+    try {
+      const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} group`;
+  async create(body: Partial<Group>): Promise<Group> {
+    try {
+      const res = await this.repository.create(body);
+      if (!res)
+        throw new InternalServerErrorException(
+          `No se pudo crear ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  update(id: number, updateGroupDto: UpdateGroupDto) {
-    return `This action updates a #${id} group`;
+  async update(id: string, body: Partial<Group>) {
+    try {
+      const res = await this.repository.update(id, body);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} group`;
+  async remove(id: string) {
+    try {
+      const res = await this.repository.remove(id);
+      if (res.affected === 0)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage}`,
+        );
+      return res;
+    } catch (error) {
+      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
   }
 }

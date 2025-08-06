@@ -6,10 +6,20 @@ import { GroupsStackParamList } from "../../types/navigation";
 import { WaveBottomGray } from "../../components/icons";
 
 // Hooks
-import { useGroupsTabs, useGroupsNavigation, useGroupsData } from "./hooks";
+import {
+  useGroupsTabs,
+  useGroupsNavigation,
+  useGroupsData,
+  useGroupTypeFilter,
+} from "./hooks";
 
 // Components
-import { GroupsHeader, GroupTabs, GroupsList } from "./components";
+import {
+  GroupsHeader,
+  GroupTabs,
+  GroupsList,
+  GroupTypeFilter,
+} from "./components";
 
 // Styles
 import { containerStyles } from "./styles";
@@ -31,7 +41,19 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ navigation }) => {
   } = useGroupsData();
 
   // Determinar qué grupos mostrar según la pestaña seleccionada
-  const currentGroups = isActiveTab ? activeGroups : completedGroups;
+  const baseGroups = isActiveTab ? activeGroups : completedGroups;
+
+  // Hook para filtrar por tipo
+  const {
+    selectedType,
+    availableTypes,
+    filteredGroups,
+    handleTypeChange,
+    hasActiveFilter,
+  } = useGroupTypeFilter(baseGroups);
+
+  // Los grupos a mostrar son los filtrados
+  const currentGroups = filteredGroups;
 
   return (
     <SafeAreaView style={containerStyles.container} edges={[]}>
@@ -47,6 +69,15 @@ export const GroupsScreen: React.FC<GroupsScreenProps> = ({ navigation }) => {
             activeCount={totalActiveGroups}
             historyCount={totalCompletedGroups}
           />
+
+          {/* Filtro por tipo de grupo */}
+          {availableTypes.length > 0 && (
+            <GroupTypeFilter
+              selectedType={selectedType}
+              onTypeChange={handleTypeChange}
+              availableTypes={availableTypes}
+            />
+          )}
 
           {/* Lista de grupos */}
           <GroupsList

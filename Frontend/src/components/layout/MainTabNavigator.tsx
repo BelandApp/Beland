@@ -1,10 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, StyleSheet, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { colors } from "../../styles/colors";
 import { DashboardScreen } from "../../screens/DashboardScreen";
-import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { WalletScreen } from "../../screens/WalletScreen";
 import { RewardsScreen } from "../../screens/RewardsScreen";
 import { CatalogScreen } from "../../screens/CatalogScreen";
@@ -16,7 +14,6 @@ import {
   QRIcon,
   WalletIcon,
   CatalogIcon,
-  ProfileIcon,
   GiftIcon,
   GroupIcon,
 } from "../icons";
@@ -71,8 +68,13 @@ export const MainTabNavigator = () => {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
-          paddingBottom: 8,
+          paddingBottom: Platform.OS === "android" ? 16 : 8, // Más padding inferior en Android
           paddingTop: 8,
+          height: Platform.OS === "android" ? 80 : 70, // Altura fija para asegurar espacio
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
           ...(Platform.OS === "android" && {
             // Esto desactiva el efecto ripple en Android
             borderBottomWidth: 0,
@@ -85,6 +87,7 @@ export const MainTabNavigator = () => {
           fontSize: 12,
           fontWeight: "500",
           marginTop: 4,
+          marginBottom: Platform.OS === "android" ? 4 : 0, // Margen inferior adicional en Android
         },
         headerShown: false,
         tabBarHideOnKeyboard: true, // Oculta la barra cuando aparece el teclado

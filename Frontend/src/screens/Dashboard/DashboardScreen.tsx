@@ -1,8 +1,9 @@
 import React from "react";
 import { View, ScrollView } from "react-native";
 import { AppHeader } from "../../components/layout/AppHeader";
+import { BeCoinsBalance } from "../../components/ui/BeCoinsBalance";
 import { RecyclingCard, RewardsCard, ActivitySection } from "./components";
-import { RecyclingMapWidget } from "../../components/RecyclingMapWidget";
+import { RecyclingMapWidget } from "./components/RecyclingMapWidget";
 import { useDashboardNavigation, useDashboardData } from "./hooks";
 import { containerStyles } from "./styles";
 
@@ -21,7 +22,6 @@ export const DashboardScreen = () => {
         {/* Header */}
         <AppHeader
           userName={userStats.userName}
-          coinsAmount={userStats.coinsAmount}
           onMenuPress={handleMenuPress}
           onCoinsPress={handleCoinsPress}
         />
