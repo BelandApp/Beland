@@ -7,6 +7,7 @@ import { CURRENT_USER_ID } from "../data/user";
 
 export interface CreateGroupData {
   name: string;
+  type: string;
   description: string;
   location: string;
   deliveryTime: string;
@@ -30,6 +31,7 @@ export class GroupService {
     const newGroup: Group = {
       id: generateId(),
       name: data.name.trim(),
+      type: data.type.trim(),
       description: data.description.trim(),
       location: data.location.trim(),
       deliveryTime: data.deliveryTime.trim(),

@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 
 export const headerStyles = StyleSheet.create({
@@ -7,7 +7,7 @@ export const headerStyles = StyleSheet.create({
     marginHorizontal: -16,
     marginTop: -16,
     paddingHorizontal: 16,
-    paddingTop: 50,
+    paddingTop: Platform.OS === "android" ? 20 : 50, // Reducido para Android porque la barra de estado está oculta
     paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,

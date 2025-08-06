@@ -169,7 +169,10 @@ export const RewardsScreen = () => {
         message={alertConfig.message}
         type={alertConfig.type}
         onClose={hideAlert}
-        buttonText="OK"
+        primaryButton={{
+          text: "OK",
+          onPress: hideAlert,
+        }}
       />
     </View>
   );

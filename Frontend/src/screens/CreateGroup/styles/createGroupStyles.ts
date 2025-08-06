@@ -12,6 +12,7 @@ export const createGroupStyles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingBottom: 120, // Espacio extra para la navegación sticky-immersive
     gap: 20,
   },
 

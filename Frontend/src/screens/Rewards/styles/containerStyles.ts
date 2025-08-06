@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform } from "react-native";
 import { colors } from "../../../styles/colors";
 
 export const containerStyles = StyleSheet.create({
@@ -46,6 +46,6 @@ export const containerStyles = StyleSheet.create({
     fontWeight: "bold" as const,
   },
   bottomSpacing: {
-    height: 20,
+    height: Platform.OS === "android" ? 96 : 86, // Espacio extra para la nueva barra de navegación
   },
 });
