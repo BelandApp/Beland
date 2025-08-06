@@ -7,11 +7,13 @@ import { FormErrors } from "../../../business/validation/groupValidation";
 
 interface BasicGroupInfoProps {
   groupName: string;
+  groupType: string;
   description: string;
   location: string;
   deliveryTime: string;
   errors: FormErrors;
   onGroupNameChange: (value: string) => void;
+  onGroupTypeChange: (value: string) => void;
   onDescriptionChange: (text: string) => void;
   onLocationPress: () => void;
   onTimePress: () => void;
@@ -19,11 +21,13 @@ interface BasicGroupInfoProps {
 
 export const BasicGroupInfo: React.FC<BasicGroupInfoProps> = ({
   groupName,
+  groupType,
   description,
   location,
   deliveryTime,
   errors,
   onGroupNameChange,
+  onGroupTypeChange,
   onDescriptionChange,
   onLocationPress,
   onTimePress,
@@ -42,11 +46,33 @@ export const BasicGroupInfo: React.FC<BasicGroupInfoProps> = ({
         </View>
       </View>
 
-      {/* Tipo de grupo (desplegable) */}
+      {/* Nombre del grupo */}
       <View style={formStyles.modernInputGroup}>
         <View style={formStyles.inputWrapper}>
           <View style={formStyles.inputIconContainer}>
             <Text style={formStyles.inputIcon}>📝</Text>
+          </View>
+          <View style={formStyles.inputContent}>
+            <Text style={formStyles.modernInputLabel}>Nombre del grupo *</Text>
+            <TextInput
+              style={formStyles.modernTextInput}
+              placeholder="Ej: Juntada en casa de Juan"
+              value={groupName}
+              onChangeText={onGroupNameChange}
+              placeholderTextColor="#A0A0A0"
+            />
+          </View>
+        </View>
+        {errors.groupName && (
+          <Text style={formStyles.modernErrorText}>{errors.groupName}</Text>
+        )}
+      </View>
+
+      {/* Tipo de grupo (desplegable) */}
+      <View style={formStyles.modernInputGroup}>
+        <View style={formStyles.inputWrapper}>
+          <View style={formStyles.inputIconContainer}>
+            <Text style={formStyles.inputIcon}>🏷️</Text>
           </View>
           <View style={formStyles.inputContent}>
             <Text style={formStyles.modernInputLabel}>Tipo de grupo *</Text>
@@ -54,7 +80,7 @@ export const BasicGroupInfo: React.FC<BasicGroupInfoProps> = ({
               style={{
                 borderRadius: 14,
                 borderWidth: 2,
-                borderColor: groupName ? "#4CAF50" : "#E9ECEF",
+                borderColor: groupType ? "#4CAF50" : "#E9ECEF",
                 backgroundColor: "#fff",
                 overflow: "hidden",
                 marginTop: 4,
@@ -72,17 +98,17 @@ export const BasicGroupInfo: React.FC<BasicGroupInfoProps> = ({
               <Text
                 style={{
                   fontSize: 17,
-                  color: groupName ? "#222" : "#A0A0A0",
-                  fontWeight: groupName ? "600" : "400",
+                  color: groupType ? "#222" : "#A0A0A0",
+                  fontWeight: groupType ? "600" : "400",
                   flex: 1,
                   paddingVertical: 8,
                 }}
               >
-                {groupName ? groupName : "Selecciona el tipo de grupo"}
+                {groupType ? groupType : "Selecciona el tipo de grupo"}
               </Text>
               <Picker
-                selectedValue={groupName}
-                onValueChange={onGroupNameChange}
+                selectedValue={groupType}
+                onValueChange={onGroupTypeChange}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -116,8 +142,8 @@ export const BasicGroupInfo: React.FC<BasicGroupInfoProps> = ({
             </View>
           </View>
         </View>
-        {errors.groupName && (
-          <Text style={formStyles.modernErrorText}>{errors.groupName}</Text>
+        {errors.groupType && (
+          <Text style={formStyles.modernErrorText}>{errors.groupType}</Text>
         )}
       </View>
 

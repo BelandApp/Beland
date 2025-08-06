@@ -30,15 +30,25 @@ export const GroupCard: React.FC<GroupCardProps> = ({ group, onPress }) => {
             <GroupIcon width={20} height={20} color={colors.belandOrange} />
             <Text style={groupCardStyles.groupName}>{group.name}</Text>
           </View>
-          <View
-            style={[
-              groupCardStyles.statusBadge,
-              { backgroundColor: getStatusColor(group.status) },
-            ]}
-          >
-            <Text style={groupCardStyles.statusText}>
-              {getStatusText(group.status)}
-            </Text>
+          <View style={groupCardStyles.badgeContainer}>
+            <View
+              style={[
+                groupCardStyles.typeBadge,
+                { backgroundColor: "#f0f0f0" },
+              ]}
+            >
+              <Text style={groupCardStyles.typeText}>{group.type}</Text>
+            </View>
+            <View
+              style={[
+                groupCardStyles.statusBadge,
+                { backgroundColor: getStatusColor(group.status) },
+              ]}
+            >
+              <Text style={groupCardStyles.statusText}>
+                {getStatusText(group.status)}
+              </Text>
+            </View>
           </View>
         </View>
 

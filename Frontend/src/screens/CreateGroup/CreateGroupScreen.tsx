@@ -43,6 +43,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
   // Store de Zustand
   const {
     groupName,
+    groupType,
     description,
     location,
     deliveryTime,
@@ -50,6 +51,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     products,
     isCreatingGroup,
     setGroupName,
+    setGroupType,
     setDescription,
     setLocation,
     setDeliveryTime,
@@ -134,6 +136,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
   const validateForm = (): boolean => {
     const validationErrors = validateGroupForm({
       groupName,
+      groupType,
       location,
       deliveryTime,
       participants,
@@ -156,6 +159,13 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     setGroupName(value);
     if (errors.groupName && value) {
       clearError("groupName");
+    }
+  };
+
+  const handleGroupTypeChange = (value: string) => {
+    setGroupType(value);
+    if (errors.groupType && value) {
+      clearError("groupType");
     }
   };
 
@@ -335,6 +345,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     // Verificar si hay datos en el formulario
     const hasFormData =
       groupName.trim() !== "" ||
+      groupType.trim() !== "" ||
       description.trim() !== "" ||
       location !== null ||
       deliveryTime.trim() !== "" ||
@@ -378,6 +389,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     try {
       await GroupService.createGroup({
         name: groupName,
+        type: groupType,
         description: description,
         location: location,
         deliveryTime: deliveryTime,
@@ -393,9 +405,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
 
       // Limpiar el store automáticamente después de crear el grupo
       clearGroup();
-      setTimeout(() => {
-        navigation.goBack();
-      }, 2000);
     } catch (error) {
       showCustomAlert(
         "Error al crear grupo",
@@ -405,6 +414,16 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
       console.error("Error creating group:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Función que se ejecuta cuando se cierra el alert
+  const handleAlertClose = () => {
+    setShowAlert(false);
+
+    // Si el alert fue de éxito (grupo creado), navegar de vuelta a los grupos
+    if (alertConfig.type === "success") {
+      navigation.navigate("Groups", { screen: "GroupsList" });
     }
   };
 
@@ -418,11 +437,13 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
           {/* Información básica del grupo */}
           <BasicGroupInfo
             groupName={groupName}
+            groupType={groupType}
             description={description}
             location={location}
             deliveryTime={deliveryTime}
             errors={errors}
             onGroupNameChange={handleGroupNameChange}
+            onGroupTypeChange={handleGroupTypeChange}
             onDescriptionChange={handleDescriptionChange}
             onLocationPress={() => setShowLocationModal(true)}
             onTimePress={() => setShowTimeModal(true)}
@@ -473,8 +494,11 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
-        onClose={() => setShowAlert(false)}
-        buttonText="Entendido"
+        onClose={handleAlertClose}
+        primaryButton={{
+          text: "Entendido",
+          onPress: handleAlertClose,
+        }}
       />
 
       {/* Alerta de confirmación para cancelar */}

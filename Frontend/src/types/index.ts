@@ -23,6 +23,7 @@ export interface Product {
 export interface Group {
   id: string;
   name: string;
+  type: string;
   description: string;
   location: string;
   deliveryTime: string;
