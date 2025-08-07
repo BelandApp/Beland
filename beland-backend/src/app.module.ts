@@ -86,7 +86,7 @@ import { AdminsModule } from './admins/admins.module';
     
     
     DatabaseModule,
-    //DatabaseInitModule,
+    DatabaseInitModule,
     UsersModule,
     RolesModule,
     WalletsModule,
