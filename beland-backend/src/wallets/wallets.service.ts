@@ -29,26 +29,17 @@ export class WalletsService {
   ) {}
 
   async findAll(
+    user_id: string,
     pageNumber: number,
     limitNumber: number,
   ): Promise<[Wallet[], number]> {
     try {
       const response = await this.repository.findAll(
+        user_id,
         pageNumber,
         limitNumber,
       );
       return response;
-    } catch (error) {
-      throw new InternalServerErrorException(error);
-    }
-  }
-
-  async findByUserId(user_id: string): Promise<Wallet> {
-    try {
-      const res = await this.repository.findByUserId(user_id);
-      if (!res)
-        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
-      return res;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
@@ -108,15 +99,15 @@ export class WalletsService {
     const wallet = await this.repository.findOne( dto.wallet_id );
     if (!wallet) throw new NotFoundException('No se encuentra la billetera')
     // 2) Convertir USD a Becoin
-    const becoinAmount = dto.amountUsd / this.priceOneBecoin;
+    
+    const becoinAmount = +dto.amountUsd / +this.priceOneBecoin;
     // 3) Actualizar saldo
-    wallet.becoin_balance += becoinAmount;
-
+    wallet.becoin_balance = +wallet.becoin_balance + becoinAmount;
     const type = await this.typeRepo.findOneBy({code:'RECHARGE'})
     if (!type) throw new ConflictException ("No se encuentra el tipo 'RECHARGE'")
 
-    const state = await this.stateRepo.findOneBy({code:dto.state})
-    if (!type) throw new ConflictException ("No se encuentra el estado" + dto.state)
+    const status = await this.stateRepo.findOneBy({code:dto.status})
+    if (!status) throw new ConflictException ("No se encuentra el estado" + dto.status)
 
     const walletUpdated: Wallet = await this.repository.create(wallet);
     
@@ -124,7 +115,7 @@ export class WalletsService {
     await this.txRepo.save({
       wallet_id: wallet.id,
       type_id: type.id,
-      state_id: state.id,
+      status_id: status.id,
       amount: becoinAmount,
       post_balance: wallet.becoin_balance,
       reference: dto.referenceCode,
@@ -159,39 +150,40 @@ export class WalletsService {
     return
   }
 
-  async transfer(walletId: string, dto: TransferDto): Promise<{ wallet: Wallet }> {
-    const from = await this.repository.findOne( walletId );
-    if (from.becoin_balance < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
+  async transfer(wallet_id: string, dto: TransferDto): Promise<{ wallet: Wallet }> {
+    const from = await this.repository.findOne( wallet_id );
+    if (!from) throw new NotFoundException("No se encuentra la Billetera");
+    if (Number(from.becoin_balance) < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
     const to = await this.repository.findOne( dto.toWalletId );
     if (!to) throw new NotFoundException('Billetera destino no existe');
     // 1) Debitar origen
-    from.becoin_balance -= dto.amountBecoin;
+    from.becoin_balance = +from.becoin_balance - dto.amountBecoin;
 
     const type = await this.typeRepo.findOneBy({code:'TRANSFER'})
     if (!type) throw new ConflictException ("No se encuentra el tipo 'TRANSFER'")
 
-    const state = await this.stateRepo.findOneBy({code:'COMPLETED'})
-    if (!state) throw new ConflictException ("No se encuentra el estado 'COMPLETED'")
+    const status = await this.stateRepo.findOneBy({code:'COMPLETED'})
+    if (!status) throw new ConflictException ("No se encuentra el estado 'COMPLETED'")
 
     const walletUpdate = await this.repository.create(from);
 
     const txFrom = this.txRepo.save({
       wallet_id: from.id,
       type,
-      state,
+      status,
       amount: -dto.amountBecoin,
       post_balance: from.becoin_balance,
       related_wallet_id: to.id,
     });
 
     // 2) Acreditar destino
-    to.becoin_balance += dto.amountBecoin;
+    to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
     await this.repository.create(to);
     
     const txTo = this.txRepo.save({
       wallet_id: to.id,
       type,
-      state,
+      status,
       amount: dto.amountBecoin,
       post_balance: to.becoin_balance,
       related_wallet_id: from.id,

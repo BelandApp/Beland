@@ -146,9 +146,7 @@ export class AuthService {
 
     //creo el Payload a guardar en el token, con id, email, y los roles asignados al usuario
     const userPayload = {
-        user_id : userDB.id,
-        role_name: userDB.role_relation.name,
-        role_id: userDB.role_relation.role_id,
+        ...userDB
       };
     const token = this.jwtService.sign(userPayload, {
         secret: this.configService.get<string>('JWT_SECRET'),
