@@ -39,14 +39,14 @@ export class TransactionsRepository {
         order: { created_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
-        relations: ['wallet', 'status', 'type'],
+        relations: ['status', 'type'],
     });
   }
 
   async findOne(id: string): Promise<Transaction> {
     return this.repository.findOne({
       where: { id },
-      relations: ['wallet', 'status', 'type'],
+      relations: ['status', 'type'],
     });
   }
 
