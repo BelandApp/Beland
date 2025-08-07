@@ -50,10 +50,13 @@ export class TransactionsRepository {
     });
   }
 
-  async create(body: Partial<Transaction>): Promise<Transaction> {
-    const state = await this.stateRepository.findOneBy({code: 'PENDING'})
-    if (!state) throw new ConflictException ("No se encuentra el estado para 'PENDING'"); 
-    return await this.repository.save({...body, status_id: state.id});
+  async create(
+    body: Partial<Transaction>, 
+    status: 'PENDING' | 'COMPLETED' | 'FAILED' = 'PENDING',
+  ): Promise<Transaction> {
+    const statusTransaction = await this.stateRepository.findOneBy({code: status})
+    if (!statusTransaction) throw new ConflictException ("No se encuentra el estado para 'PENDING'"); 
+    return await this.repository.save({...body, status_id: statusTransaction.id});
   }
 
   async update(id: string, body: Partial<Transaction>): Promise<UpdateResult> {

@@ -11,6 +11,8 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,14 +20,19 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PrizeRedemptionsService } from './prize-redemptions.service';
 import { PrizeRedemption } from './entities/prize-redemption.entity';
 import { CreatePrizeRedemptionDto } from './dto/create-prize-redemption.dto';
 import { UpdatePrizeRedemptionDto } from './dto/update-prize-redemption.dto';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { Request } from 'express';
 
 @ApiTags('prize-redemptions')
 @Controller('prize-redemptions')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class PrizeRedemptionsController {
   constructor(private readonly service: PrizeRedemptionsService) {}
 
@@ -34,23 +41,19 @@ export class PrizeRedemptionsController {
 @ApiOperation({ summary: 'Listar canjes de premios con paginación y filtro exclusivo' })
 @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
 @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-@ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar por ID de usuario. No usar junto con prize_id.' })
-@ApiQuery({ name: 'prize_id', required: false, type: String, description: 'Filtrar por ID de premio. No usar junto con user_id.' })
+@ApiQuery({ name: 'prize_id', required: false, type: String, description: 'Filtrar por ID de premio. Si no se envia retrna todos los premios canjeados por el usuario.' })
 @ApiResponse({ status: 200, description: 'Listado de canjes de premios retornado correctamente' })
 @ApiResponse({ status: 400, description: 'Solo puede enviarse user_id o prize_id, no ambos.' })
 @ApiResponse({ status: 500, description: 'Error interno del servidor' })
 async findAll(
   @Query('page') page = '1',
   @Query('limit') limit = '10',
-  @Query('user_id') user_id = '',
+  @Req() req: Request,
   @Query('prize_id') prize_id = '',
 ): Promise<[PrizeRedemption[], number]> {
-  const hasUserId = user_id.trim() !== '';
-  const hasGroupId = prize_id.trim() !== '';
-  if (hasUserId && hasGroupId) throw new BadRequestException('Solo puede buscar por usuario o premio pero no ambos al mismo tiempo.');
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
-  return await this.service.findAll(prize_id, user_id, pageNumber, limitNumber);
+  return await this.service.findAll(prize_id, req.user?.id, pageNumber, limitNumber);
 }
 
 @Get(':id')

@@ -19,6 +19,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { WalletsService } from './wallets.service';
 import { Wallet } from './entities/wallet.entity';
@@ -31,6 +32,8 @@ import { Request } from 'express';
 
 @ApiTags('wallets')
 @Controller('wallets')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class WalletsController {
   constructor(private readonly service: WalletsService) {}
 
