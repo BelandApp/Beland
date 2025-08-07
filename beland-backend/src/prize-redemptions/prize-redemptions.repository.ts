@@ -16,10 +16,13 @@ export class PrizeRedemptionsRepository {
     page: number,
     limit: number,
   ): Promise<[PrizeRedemption[], number]> {
-    const where: any = { user_id };
+    let where: Object; 
     if (prize_id) {
-      where.prize_id = prize_id;
+        where = {prize_id} 
+    } else {
+        where = user_id ? {user_id} : {};
     }
+
     return this.repository.findAndCount({
         where,
         order: { created_at: 'DESC' },

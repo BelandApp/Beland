@@ -21,7 +21,7 @@ export class Transaction {
   @Column('uuid')
   type_id: string;
 
-  // state: 'PENDING' | 'COMPLETED' | 'FAILED'
+  // status: 'PENDING' | 'COMPLETED' | 'FAILED'
   @ManyToOne(() => TransactionState)
   @JoinColumn({ name: 'status_id' })
   status: TransactionState;

@@ -10,7 +10,6 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,18 +17,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { TransactionState } from './entities/transaction-state.entity';
 import { TransactionStatesService } from './transaction-state.service';
 import { CreateTransactionStateDto } from './dto/create-transaction-state.dto';
 import { UpdateTransactionStateDto } from './dto/update-transaction-state.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('transaction-state')
 @Controller('transaction-state')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 export class TransactionStatesController {
   constructor(private readonly service: TransactionStatesService) {}
 

@@ -39,7 +39,6 @@ import { BankAccountTypeModule } from './bank-account-type/bank-account-type.mod
 import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminsModule } from './admins/admins.module';
-import { PreloadModule } from './preload/preload.module';
 
 @Module({
   imports: [
@@ -54,6 +53,7 @@ import { PreloadModule } from './preload/preload.module';
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
+        console.log('JWT_SECRET cargado:', secret); // Debug
         return {
           secret,
           signOptions: { expiresIn: '12h' },
@@ -83,6 +83,8 @@ import { PreloadModule } from './preload/preload.module';
       },
       inject: [ConfigService],
     }),
+    
+    
     DatabaseModule,
     //DatabaseInitModule,
     UsersModule,
@@ -111,7 +113,6 @@ import { PreloadModule } from './preload/preload.module';
     CharityModule,
     BankAccountTypeModule,
     AdminsModule,
-    PreloadModule,
   ],
   controllers: [],
   providers: [
