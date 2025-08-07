@@ -45,8 +45,10 @@ export const authService = {
   },
 
   // Login con email y contraseña
-  loginWithEmail: async (data: EmailAuthRequest): Promise<User> => {
-    return await apiRequest("/auth/login", {
+  loginWithEmail: async (
+    data: EmailAuthRequest
+  ): Promise<{ token: string }> => {
+    return await apiRequest("/auth/signin", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -56,7 +58,7 @@ export const authService = {
   registerWithEmail: async (
     data: RegisterRequest
   ): Promise<{ success: boolean }> => {
-    return await apiRequest("/auth/register", {
+    return await apiRequest("/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
     });
