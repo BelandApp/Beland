@@ -121,13 +121,16 @@ export class WalletsController {
     return await this.service.withdraw(userId, dto);
   }*/
   
-  @Post('transfer')
+  @Post(':walletId/transfer')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva transferencia' })
-  @ApiParam({ name: 'userId', description: 'UUID del usuario' })
+  @ApiParam({ name: 'walletId', description: 'UUID de la billetera de origen' })
   @ApiResponse({ status: 201, description: 'Transferencia Exitosa' })
-  async transfer(userId: string, dto: TransferDto): Promise<{ wallet: Wallet }> {
-    return await this.service.transfer(userId, dto);
+  async transfer(
+    @Param('walletId', ParseUUIDPipe) walletId: string,
+    @Body() dto: TransferDto
+  ): Promise<{ wallet: Wallet }> {
+    return await this.service.transfer(walletId, dto);
   }
 
   
