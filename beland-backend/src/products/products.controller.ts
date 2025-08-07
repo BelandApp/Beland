@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Query,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -22,11 +23,15 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ProductQueryDto } from './dto/product-query.dto';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('products')
 @Controller('products')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 export class ProductsController {
   private readonly logger = new Logger(ProductsController.name);
 
