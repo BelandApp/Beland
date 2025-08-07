@@ -54,11 +54,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <View style={styles.userSection}>
             <View style={styles.avatarContainer}>
               {user?.picture ? (
-                <Image
-                  source={{ uri: user.picture }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
+                <View style={styles.avatarPlaceholder}>
+                  <Image
+                    source={{ uri: user.picture }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 21,
+                    }}
+                    resizeMode="cover"
+                  />
+                </View>
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>
@@ -174,6 +180,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.4)",
+    overflow: "hidden",
   },
   avatarText: {
     color: "#FFFFFF",

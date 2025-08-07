@@ -79,7 +79,8 @@ const AppContent = () => {
     "CanjearScreen",
     "SendScreen",
     "ReceiveScreen",
-    "HistoryScreen",
+    "RechargeScreen",
+    "WalletHistoryScreen",
   ];
   const shouldShowQRButton =
     currentRoute !== "QR" &&

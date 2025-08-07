@@ -49,5 +49,10 @@ export const walletCardStyles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     backgroundColor: "#E0E0E0",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden", // Importante para que la imagen no se salga del círculo
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.3)",
   },
 });

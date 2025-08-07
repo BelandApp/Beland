@@ -79,9 +79,11 @@ export const BeCoinsBalance: React.FC<BeCoinsBalanceProps> = ({
     >
       <BeCoinIcon width={sizeStyles.icon} height={sizeStyles.icon} />
       <View style={styles.textContainer}>
-        <Text style={[styles.balanceText, sizeStyles.text]}>{balance}</Text>
+        <Text style={[styles.balanceText, sizeStyles.text]}>
+          {balance || 0}
+        </Text>
         <Text style={[styles.valueText, sizeStyles.value]}>
-          ${getBeCoinsInUSD().toFixed(2)} USD
+          ${(getBeCoinsInUSD() || 0).toFixed(2)} USD
         </Text>
       </View>
     </Component>

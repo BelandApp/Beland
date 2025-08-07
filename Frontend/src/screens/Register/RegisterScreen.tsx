@@ -74,8 +74,22 @@ export default function RegisterScreen({ navigation }: any) {
       return false;
     }
 
-    if (formData.password.length < 6) {
-      Alert.alert("Error", "La contraseña debe tener al menos 6 caracteres");
+    if (formData.password.length < 8) {
+      Alert.alert("Error", "La contraseña debe tener al menos 8 caracteres");
+      return false;
+    }
+
+    // Validación de contraseña fuerte según backend
+    const hasUppercase = /[A-Z]/.test(formData.password);
+    const hasLowercase = /[a-z]/.test(formData.password);
+    const hasNumber = /\d/.test(formData.password);
+    const hasSpecialChar = /[!@#$%^&*]/.test(formData.password);
+
+    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
+      Alert.alert(
+        "Error",
+        "La contraseña debe tener al menos:\n• 1 mayúscula\n• 1 minúscula\n• 1 número\n• 1 símbolo (!@#$%^&*)"
+      );
       return false;
     }
 
@@ -103,9 +117,29 @@ export default function RegisterScreen({ navigation }: any) {
       } else {
         Alert.alert("Error", "No se pudo crear la cuenta");
       }
-    } catch (error) {
-      Alert.alert("Error", "Hubo un problema al crear tu cuenta");
+    } catch (error: any) {
       console.error("Register error:", error);
+
+      if (error.message === "EMAIL_ALREADY_EXISTS") {
+        Alert.alert(
+          "Email ya registrado",
+          "Ya existe una cuenta con este email. ¿Quieres iniciar sesión en su lugar?",
+          [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Ir a Login",
+              onPress: () => navigation.navigate("Login"),
+            },
+          ]
+        );
+      } else if (error.message === "REGISTRATION_ERROR") {
+        Alert.alert(
+          "Error de registro",
+          "Hubo un problema al crear tu cuenta. Verifica que tu contraseña cumpla con los requisitos."
+        );
+      } else {
+        Alert.alert("Error", "Hubo un problema al crear tu cuenta");
+      }
     }
   };
 
@@ -153,6 +187,11 @@ export default function RegisterScreen({ navigation }: any) {
             value={formData.password}
             onChangeText={(value) => handleInputChange("password", value)}
           />
+
+          <Text style={styles.passwordHint}>
+            La contraseña debe tener: 8-15 caracteres, 1 mayúscula, 1 minúscula,
+            1 número y 1 símbolo (!@#$%^&*)
+          </Text>
 
           <TextInput
             placeholder="Confirmar contraseña"

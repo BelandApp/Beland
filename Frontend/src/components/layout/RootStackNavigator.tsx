@@ -4,7 +4,9 @@ import { MainTabNavigator } from "./MainTabNavigator";
 import CanjearScreen from "../../screens/Wallet/CanjearScreen";
 import SendScreen from "../../screens/Wallet/SendScreen";
 import ReceiveScreen from "../../screens/Wallet/ReceiveScreen";
-import HistoryScreen from "../../screens/Wallet/HistoryScreen";
+import WalletHistoryScreen from "../../screens/Wallet/WalletHistoryScreen";
+import RechargeScreen from "../../screens/Wallet/RechargeScreen";
+import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { RecyclingMapScreen } from "../../screens";
 
@@ -16,6 +18,9 @@ export type RootStackParamList = {
   SendScreen: undefined;
   ReceiveScreen: undefined;
   HistoryScreen: undefined;
+  WalletHistoryScreen: undefined;
+  RechargeScreen: undefined;
+  WalletSettingsScreen: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -32,7 +37,7 @@ export const RootStackNavigator = () => {
         name="CanjearScreen"
         component={CanjearScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: "Canjear",
         }}
       />
@@ -40,7 +45,7 @@ export const RootStackNavigator = () => {
         name="SendScreen"
         component={SendScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: "Enviar",
         }}
       />
@@ -48,16 +53,30 @@ export const RootStackNavigator = () => {
         name="ReceiveScreen"
         component={ReceiveScreen}
         options={{
-          headerShown: true,
+          headerShown: false,
           title: "Recibir",
         }}
       />
+
       <Stack.Screen
-        name="HistoryScreen"
-        component={HistoryScreen}
+        name="WalletHistoryScreen"
+        component={WalletHistoryScreen}
         options={{
-          headerShown: true,
-          title: "Transacciones",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="RechargeScreen"
+        component={RechargeScreen}
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="WalletSettingsScreen"
+        component={WalletSettingsScreen}
+        options={{
+          headerShown: false,
         }}
       />
       <Stack.Screen

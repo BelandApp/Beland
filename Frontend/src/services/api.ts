@@ -1,14 +1,34 @@
 import Constants from "expo-constants";
 
 // Configuración base para los servicios de API
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || "YOUR_BACKEND_URL";
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ||
+  Constants.expoConfig?.extra?.apiUrl ||
+  "http://[::1]:3001/api";
+
+console.log("🔧 Variables de entorno:");
+console.log(
+  "- process.env.EXPO_PUBLIC_API_URL:",
+  process.env.EXPO_PUBLIC_API_URL
+);
+console.log(
+  "- process.env.EXPO_PUBLIC_USE_DEMO_MODE:",
+  process.env.EXPO_PUBLIC_USE_DEMO_MODE
+);
+console.log(
+  "- Constants.expoConfig?.extra?.apiUrl:",
+  Constants.expoConfig?.extra?.apiUrl
+);
+console.log(
+  "- Constants.expoConfig?.extra?.useDemoMode:",
+  Constants.expoConfig?.extra?.useDemoMode
+);
+console.log("✅ API_BASE_URL configurada:", API_BASE_URL);
 
 // Configuración de headers por defecto
 const defaultHeaders = {
   "Content-Type": "application/json",
-};
-
-// Función auxiliar para hacer requests
+}; // Función auxiliar para hacer requests
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 

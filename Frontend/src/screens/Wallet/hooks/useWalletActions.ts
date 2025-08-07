@@ -4,41 +4,53 @@ import {
   TransactionIcon,
   SendIcon,
   ReceiveIcon,
+  RechargeIcon,
+  SettingsIcon,
 } from "../../../components/icons";
+import { useNavigation } from "@react-navigation/native";
 
 export const useWalletActions = () => {
-  const walletActions: WalletAction[] = [
+  const navigation = useNavigation();
+
+  // Acciones principales del wallet
+  const mainWalletActions: WalletAction[] = [
     {
-      id: "exchange",
-      label: "Canjear",
-      icon: ExchangeIcon,
+      id: "recharge",
+      label: "Recargar",
+      icon: RechargeIcon,
       backgroundColor: "#FFFFFF",
-      onPress: () => console.log("Canjear pressed"),
-    },
-    {
-      id: "history",
-      label: "Transacciones",
-      icon: TransactionIcon,
-      backgroundColor: "#FFFFFF",
-      onPress: () => console.log("Transacciones pressed"),
+      onPress: () => navigation.navigate("RechargeScreen" as never),
     },
     {
       id: "send",
       label: "Enviar",
       icon: SendIcon,
       backgroundColor: "#FFFFFF",
-      onPress: () => console.log("Enviar pressed"),
+      onPress: () => navigation.navigate("SendScreen" as never),
     },
     {
       id: "receive",
       label: "Recibir",
       icon: ReceiveIcon,
       backgroundColor: "#FFFFFF",
-      onPress: () => console.log("Recibir pressed"),
+      onPress: () => navigation.navigate("ReceiveScreen" as never),
+    },
+    {
+      id: "exchange",
+      label: "Canjear",
+      icon: ExchangeIcon,
+      backgroundColor: "#FFFFFF",
+      onPress: () => navigation.navigate("CanjearScreen" as never),
     },
   ];
 
+  // Acciones secundarias - sin historial ya que está integrado en la vista principal
+  const secondaryWalletActions: WalletAction[] = [];
+
   return {
-    walletActions,
+    mainWalletActions,
+    secondaryWalletActions,
+    // Mantener retrocompatibilidad
+    walletActions: mainWalletActions,
   };
 };

@@ -8,6 +8,9 @@ import {
   demoAuthService,
   User as ServiceUser,
 } from "../services/authService";
+import { userService } from "../services/userService";
+import { walletService } from "../services/walletService";
+import { useBeCoinsStore } from "../stores/useBeCoinsStore";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -21,7 +24,7 @@ type User = {
 
 // Configuración para usar modo demo o producción
 const USE_DEMO_MODE =
-  Constants.expoConfig?.extra?.useDemoMode === "true" || true; // Fallback a true por ahora
+  Constants.expoConfig?.extra?.useDemoMode === "true" || false; // Cambiar a false para usar backend real
 
 type AuthContextType = {
   user: User | null;
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login"); // Para distinguir entre login y registro
+  const resetBalance = useBeCoinsStore((state) => state.resetBalance); // Hook para resetear balance
   const isWeb = Platform.OS === "web";
 
   const domain = Constants.expoConfig?.extra?.auth0Domain ?? "";
@@ -142,8 +146,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Usar servicio de demo
         result = await demoAuthService.registerWithGoogle(googleData);
       } else {
-        // Usar servicio real
-        result = await authService.registerWithGoogle(googleData);
+        // Usar nuestro userService real
+        try {
+          const newUser = await userService.createUser({
+            email: userInfo.email,
+            oauth_provider: "google",
+            username: userInfo.name || userInfo.email.split("@")[0],
+            full_name: userInfo.name,
+            profile_picture_url: userInfo.picture,
+            role: "USER",
+            password: "GoogleAuth123!", // Password temporal para usuarios OAuth
+            confirmPassword: "GoogleAuth123!",
+            address: "Dirección pendiente por actualizar", // Mínimo 5 caracteres
+            phone: 1234567890,
+            country: "Ecuador", // Mínimo 5 caracteres
+            city: "Quito", // Mínimo 5 caracteres
+            isBlocked: false,
+          });
+
+          // Crear wallet automáticamente
+          await walletService.createWallet({
+            userId: newUser.id,
+            alias: userInfo.email.split("@")[0],
+          });
+
+          result = {
+            id: newUser.id,
+            email: newUser.email,
+            name: newUser.full_name || userInfo.name,
+            picture: newUser.profile_picture_url || userInfo.picture,
+          };
+        } catch (error: any) {
+          if (
+            error.message?.includes("already exists") ||
+            error.message?.includes("duplicate") ||
+            error.message?.includes("Conflict")
+          ) {
+            // Si el usuario ya existe, intentar hacer login automáticamente
+            console.log("🔄 Usuario ya existe, intentando login automático...");
+            try {
+              const existingUser = await userService.resolveUserByEmail(
+                userInfo.email
+              );
+              result = {
+                id: existingUser.id,
+                email: existingUser.email,
+                name: existingUser.full_name || userInfo.name,
+                picture: existingUser.profile_picture_url || userInfo.picture,
+              };
+              console.log("✅ Login automático exitoso");
+            } catch (loginError) {
+              throw new Error("USER_ALREADY_EXISTS");
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
       setUser({
@@ -153,6 +211,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         picture: result.picture,
         isNewUser: true,
       });
+
+      // Resetear balance para cargar el real del backend
+      resetBalance();
+      console.log("🎉 Usuario registrado exitosamente, balance reseteado");
 
       Alert.alert(
         "¡Registro exitoso!",
@@ -202,8 +264,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Usar servicio de demo
         result = await demoAuthService.loginWithGoogle(googleData);
       } else {
-        // Usar servicio real
-        result = await authService.loginWithGoogle(googleData);
+        // Usar nuestro userService real
+        try {
+          const existingUser = await userService.resolveUserByEmail(
+            userInfo.email
+          );
+          result = {
+            id: existingUser.id,
+            email: existingUser.email,
+            name:
+              existingUser.full_name ||
+              userInfo.name ||
+              userInfo.email.split("@")[0],
+            picture: existingUser.profile_picture_url || userInfo.picture,
+          };
+        } catch (error: any) {
+          if (
+            error.message?.includes("not found") ||
+            error.message?.includes("No se encontro")
+          ) {
+            throw new Error("USER_NOT_FOUND");
+          }
+          throw error;
+        }
       }
 
       setUser({
@@ -213,6 +296,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         picture: result.picture,
         isNewUser: false,
       });
+
+      // Resetear balance para cargar el real del backend
+      resetBalance();
+      console.log(
+        "🔑 Usuario logueado con Google exitosamente, balance reseteado"
+      );
     } catch (error: any) {
       console.error("Google login error:", error);
 
@@ -304,8 +393,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Usar servicio de demo
         result = await demoAuthService.loginWithEmail(emailData);
       } else {
-        // Usar servicio real
-        result = await authService.loginWithEmail(emailData);
+        // Usar nuestro userService real
+        try {
+          const existingUser = await userService.resolveUserByEmail(email);
+          console.log("🔍 Datos del usuario obtenidos:", existingUser);
+
+          // Mapear correctamente los campos del backend
+          result = {
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.full_name || email.split("@")[0], // Usar full_name del backend
+            picture: existingUser.profile_picture_url || undefined, // Usar profile_picture_url del backend
+          };
+
+          console.log("✅ Usuario mapeado para AuthContext:", result);
+        } catch (error: any) {
+          if (
+            error.message?.includes("not found") ||
+            error.message?.includes("No se encontro")
+          ) {
+            throw new Error("INVALID_CREDENTIALS");
+          }
+          throw error;
+        }
       }
 
       setUser({
@@ -314,6 +424,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         name: result.name,
         picture: result.picture,
       });
+
+      // Resetear balance para cargar el real del backend
+      resetBalance();
+      console.log(
+        "🔑 Usuario logueado con email exitosamente, balance reseteado"
+      );
+
       return true;
     } catch (error: any) {
       console.error("Email login error:", error);
@@ -350,8 +467,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Usar servicio de demo
         await demoAuthService.registerWithEmail(registerData);
       } else {
-        // Usar servicio real
-        await authService.registerWithEmail(registerData);
+        // Usar nuestro userService real
+        try {
+          const newUser = await userService.createUser({
+            email: email,
+            oauth_provider: "local",
+            username: email.split("@")[0],
+            full_name: name,
+            profile_picture_url: undefined,
+            role: "USER",
+            password: password,
+            confirmPassword: password,
+            address: "Dirección pendiente por actualizar", // Mínimo 5 caracteres
+            phone: 1234567890,
+            country: "Ecuador", // Mínimo 5 caracteres
+            city: "Quito", // Mínimo 5 caracteres
+            isBlocked: false,
+          });
+
+          // Crear wallet automáticamente
+          await walletService.createWallet({
+            userId: newUser.id,
+            alias: email.split("@")[0],
+          });
+
+          console.log(
+            "✅ Usuario y wallet creados exitosamente:",
+            newUser.email
+          );
+        } catch (error: any) {
+          if (
+            error.message?.includes("already exists") ||
+            error.message?.includes("duplicate") ||
+            error.message?.includes("Conflict")
+          ) {
+            // Si el usuario ya existe, informar pero no fallar completamente
+            console.log("🔄 Usuario ya existe con este email");
+            throw new Error("EMAIL_ALREADY_EXISTS");
+          }
+          throw error;
+        }
       }
 
       return true;
@@ -380,6 +535,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     setUser(null);
     setIsLoading(false); // Asegurar que el loading se resetee
+    resetBalance(); // Limpiar el balance al hacer logout
+    console.log("🚪 Usuario deslogueado y balance reseteado");
   };
 
   const loginAsDemo = () => {
