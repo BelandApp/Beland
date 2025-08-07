@@ -32,5 +32,5 @@ export class CreateWalletDto {
     example: 'uuid-v4',
   })
   @IsUUID()
-  user_id: string;
+  userId: string;
 }

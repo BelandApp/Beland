@@ -9,8 +9,7 @@ import {
   NotFoundException,
   HttpStatus,
   HttpCode,
-  Logger,
-  UseGuards, // Importar Logger
+  Logger, // Importar Logger
   // UseGuards, // Comentado temporalmente
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
@@ -25,7 +24,6 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Comentado temporalmente
 // import { RolesGuard } from '../auth/guards/roles.guard'; // Comentado temporalmente
 // import { Roles } from '../auth/decorators/roles.decorator'; // Comentado temporalmente
@@ -34,8 +32,6 @@ import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('roles')
 @Controller('roles')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
 export class RolesController {
   private readonly logger = new Logger(RolesController.name); // Añadir logger
