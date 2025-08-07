@@ -20,7 +20,8 @@ import {
   HttpCode,
   HttpStatus,
   UsePipes, // Importar UsePipes
-  ValidationPipe, // Importar ValidationPipe
+  ValidationPipe,
+  UseGuards, // Importar ValidationPipe
   // UseGuards, // Comentado temporalmente
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -40,6 +41,7 @@ import {
 } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PickType } from '@nestjs/swagger';
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Comentado temporalmente
 // import { RolesGuard } from '../auth/guards/roles.guard'; // Comentado temporalmente
@@ -59,6 +61,8 @@ type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
 @ApiTags('users')
 @Controller('users')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(AuthenticationGuard)
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
