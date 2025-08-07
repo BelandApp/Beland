@@ -50,8 +50,16 @@ class UserService {
       // Guardar en cache
       this.userCache.set(email, { user, timestamp: Date.now() });
       return user;
-    } catch (error) {
-      console.log("⚠️ Usuario no encontrado, creando nuevo usuario...");
+    } catch (error: any) {
+      // Si el error es 401/403 (no autorizado), no intentar crear usuario, solo propagar el error
+      if (
+        error?.message?.includes("No autorizado") ||
+        error?.message?.includes("Unauthorized") ||
+        error?.status === 401 ||
+        error?.status === 403
+      ) {
+        throw error;
+      }
       // Si no existe, intentar crear el usuario con datos por defecto para Auth0
       try {
         const defaultPassword = "TempPass123!"; // Password temporal para usuarios de Auth0
@@ -73,13 +81,11 @@ class UserService {
             isBlocked: false,
           }),
         });
-        console.log("✅ Usuario creado exitosamente");
 
         // Guardar en cache
         this.userCache.set(email, { user: newUser, timestamp: Date.now() });
         return newUser;
       } catch (createError) {
-        console.error("❌ Error creando usuario:", createError);
         throw createError;
       }
     }
@@ -110,7 +116,6 @@ class UserService {
       });
       return response;
     } catch (error) {
-      console.error("Error getting user by ID:", error);
       throw error;
     }
   }
@@ -124,11 +129,9 @@ class UserService {
       });
       return response;
     } catch (error) {
-      console.error("Error creating user:", error);
       throw error;
     }
   }
 }
 
 export const userService = new UserService();
-console.log("✅ userService exportado:", !!userService);

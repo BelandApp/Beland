@@ -104,42 +104,38 @@ export default function RegisterScreen({ navigation }: any) {
   const handleRegister = async () => {
     if (!validateForm()) return;
 
-    try {
-      const success = await registerWithEmailPassword(
-        formData.name,
-        formData.email,
-        formData.password
+    const result = await registerWithEmailPassword(
+      formData.name,
+      formData.email,
+      formData.password
+    );
+
+    if (result === true) {
+      setShowSuccessAlert(true);
+    } else if (result === "EMAIL_ALREADY_EXISTS") {
+      Alert.alert(
+        "Email ya registrado",
+        "Ya existe una cuenta con este email. ¿Quieres iniciar sesión en su lugar?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Ir a Login",
+            onPress: () => navigation.navigate("Login"),
+          },
+        ]
       );
-
-      if (success) {
-        // Mostrar alert personalizado en lugar del alert nativo
-        setShowSuccessAlert(true);
-      } else {
-        Alert.alert("Error", "No se pudo crear la cuenta");
-      }
-    } catch (error: any) {
-      console.error("Register error:", error);
-
-      if (error.message === "EMAIL_ALREADY_EXISTS") {
-        Alert.alert(
-          "Email ya registrado",
-          "Ya existe una cuenta con este email. ¿Quieres iniciar sesión en su lugar?",
-          [
-            { text: "Cancelar", style: "cancel" },
-            {
-              text: "Ir a Login",
-              onPress: () => navigation.navigate("Login"),
-            },
-          ]
-        );
-      } else if (error.message === "REGISTRATION_ERROR") {
-        Alert.alert(
-          "Error de registro",
-          "Hubo un problema al crear tu cuenta. Verifica que tu contraseña cumpla con los requisitos."
-        );
-      } else {
-        Alert.alert("Error", "Hubo un problema al crear tu cuenta");
-      }
+    } else if (result === "REGISTRATION_LOGIN_ERROR") {
+      Alert.alert(
+        "Error tras registro",
+        "El usuario fue creado pero no se pudo iniciar sesión automáticamente. Intenta iniciar sesión manualmente."
+      );
+    } else if (result === "NETWORK_ERROR") {
+      Alert.alert(
+        "Error de conexión",
+        "No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet e intenta nuevamente."
+      );
+    } else {
+      Alert.alert("Error", "Hubo un problema al crear tu cuenta");
     }
   };
 
