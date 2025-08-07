@@ -105,10 +105,12 @@ export class AuthService {
           user_id: userSave.id,
         });
 
+        await queryRunner.commitTransaction(); // ✅ Confirma todo
+        
       if (!wallet) throw new ConflictException('Error al crear la billetera');
 
       const userSavePayload = await this.userRepository.getUserById(userSave.id)
-
+      
       const userPayload = {
         ...userSavePayload
       };
@@ -117,7 +119,7 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
 
-      await queryRunner.commitTransaction(); // ✅ Confirma todo
+      
 
       return { token };
     } catch (error) {
