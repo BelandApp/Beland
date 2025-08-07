@@ -11,29 +11,22 @@ export class WalletsRepository {
   ) {}
 
   async findAll(
+    user_id: string,
     page: number,
     limit: number,
   ): Promise<[Wallet[], number]> {
 
     return this.repository.findAndCount({
+        where: {user_id},
         order: { created_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
-        relations: ['user'],
     });
   } 
-
-  async findByUserId(user_id: string): Promise<Wallet> {
-    return this.repository.findOne({
-      where: { user_id },
-      relations: ['user'],
-    });
-  }
 
   async findOne(id: string): Promise<Wallet> {
     return this.repository.findOne({
       where: { id },
-      relations: ['user'],
     });
   }
 
