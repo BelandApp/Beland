@@ -84,7 +84,7 @@ import { PreloadModule } from './preload/preload.module';
       inject: [ConfigService],
     }),
     DatabaseModule,
-    //DatabaseInitModule,
+    DatabaseInitModule,
     UsersModule,
     RolesModule,
     WalletsModule,
