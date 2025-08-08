@@ -40,6 +40,8 @@ import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminsModule } from './admins/admins.module';
 import { PreloadModule } from './preload/preload.module';
+import { CartModule } from './cart/cart.module';
+import { CartItemsModule } from './cart-items/cart-items.module';
 
 @Module({
   imports: [
@@ -112,6 +114,8 @@ import { PreloadModule } from './preload/preload.module';
     BankAccountTypeModule,
     AdminsModule,
     PreloadModule,
+    CartModule,
+    CartItemsModule,
   ],
   controllers: [],
   providers: [

@@ -24,6 +24,9 @@ export class Order {
   @Column({ type: 'numeric', default: 0 })
   total_amount: number;
 
+  @Column({ type: 'int', default: 0 })
+  total_items: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
@@ -36,7 +39,7 @@ export class Order {
   })
   @JoinColumn({name:'group_ip'})
   group: Group;
-  @Column('uuid')
+  @Column('uuid', { nullable:true })
   group_id: string;
 
   @ManyToOne(() => User, (user) => user.orders)
@@ -51,3 +54,4 @@ export class Order {
   @OneToMany(() => Payment, (payment) => payment.order)
   payments: Payment[];
 }
+ 

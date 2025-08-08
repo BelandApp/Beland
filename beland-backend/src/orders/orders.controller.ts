@@ -27,6 +27,7 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+import { Cart } from 'src/cart/entities/cart.entity';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -71,6 +72,22 @@ export class OrdersController {
   @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
   async create(@Body() body: CreateOrderDto): Promise<Order> {
     return await this.service.create(body);
+  }
+
+  @Post('cart')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear una nueva orden desde un carrito' })
+  @ApiResponse({ status: 201, description: 'Orden creado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos para crear la orden' })
+  @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
+  async createByCart(@Body() body: Cart): Promise<Order> {
+    const order = {
+      total_amount: body.total_amount,
+      total_items: body.total_items,
+      leader_id: body.user_id,
+    }
+
+    return await this.service.create(order);
   }
 
   @Put(':id')

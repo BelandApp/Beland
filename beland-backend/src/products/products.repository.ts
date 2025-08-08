@@ -24,6 +24,7 @@ export class ProductRepository extends Repository<Product> {
     pagination: PaginationDto,
     order: OrderDto,
     category?: string,
+    name?: string,
   ): Promise<{
     products: Product[];
     total: number;
@@ -36,8 +37,14 @@ export class ProductRepository extends Repository<Product> {
     const query = this.createQueryBuilder('product');
 
     if (category) {
-      query.andWhere('LOWER(product.category) = LOWER(:category)', {
-        category,
+      query.andWhere('product.category ILIKE :category', {
+        ategory: `%${category}%`,
+      });
+    }
+
+    if (name) {
+      query.andWhere('product.name ILIKE :name', {
+        name: `%${name}%`,
       });
     }
 
