@@ -380,8 +380,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return true;
         } else {
           // Usar el endpoint correcto de registro
+          let token: string | null = null;
           try {
-            await authService.registerWithEmail({ name, email, password });
+            const registerResp = await authService.registerWithEmail({
+              name,
+              email,
+              password,
+            });
+            // El backend debería devolver { token }
+            token = registerResp.token;
           } catch (error: any) {
             console.log("[Registro] Error al registrar:", error);
             if (error?.status) {
@@ -410,39 +417,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsLoading(false);
             return "REGISTRATION_ERROR";
           }
-          // Login automático tras registro
-          const loginSuccess = await loginWithEmailPassword(email, password);
-          if (!loginSuccess) {
-            setIsLoading(false);
-            return "REGISTRATION_LOGIN_ERROR";
-          }
-          // Crear wallet solo si el login fue exitoso
-          try {
-            let userId = null;
-            for (let i = 0; i < 10; i++) {
-              if (user && user.id) {
-                userId = user.id;
-                break;
-              }
-              await new Promise((res) => setTimeout(res, 100));
-            }
-            if (!userId) {
-              const resolvedUser = await userService.resolveUserByEmail(email);
-              userId = resolvedUser.id;
-            }
-            await walletService.createWallet({
-              userId,
-              alias: email.split("@")[0],
+          // Guardar el token recibido tras registro
+          if (token) {
+            const setToken = useAuthTokenStore.getState().setToken;
+            setToken(token);
+            // Obtener datos del usuario con /auth/me
+            const userResp = await apiRequest("/auth/me", {
+              method: "GET",
+              headers: { Authorization: `Bearer ${token}` },
             });
-          } catch (walletError) {
-            // No mostrar error al usuario, solo log interno
-            console.error(
-              "❌ Error creando wallet tras registro:",
-              walletError
-            );
+            setUser({
+              id: userResp.id,
+              email: userResp.email,
+              name: userResp.name || userResp.full_name,
+              picture: userResp.profile_picture_url,
+            });
+            // Crear wallet solo si el registro fue exitoso
+            try {
+              let userId = userResp.id;
+              if (!userId) {
+                const resolvedUser = await userService.resolveUserByEmail(
+                  email
+                );
+                userId = resolvedUser.id;
+              }
+              await walletService.createWallet({
+                userId,
+                alias: email.split("@")[0],
+              });
+            } catch (walletError) {
+              // No mostrar error al usuario, solo log interno
+              console.error(
+                "❌ Error creando wallet tras registro:",
+                walletError
+              );
+            }
+            setIsLoading(false);
+            return true;
+          } else {
+            setIsLoading(false);
+            return "REGISTRATION_ERROR";
           }
-          setIsLoading(false);
-          return true;
         }
       } catch (error: any) {
         if (!error.status || error.status >= 500) {
@@ -461,7 +476,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
       }
     },
-    [loginWithEmailPassword, user]
+    [user]
   );
 
   const logout = useCallback(() => {

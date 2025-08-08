@@ -57,7 +57,7 @@ export const authService = {
   // Registro con email y contraseña
   registerWithEmail: async (
     data: RegisterRequest
-  ): Promise<{ success: boolean }> => {
+  ): Promise<{ token: string }> => {
     return await apiRequest("/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
