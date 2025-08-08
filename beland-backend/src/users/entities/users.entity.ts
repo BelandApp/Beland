@@ -24,6 +24,7 @@ import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 import { Merchant } from 'src/merchants/entities/merchant.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
 
 @Entity('users')
 export class User {
@@ -98,6 +99,9 @@ export class User {
   // ¡NUEVA RELACIÓN OneToOne con Admin!
   @OneToOne(() => Admin, (admin) => admin.user)
   admin: Admin;
+
+  @OneToOne(() => Cart, (cart) => cart.user)
+  cart: Cart;
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
   @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })

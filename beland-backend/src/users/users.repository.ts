@@ -24,14 +24,14 @@ export class UsersRepository {
   async getUserById(id: string): Promise<User> {
     return await this.userORMRepository.findOne({ 
       where: { id },
-      relations: {role_relation:true, wallets:true}
+      relations: {role_relation:true, wallets:true, cart: true}
     });
   }
 
   async getUserByEmail(email: string): Promise<User> {
     return await this.userORMRepository.findOne({ 
       where: { email },
-      relations: {role_relation:true, wallets:true}
+      relations: {role_relation:true, wallets:true, cart: true}
     });
   }
 

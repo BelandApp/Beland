@@ -12,6 +12,7 @@ import * as QRCode from 'qrcode';
 import { DataSource } from 'typeorm';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
+import { Cart } from 'src/cart/entities/cart.entity';
 
 @Injectable()
 export class AuthService {
@@ -104,24 +105,23 @@ export class AuthService {
           qr,
           user_id: userSave.id,
         });
+      
+      if (!wallet) throw new ConflictException('Error al crear la billetera. Intente registrarse Nuevamente'); 
 
-        await queryRunner.commitTransaction(); // ✅ Confirma todo
-        
-      if (!wallet) throw new ConflictException('Error al crear la billetera');
+      // ✅ Crear carrito usando el mismo manager
+      const cart = await queryRunner.manager
+        .getRepository(Cart)
+        .save({
+          user_id: userSave.id,
+        });
+      
+
+      await queryRunner.commitTransaction(); // ✅ Confirma todo
 
       const userSavePayload = await this.userRepository.getUserById(userSave.id)
       
-      const userPayload = {
-        ...userSavePayload
-      };
-
-      const token = this.jwtService.sign(userPayload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
-
-      
-
-      return { token };
+      //Crea el Token con todos los datos de usuario
+      return await this.createToken(userSavePayload);
     } catch (error) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
       throw new InternalServerErrorException('No se pudo registrar el usuario');
@@ -146,9 +146,13 @@ export class AuthService {
       throw new BadRequestException('Usuario o Clave incorrectos');
     }
 
-    //creo el Payload a guardar en el token, con id, email, y los roles asignados al usuario
+    //Crea el Token con todos los datos de usuario
+    return await this.createToken(userDB);
+  }
+
+  async createToken (user:User): Promise<{ token: string }> {
     const userPayload = {
-        ...userDB
+        ...user
       };
     const token = this.jwtService.sign(userPayload, {
         secret: this.configService.get<string>('JWT_SECRET'),
