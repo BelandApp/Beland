@@ -72,7 +72,7 @@ export class AuthController {
   @ApiBody({ description: 'Las credenciales', type: LoginAuthDto })
   async signin(
     @Body() userLogin: LoginAuthDto
-  ): Promise<Object> {
+  ): Promise<{ token: string }> {
     return await this.authService.signin(userLogin);
   }
 
