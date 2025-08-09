@@ -10,7 +10,6 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,18 +17,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { InventoryItemsService } from './inventory-items.service';
 import { InventoryItem } from './entities/inventory-item.entity';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('inventory-items')
 @Controller('inventory-items')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 export class InventoryItemsController {
   constructor(private readonly service: InventoryItemsService) {}
 

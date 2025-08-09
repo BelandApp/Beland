@@ -10,7 +10,6 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,18 +17,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { RecyclePrice } from './entities/recycle_price.entity';
 import { RecyclePricesService } from './recycle_prices.service';
 import { CreateRecyclePriceDto } from './dto/create-recycle_price.dto';
 import { UpdateRecyclePriceDto } from './dto/update-recycle_price.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
-@ApiTags('recycle-prices')
-@Controller('recycle-prices')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@ApiTags('orders')
+@Controller('orders')
 export class RecyclePricesController {
   constructor(private readonly service: RecyclePricesService) {}
 

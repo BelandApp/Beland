@@ -39,9 +39,6 @@ import { BankAccountTypeModule } from './bank-account-type/bank-account-type.mod
 import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminsModule } from './admins/admins.module';
-import { PreloadModule } from './preload/preload.module';
-import { CartModule } from './cart/cart.module';
-import { CartItemsModule } from './cart-items/cart-items.module';
 
 @Module({
   imports: [
@@ -56,6 +53,7 @@ import { CartItemsModule } from './cart-items/cart-items.module';
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET');
+        console.log('JWT_SECRET cargado:', secret); // Debug
         return {
           secret,
           signOptions: { expiresIn: '12h' },
@@ -85,6 +83,8 @@ import { CartItemsModule } from './cart-items/cart-items.module';
       },
       inject: [ConfigService],
     }),
+    
+    
     DatabaseModule,
     DatabaseInitModule,
     UsersModule,
@@ -113,9 +113,6 @@ import { CartItemsModule } from './cart-items/cart-items.module';
     CharityModule,
     BankAccountTypeModule,
     AdminsModule,
-    PreloadModule,
-    CartModule,
-    CartItemsModule,
   ],
   controllers: [],
   providers: [
