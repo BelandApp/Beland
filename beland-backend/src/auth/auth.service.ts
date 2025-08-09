@@ -68,7 +68,7 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      const userDB = await this.userRepository.getUserByEmail(user.email);
+      const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
         throw new UnauthorizedException(
           `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
@@ -118,7 +118,7 @@ export class AuthService {
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
-      const userSavePayload = await this.userRepository.getUserById(userSave.id)
+      const userSavePayload = await this.userRepository.findById(userSave.id)
       
       //Crea el Token con todos los datos de usuario
       return await this.createToken(userSavePayload);
@@ -133,7 +133,7 @@ export class AuthService {
 
   async signin(userLogin: LoginAuthDto): Promise<{ token: string }> {
     // comprueba que el usuario exista, sino devuelve un error
-    const userDB: User = await this.userRepository.getUserByEmail(userLogin.email);
+    const userDB: User = await this.userRepository.findByEmail(userLogin.email);
     if (!userDB) {
       throw new BadRequestException('Usuario o Clave incorrectos');
     }

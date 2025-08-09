@@ -42,16 +42,27 @@ export class UsersRepository {
     return query.getOne();
   }
 
+  async findById(id: string): Promise<User | null> {
+    return this.userORMRepository.findOne({
+      where : {id},
+      relations: {wallets:true, cart:true, role_relation:true}    
+    })
+  }
+
   /**
    * Busca un usuario por su dirección de correo electrónico.
    * @param email La dirección de correo electrónico del usuario.
    * @returns La entidad User o null si no se encuentra.
    */
   async findByEmail(email: string): Promise<User | null> {
-    return this.createQueryBuilder('user')
+    return this.userORMRepository.findOne({
+      where : {email},
+      relations: {wallets:true, cart:true, role_relation:true}    
+    })
+    /*return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')
       .where('user.email = :email', { email })
-      .getOne();
+      .getOne();*/
   }
 
   /**
