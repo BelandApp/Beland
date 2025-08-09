@@ -15,7 +15,7 @@ export class GroupsRepository {
     page: number,
     limit: number,
   ): Promise<[Group[], number]> {
-    const where = user_id ? { loader_id: user_id } : {};
+    const where = user_id ? { leader_id: user_id } : {};
 
     return this.repository.findAndCount({
         where,
