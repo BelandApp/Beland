@@ -22,6 +22,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
 import { RegisterAuthDto } from './dto/register-auth.dto';
+import { Request } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -49,9 +50,9 @@ export class AuthController {
     status: 401,
     description: 'No autenticado o usuario bloqueado/desactivado.',
   })
-  getProfile(@Req() req: Request): CreateUserDto {
-    const user = req['user'] as User;
-    return plainToInstance(CreateUserDto, user);
+  getProfile(@Req() req: Request): Omit<User, 'password'> {
+    const {password, ...userReturn} = req.user;
+    return userReturn;
   }
 
 
