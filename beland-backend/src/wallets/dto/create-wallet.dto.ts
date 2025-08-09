@@ -12,6 +12,14 @@ export class CreateWalletDto {
   address?: string;
 
   @ApiProperty({
+    description: 'Alias de la billetera (opcional)',
+    example: 'mi.billetera.personal',
+  })
+  @IsOptional()
+  @IsString()
+  alias?: string;
+
+  @ApiProperty({
     description: 'Clave privada encriptada (si aplica)',
     example: 'encryptedKey123',
   })
@@ -24,5 +32,5 @@ export class CreateWalletDto {
     example: 'uuid-v4',
   })
   @IsUUID()
-  userId: string;
+  user_id: string;
 }

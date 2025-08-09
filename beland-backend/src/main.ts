@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { json, raw } from 'express';
 // import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'; // Nombre corregido 'middleware'
 
 async function bootstrap() {
@@ -63,7 +64,20 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+  swaggerOptions: {
+    docExpansion: 'none', // <--- Esto contrae todo por defecto
+    displayRequestDuration: true,
+    filter: true,
+    operationsSorter: 'alpha'
+  },
+});
+
+  // Middleware para parsear JSON normal en todas las rutas excepto webhooks
+  app.use(json());
+
+  // Middleware para exponer rawBody SOLO en /webhook/payphone
+  app.use('/webhook/payphone', raw({ type: 'application/json' }));
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

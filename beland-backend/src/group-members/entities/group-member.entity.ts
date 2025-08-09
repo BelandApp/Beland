@@ -1,4 +1,4 @@
-// src/group-members/entities/group-member.entity.ts
+// group-member.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,33 +8,30 @@ import {
   Unique,
   JoinColumn,
 } from 'typeorm';
-import { Group } from '../../groups/entities/group.entity';
-import { User } from '../../users/entities/users.entity';
+import { Group } from 'src/groups/entities/group.entity';
+import { User } from 'src/users/entities/users.entity';
 
 @Entity('group_members')
-@Unique(['group', 'user']) // Ensures a user can only be a member of a group once
+@Unique(['group', 'user'])
 export class GroupMember {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // This 'role' column defines the user's role *within this specific group*
-  // It can be 'LEADER' (if they are the group's designated leader) or 'MEMBER'.
-  // This is distinct from the global 'role_name' in the User entity.
   @Column({ type: 'text', default: 'MEMBER' })
   role: 'LEADER' | 'MEMBER';
 
   @CreateDateColumn({ type: 'timestamptz' })
   joined_at: Date;
 
-  // ManyToOne relationship with Group
   @ManyToOne(() => Group, (group) => group.members, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
+  @JoinColumn({name:'group_id'})
   group: Group;
+  @Column('uuid')
+  group_id:string
 
-  // ManyToOne relationship with User
-  @ManyToOne(() => User, (user) => user.group_memberships, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })
+  @ManyToOne(() => User, (user) => user.group_memberships, { onDelete: 'CASCADE' })
+  @JoinColumn({name:'user_id'})
   user: User;
+  @Column('uuid')
+  user_id:string
 }

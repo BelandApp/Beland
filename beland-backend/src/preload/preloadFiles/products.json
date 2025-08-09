@@ -1,0 +1,149 @@
+[
+  {
+    "name": "Agua Mineral EcoBottle",
+    "description": "Agua mineral embotellada en envase 100% reciclable.",
+    "price": 30,
+    "image_url": "https://cdn.example.com/products/agua-eco.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Té Verde Orgánico",
+    "description": "Té verde frío sin azúcar, con antioxidantes naturales.",
+    "price": 50,
+    "image_url": "https://cdn.example.com/products/te-verde.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Jugo Natural de Naranja",
+    "description": "Exprimido 100%, sin conservantes ni azúcar añadida.",
+    "price": 60,
+    "image_url": "https://cdn.example.com/products/jugo-naranja.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Kombucha Artesanal",
+    "description": "Fermentado natural, sabor a frutos rojos.",
+    "price": 90,
+    "image_url": "https://cdn.example.com/products/kombucha.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Café Frío Orgánico",
+    "description": "Cold brew sin azúcar, 100% café colombiano.",
+    "price": 70,
+    "image_url": "https://cdn.example.com/products/cafe-frio.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Smoothie de Mango",
+    "description": "Batido natural de mango y avena, sin lactosa.",
+    "price": 85,
+    "image_url": "https://cdn.example.com/products/smoothie-mango.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Limonada con Menta",
+    "description": "Refrescante y natural, sin gas.",
+    "price": 45,
+    "image_url": "https://cdn.example.com/products/limonada-menta.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Bebida de Coco",
+    "description": "Agua de coco natural, sin azúcares añadidos.",
+    "price": 60,
+    "image_url": "https://cdn.example.com/products/agua-coco.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Bebida Energética Natural",
+    "description": "Con guaraná y yerba mate. Sin químicos.",
+    "price": 95,
+    "image_url": "https://cdn.example.com/products/bebida-energetica.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Leche de Almendras",
+    "description": "Bebida vegetal sin lactosa, con calcio añadido.",
+    "price": 55,
+    "image_url": "https://cdn.example.com/products/leche-almendra.jpg",
+    "category": "Bebidas"
+  },
+  {
+    "name": "Chips de Plátano",
+    "description": "Crujientes y horneados, sin aditivos.",
+    "price": 40,
+    "image_url": "https://cdn.example.com/products/chips-platano.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Mix de Frutos Secos",
+    "description": "Almendras, nueces y arándanos. Energía natural.",
+    "price": 70,
+    "image_url": "https://cdn.example.com/products/frutos-secos.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Barras de Avena y Miel",
+    "description": "Empaque compostable. Sin azúcar refinada.",
+    "price": 55,
+    "image_url": "https://cdn.example.com/products/barra-avena.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Galletas de Quinoa",
+    "description": "Ricas en fibra, sin gluten.",
+    "price": 50,
+    "image_url": "https://cdn.example.com/products/galletas-quinoa.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Palomitas Naturales",
+    "description": "Con sal marina, sin aceites procesados.",
+    "price": 35,
+    "image_url": "https://cdn.example.com/products/palomitas.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Trozos de Coco Deshidratado",
+    "description": "Snack dulce natural, sin azúcar añadida.",
+    "price": 45,
+    "image_url": "https://cdn.example.com/products/coco-deshidratado.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Brownie Vegano",
+    "description": "Hecho con cacao puro y dátiles.",
+    "price": 60,
+    "image_url": "https://cdn.example.com/products/brownie.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Granola Crunch",
+    "description": "Avena, semillas y miel orgánica.",
+    "price": 65,
+    "image_url": "https://cdn.example.com/products/granola.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Chocobites sin Azúcar",
+    "description": "Pequeños bocados de chocolate 70%.",
+    "price": 75,
+    "image_url": "https://cdn.example.com/products/chocobites.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Tiras de Manzana Deshidratada",
+    "description": "Crujientes y dulces. 100% naturales.",
+    "price": 50,
+    "image_url": "https://cdn.example.com/products/manzana-deshidratada.jpg",
+    "category": "Snacks"
+  },
+  {
+    "name": "Chips de Kale",
+    "description": "Vegetales crujientes horneados, sin fritura.",
+    "price": 60,
+    "image_url": "https://cdn.example.com/products/chips-kale.jpg",
+    "category": "Snacks"
+  }
+]

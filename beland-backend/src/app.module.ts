@@ -26,17 +26,41 @@ import { GroupsModule } from './groups/groups.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { DatabaseModule } from './database/database.module';
 import { DataSourceOptions } from 'typeorm';
-import typeormConfig from './config/typeorm';
-import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware';
+import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
+import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware'; // Asegúrate de que este archivo exista
+import { TransactionsModule } from './transactions/transactions.module';
+import { RecyclePricesModule } from './recycle_prices/recycle_prices.module';
+import { BankAccountModule } from './bank-account/bank-account.module';
+import { MerchantsModule } from './merchants/merchants.module';
+import { TransactionTypeModule } from './transaction-type/transaction-type.module';
+import { TransactionStateModule } from './transaction-state/transaction-state.module';
+import { CharityModule } from './charity/charity.module';
+import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
 import { DatabaseInitModule } from './database/init/database-init.module';
+import { JwtModule } from '@nestjs/jwt';
 import { AdminsModule } from './admins/admins.module';
+import { PreloadModule } from './preload/preload.module';
+import { CartModule } from './cart/cart.module';
+import { CartItemsModule } from './cart-items/cart-items.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [typeormConfig],
-      envFilePath: '.env',
+    }),
+    // modulo para generar los token
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        const secret = config.get<string>('JWT_SECRET');
+        return {
+          secret,
+          signOptions: { expiresIn: '12h' },
+        };
+      },
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -80,7 +104,18 @@ import { AdminsModule } from './admins/admins.module';
     CouponsModule,
     AuthModule,
     CommonModule,
+    TransactionsModule,
+    RecyclePricesModule,
+    BankAccountModule,
+    MerchantsModule,
+    TransactionTypeModule,
+    TransactionStateModule,
+    CharityModule,
+    BankAccountTypeModule,
     AdminsModule,
+    PreloadModule,
+    CartModule,
+    CartItemsModule,
   ],
   controllers: [],
   providers: [

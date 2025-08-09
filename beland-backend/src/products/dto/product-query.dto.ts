@@ -2,6 +2,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, IsInt, Min, Max, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
+import { Product } from '../entities/product.entity';
 
 export class ProductQueryDto {
   @ApiPropertyOptional({
@@ -30,10 +31,11 @@ export class ProductQueryDto {
   @ApiPropertyOptional({
     description: 'Columna para ordenar resultados.',
     default: 'created_at',
+    enum: ['name', 'description', 'price', 'category', 'created_at', 'updated_at']
   })
   @IsOptional()
   @IsString()
-  sortBy?: string = 'created_at';
+  sortBy?: keyof Product = 'created_at';
 
   @ApiPropertyOptional({
     description: 'Dirección de orden: ASC o DESC.',
@@ -48,4 +50,9 @@ export class ProductQueryDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @ApiPropertyOptional({ description: 'Filtrar por nombre' })
+  @IsOptional()
+  @IsString()
+  name?: string;
 }

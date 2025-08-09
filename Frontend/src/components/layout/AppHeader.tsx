@@ -2,265 +2,164 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Image,
-  Platform,
+  StyleSheet,
+  Modal,
+  Pressable,
 } from "react-native";
-import { BeCoinsBalance } from "../ui/BeCoinsBalance";
-import { colors } from "../../styles/colors";
 import { useAuth } from "src/hooks/AuthContext";
+import { LogOut } from "lucide-react-native";
 
-interface AppHeaderProps {
-  userName?: string;
-  onMenuPress?: () => void;
-  onCoinsPress?: () => void;
-}
+export const AppHeader = () => {
+  const { user, isDemo, loginWithAuth0, logout, loginAsDemo } = useAuth();
+  const [menuVisible, setMenuVisible] = useState(false);
 
-export const AppHeader: React.FC<AppHeaderProps> = ({
-  userName = "Usuario",
-  onMenuPress,
-  onCoinsPress,
-}) => {
-  const { user, logout } = useAuth();
-  const [showMenu, setShowMenu] = useState(false);
-
-  // Función para obtener las iniciales del nombre
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  const handleLogin = async () => {
+    await loginWithAuth0();
   };
 
-  const displayName = user?.name || userName;
-
-  const handleMenuPress = () => {
-    setShowMenu(!showMenu);
+  const handleLogout = async () => {
+    setMenuVisible(false);
+    await logout();
   };
 
-  const handleLogout = () => {
-    setShowMenu(false);
-    logout();
+  const handleDemoLogin = () => {
+    loginAsDemo();
   };
+
+  const isLoggedIn = !!user;
+  const userName = user?.name ?? "Usuario";
+  const userPicture = user?.picture;
 
   return (
-    <>
-      <View style={styles.header}>
-        {/* Fila única: Usuario, balance y menú */}
-        <View style={styles.mainRow}>
-          <View style={styles.userSection}>
-            <View style={styles.avatarContainer}>
-              {user?.picture ? (
-                <Image
-                  source={{ uri: user.picture }}
-                  style={styles.avatar}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>
-                    {getInitials(displayName)}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.userTextContainer}>
-              <Text style={styles.welcomeText}>¡Bienvenido!</Text>
-              <Text style={styles.userName}>{displayName}</Text>
-            </View>
-          </View>
+    <View style={styles.headerContainer}>
+      <Text style={styles.headerTitle}>Beland</Text>
 
-          <View style={styles.rightSection}>
-            <BeCoinsBalance
-              size="small"
-              variant="header"
-              onPress={onCoinsPress}
-              style={styles.coinsBalance}
+      {!isLoggedIn ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.loginButton, { backgroundColor: "#aaa" }]}
+            onPress={handleDemoLogin}>
+            <Text style={styles.loginButtonText}>Modo demo</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.loginContainer}>
+          {userPicture && (
+            <Image source={{ uri: userPicture }} style={styles.avatar} />
+          )}
+          <Text style={styles.userName}>{userName}</Text>
+
+          <TouchableOpacity onPress={() => setMenuVisible(true)}>
+            <View style={styles.menuIcon}>
+              <View style={styles.menuDot} />
+              <View style={styles.menuDot} />
+              <View style={styles.menuDot} />
+            </View>
+          </TouchableOpacity>
+
+          <Modal transparent={true} visible={menuVisible} animationType="fade">
+            <Pressable
+              style={styles.overlay}
+              onPress={() => setMenuVisible(false)}
             />
-
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={handleMenuPress}
-            >
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Menú desplegable fuera del header */}
-      {showMenu && (
-        <View style={styles.menuDropdown}>
-          {user && (
-            <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-              <Text style={styles.menuItemIcon}>⎋</Text>
-              <Text style={styles.menuItemText}>Salir</Text>
-            </TouchableOpacity>
-          )}
-          {onMenuPress && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setShowMenu(false);
-                onMenuPress();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>⚙</Text>
-              <Text style={styles.menuItemText}>Configuración</Text>
-            </TouchableOpacity>
-          )}
+            <View style={styles.menuDropdown}>
+              <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                <LogOut size={18} style={styles.menuItemIcon} />
+                <Text style={styles.menuItemText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
         </View>
       )}
-
-      {/* Overlay invisible para cerrar el menú al tocar fuera */}
-      {showMenu && (
-        <TouchableOpacity
-          style={styles.overlay}
-          onPress={() => setShowMenu(false)}
-          activeOpacity={1}
-        />
-      )}
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: colors.belandOrange,
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 20 : 16, // Reducido para Android porque la barra de estado está oculta
-    paddingBottom: 16, // Optimizado para una sola fila
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    // Removemos position: "relative" para que no limite el menú
-  },
-  // Fila principal única
-  mainRow: {
+  headerContainer: {
+    height: 80,
+    backgroundColor: "#fff",
+    paddingHorizontal: 16,
+    paddingTop: 30,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 4,
   },
-  userSection: {
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1E90FF",
+  },
+  loginButton: {
+    backgroundColor: "#1E90FF",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  loginContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
-  },
-  avatarContainer: {
-    marginRight: 10,
+    gap: 8,
   },
   avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  avatarPlaceholder: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.4)",
-  },
-  avatarText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  userTextContainer: {
-    flex: 1,
-  },
-  welcomeText: {
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 12,
-    fontWeight: "500",
-    marginBottom: 1,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
   },
   userName: {
-    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: "500",
   },
-  rightSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  menuButton: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    flexDirection: "column",
+  menuIcon: {
+    padding: 8,
     justifyContent: "center",
     alignItems: "center",
-    gap: 1.5,
   },
   menuDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#000",
+    marginVertical: 1,
   },
-  coinsBalance: {
-    // El balance se alineará automáticamente
-  },
-  // Estilos del menú desplegable
   menuDropdown: {
     position: "absolute",
-    top: 60, // Ajustado para estar más abajo del header
-    right: 20, // Alineado con el botón de menú
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    minWidth: 150,
-    paddingVertical: 8,
-    elevation: 30, // Máximo elevation para Android
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    zIndex: 999999, // Z-index extremadamente alto
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)", // Borde sutil para definir mejor el menú
+    top: 60,
+    right: 10,
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 8,
+    elevation: 5,
+    zIndex: 10,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
+    paddingVertical: 8,
   },
   menuItemIcon: {
-    fontSize: 16,
-    color: "#666666",
-    width: 20,
-    textAlign: "center",
+    marginRight: 8,
   },
   menuItemText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333333",
+    fontSize: 16,
   },
-  // Overlay para cerrar el menú
   overlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 999998, // Justo debajo del menú
-    backgroundColor: "transparent",
   },
 });

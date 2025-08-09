@@ -21,12 +21,20 @@ export class UsersRepository {
     return this.userORMRepository.createQueryBuilder(alias);
   }
 
-  /**
-   * Busca un usuario por su ID.
-   * @param id El ID del usuario.
-   * @param includeDeleted Si se deben incluir usuarios marcados como eliminados.
-   * @returns La entidad User o null si no se encuentra.
-   */
+  async getUserById(id: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { id },
+      relations: {role_relation:true, wallets:true, cart: true}
+    });
+  }
+
+  async getUserByEmail(email: string): Promise<User> {
+    return await this.userORMRepository.findOne({ 
+      where: { email },
+      relations: {role_relation:true, wallets:true, cart: true}
+    });
+  }
+
   async findOne(
     id: string,
     includeDeleted: boolean = false,
@@ -42,11 +50,6 @@ export class UsersRepository {
     return query.getOne();
   }
 
-  /**
-   * Busca un usuario por su dirección de correo electrónico.
-   * @param email La dirección de correo electrónico del usuario.
-   * @returns La entidad User o null si no se encuentra.
-   */
   async findByEmail(email: string): Promise<User | null> {
     return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')
@@ -54,50 +57,10 @@ export class UsersRepository {
       .getOne();
   }
 
-  /**
-   * Busca un usuario por su nombre de usuario.
-   * @param username El nombre de usuario.
-   * @returns La entidad User o null si no se encuentra.
-   */
-  async findByUsername(username: string): Promise<User | null> {
-    return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
-      .where('user.username = :username', { username })
-      .getOne();
+  async create(userPartial: Partial<User>): Promise<User> {
+    return await this.userORMRepository.save(userPartial);
   }
 
-  /**
-   * Busca un usuario por su número de teléfono.
-   * @param phone El número de teléfono.
-   * @returns La entidad User o null si no se encuentra.
-   */
-  async findByPhone(phone: number): Promise<User | null> {
-    return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
-      .where('user.phone = :phone', { phone })
-      .getOne();
-  }
-
-  /**
-   * Crea una nueva instancia de la entidad User.
-   * @param userPartial Datos parciales para crear el usuario.
-   * @returns La nueva entidad User.
-   */
-  create(userPartial: Partial<User>): User {
-    return this.userORMRepository.create(userPartial);
-  }
-
-  /**
-   * Busca todos los usuarios con paginación, ordenación y filtros opcionales.
-   * @param paginationOptions Opciones de paginación.
-   * @param orderOptions Opciones de ordenación.
-   * @param includeDeleted Si se deben incluir usuarios eliminados.
-   * @param filterId ID para filtrar.
-   * @param filterEmail Email para filtrar.
-   * @param filterRoleName Nombre del rol para filtrar.
-   * @param filterIsBlocked Estado de bloqueo para filtrar.
-   * @returns Un objeto con la lista de usuarios y el total.
-   */
   async findAllPaginated(
     paginationOptions: PaginationDto,
     orderOptions: OrderDto,
@@ -156,10 +119,6 @@ export class UsersRepository {
     return { users, total };
   }
 
-  /**
-   * Encuentra usuarios que han sido desactivados (soft-deleted).
-   * @returns Una lista de entidades User desactivadas.
-   */
   async findDeactivatedUsers(): Promise<User[]> {
     return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')
@@ -167,37 +126,18 @@ export class UsersRepository {
       .getMany();
   }
 
-  /**
-   * Guarda una entidad User en la base de datos.
-   * @param user La entidad User a guardar.
-   * @returns La entidad User guardada.
-   */
   async save(user: User): Promise<User> {
     return this.userORMRepository.save(user);
   }
 
-  /**
-   * Actualiza parcialmente una entidad User por su ID.
-   * @param id El ID del usuario a actualizar.
-   * @param partialEntity Las propiedades parciales a actualizar.
-   * @returns El resultado de la operación de actualización.
-   */
   async update(id: string, partialEntity: Partial<User>): Promise<any> {
     return this.userORMRepository.update({ id }, partialEntity);
   }
 
-  /**
-   * Realiza un "soft delete" en un usuario, marcándolo como eliminado.
-   * @param id El ID del usuario a desactivar.
-   */
   async softDelete(id: string): Promise<void> {
     await this.userORMRepository.update({ id }, { deleted_at: new Date() });
   }
 
-  /**
-   * Reactiva un usuario previamente desactivado.
-   * @param id El ID del usuario a reactivar.
-   */
   async reactivate(id: string): Promise<void> {
     await this.userORMRepository.update({ id }, { deleted_at: null });
   }

@@ -29,4 +29,13 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumber()
   total_amount?: number;
+
+  @ApiProperty({
+    description: 'Total de la orden en monedas internas',
+    default: 0,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  total_items?: number;
 }
