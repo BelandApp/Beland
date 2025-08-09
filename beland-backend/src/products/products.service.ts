@@ -26,8 +26,8 @@ export class ProductsService {
     return await this.repo.save(newProduct);
   }
 
-  async findAll(pagination: PaginationDto, order: OrderDto, category?: string) {
-    return this.repo.findAllPaginated(pagination, order, category);
+  async findAll(pagination: PaginationDto, order: OrderDto, category?: string, name?:string) {
+    return this.repo.findAllPaginated(pagination, order, category, name);
   }
 
   async findOne(id: string) {

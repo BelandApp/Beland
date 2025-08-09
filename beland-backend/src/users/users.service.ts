@@ -95,7 +95,7 @@ export class UsersService {
       );
     }
 
-    const newUser = this.usersRepository.create({
+    const newUser = await this.usersRepository.create({
       oauth_provider: createUserDto.oauth_provider || null,
       email: createUserDto.email,
       username: createUserDto.username || null,
@@ -171,7 +171,7 @@ export class UsersService {
       );
     }
 
-    const newUser = this.usersRepository.create({
+    const newUser = await this.usersRepository.create({
       oauth_provider: createUserDto.oauth_provider || null,
       email: createUserDto.email,
       username: createUserDto.username || null,

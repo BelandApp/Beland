@@ -5,6 +5,7 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
 
@@ -29,5 +30,8 @@ export class Action {
   created_at: Date;
 
   @ManyToOne(() => User, (user) => user.actions)
+  @JoinColumn({name:'user_id'})
   user: User;
+  @Column('uuid')
+  user_id:string;
 }

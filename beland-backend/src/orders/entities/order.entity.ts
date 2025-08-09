@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/users.entity';
@@ -23,6 +24,9 @@ export class Order {
   @Column({ type: 'numeric', default: 0 })
   total_amount: number;
 
+  @Column({ type: 'int', default: 0 })
+  total_items: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
@@ -33,10 +37,16 @@ export class Order {
     nullable: true,
     onDelete: 'SET NULL',
   })
+  @JoinColumn({name:'group_ip'})
   group: Group;
+  @Column('uuid', { nullable:true })
+  group_id: string;
 
   @ManyToOne(() => User, (user) => user.orders)
+  @JoinColumn({name:'leader_id'})
   leader: User;
+  @Column('uuid')
+  leader_id: string;
 
   @OneToMany(() => OrderItem, (item) => item.order)
   items: OrderItem[];
@@ -44,3 +54,4 @@ export class Order {
   @OneToMany(() => Payment, (payment) => payment.order)
   payments: Payment[];
 }
+ 
