@@ -27,8 +27,8 @@ import { CartItemsService } from './cart-items.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
-@ApiTags('order-items')
-@Controller('order-items')
+@ApiTags('cart-items')
+@Controller('cart-items')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(AuthenticationGuard)
 export class CartItemsController {
