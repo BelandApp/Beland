@@ -8,7 +8,6 @@ import {
   Post,
   Body,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -16,7 +15,6 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { User } from 'src/users/entities/users.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
@@ -33,7 +31,7 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
-  @UseGuards(JwtAuthGuard, AuthenticationGuard)
+  @UseGuards(AuthenticationGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
