@@ -7,7 +7,7 @@ import {
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { GroupsRepository } from 'src/groups/group.repository'; // Corrected absolute import path (singular)
+import { GroupsRepository } from 'src/groups/groups.repository'; // Corrected absolute import path (singular)
 import { GroupMembersRepository } from '../group-members/group-members.repository';
 import { UsersService } from '../users/users.service'; // Used to find users by email/username/phone and check roles
 import { CreateGroupDto } from './dto/create-group.dto';
