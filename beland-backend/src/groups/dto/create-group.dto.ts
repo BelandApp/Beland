@@ -8,6 +8,7 @@ import {
   IsDate,
   IsIn,
 } from 'class-validator';
+import { Type } from 'class-transformer'; // Import Type from class-transformer
 
 export class CreateGroupDto {
   @ApiProperty({ description: 'Nombre del grupo' })
@@ -35,7 +36,8 @@ export class CreateGroupDto {
     format: 'date-time',
   })
   @IsOptional()
-  @IsDate()
+  @Type(() => Date) // <--- ADD THIS LINE
+  @IsDate({ message: 'date_time must be a valid ISO 8601 date string' }) // Consider using IsISO8601 if you want to strictly validate the string format
   date_time?: Date;
 
   @ApiProperty({
@@ -47,8 +49,4 @@ export class CreateGroupDto {
   @IsOptional()
   @IsIn(['ACTIVE', 'PENDING', 'INACTIVE', 'DELETE'])
   status?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE';
-
-  @ApiProperty({ description: 'ID del usuario líder del grupo' })
-  @IsUUID()
-  leader_id: string;
 }
