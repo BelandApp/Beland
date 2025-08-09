@@ -64,7 +64,14 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+  swaggerOptions: {
+    docExpansion: 'none', // <--- Esto contrae todo por defecto
+    displayRequestDuration: true,
+    filter: true,
+    operationsSorter: 'alpha'
+  },
+});
 
   // Middleware para parsear JSON normal en todas las rutas excepto webhooks
   app.use(json());

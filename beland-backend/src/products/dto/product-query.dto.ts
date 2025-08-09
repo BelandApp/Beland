@@ -31,6 +31,7 @@ export class ProductQueryDto {
   @ApiPropertyOptional({
     description: 'Columna para ordenar resultados.',
     default: 'created_at',
+    enum: ['name', 'description', 'price', 'category', 'created_at', 'updated_at']
   })
   @IsOptional()
   @IsString()
@@ -50,7 +51,7 @@ export class ProductQueryDto {
   @IsString()
   category?: string;
 
-  @ApiPropertyOptional({ description: 'Filtrar por categoría' })
+  @ApiPropertyOptional({ description: 'Filtrar por nombre' })
   @IsOptional()
   @IsString()
   name?: string;
