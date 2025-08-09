@@ -18,7 +18,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
@@ -28,22 +27,21 @@ import { CartsService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
 
-@ApiTags('coupons')
-@Controller('coupons')
+@ApiTags('carts')
+@Controller('carts')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(AuthenticationGuard)
 export class CartsController {
   constructor(private readonly service: CartsService) {}
 
- @Get('user/:id')
+ @Get('user')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener un carrito por id de usuario' })
-  @ApiParam({ name: 'id', description: 'UUID del usuario' })
   @ApiResponse({ status: 200, description: 'Carrito encontrado' })
   @ApiResponse({ status: 404, description: 'No se encontró el carrito' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
-  async findByUser(@Param('id', ParseUUIDPipe) id: string): Promise<Cart> {
-    return await this.service.findByUser(id);
+  async findByUser(@Req() req: Request): Promise<Cart> {
+    return await this.service.findByUser(req.user?.id);
   }
 
   @Get(':id')
