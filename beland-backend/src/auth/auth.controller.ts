@@ -8,7 +8,6 @@ import {
   Post,
   Body,
 } from '@nestjs/common';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -16,12 +15,13 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { User } from 'src/users/entities/users.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
 import { RegisterAuthDto } from './dto/register-auth.dto';
+import { Request } from 'express';
+import { AuthenticationGuard } from './guards/auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -31,7 +31,7 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(AuthenticationGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -49,9 +49,9 @@ export class AuthController {
     status: 401,
     description: 'No autenticado o usuario bloqueado/desactivado.',
   })
-  getProfile(@Req() req: Request): CreateUserDto {
-    const user = req['user'] as User;
-    return plainToInstance(CreateUserDto, user);
+  getProfile(@Req() req: Request): Omit<User, 'password'> {
+    const {password, ...userReturn} = req.user;
+    return userReturn;
   }
 
 
