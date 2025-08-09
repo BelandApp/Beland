@@ -39,7 +39,6 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'https://beland.app',
-      'https://api.beland.app',
       'https://*-beland-8081.exp.direct',
       'http://localhost:8081',
       'https://auth.expo.io/@beland/Beland',
