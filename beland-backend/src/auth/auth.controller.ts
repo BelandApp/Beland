@@ -23,6 +23,7 @@ import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { Request } from 'express';
+import { AuthenticationGuard } from './guards/auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -32,7 +33,7 @@ export class AuthController {
     private readonly authService: AuthService,
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AuthenticationGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
