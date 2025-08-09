@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { GroupMembersRepository } from './group-members.repository';
-import { GroupsRepository } from 'src/groups/group.repository'; // Corrected absolute import path
+import { GroupsRepository } from 'src/groups/groups.repository'; // Corrected absolute import path
 import { UsersService } from '../users/users.service'; // To find users and check their roles
 import { GroupMemberDto } from './dto/group-member.dto';
 import { CreateGroupMemberDto } from './dto/create-group-member.dto';

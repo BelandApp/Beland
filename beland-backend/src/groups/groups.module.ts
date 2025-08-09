@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { GroupsService } from './groups.service';
 import { GroupsController } from './groups.controller';
 import { Group } from './entities/group.entity';
-import { GroupsRepository } from './group.repository';
+import { GroupsRepository } from './groups.repository';
 import { GroupMember } from '../group-members/entities/group-member.entity';
 import { GroupMembersRepository } from '../group-members/group-members.repository';
 import { UsersModule } from 'src/users/users.module'; // Import UsersModule for UsersService dependency
