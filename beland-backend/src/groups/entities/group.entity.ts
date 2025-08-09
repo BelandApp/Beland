@@ -42,6 +42,8 @@ export class Group {
   })
   @JoinColumn({ name: 'leader_id', referencedColumnName: 'id' }) // <-- ¡AÑADIDO ESTO! Define la columna FK explícitamente
   leader: User;
+  @Column('uuid')
+  leader_id: string;
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members: GroupMember[];
