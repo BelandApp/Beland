@@ -1,13 +1,27 @@
-import { Module } from '@nestjs/common';
+// src/group-members/group-members.module.ts
+import { Module, forwardRef } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { GroupMembersService } from './group-members.service';
 import { GroupMembersController } from './group-members.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { GroupMember } from './entities/group-member.entity';
 import { GroupMembersRepository } from './group-members.repository';
+import { GroupsModule } from 'src/groups/groups.module'; // Import GroupsModule for GroupsService dependency
+import { UsersModule } from 'src/users/users.module'; // Import UsersModule for UsersService dependency
+import { User } from 'src/users/entities/users.entity'; // Import User entity for TypeOrmModule.forFeature
+import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
 
 @Module({
-  imports: [TypeOrmModule.forFeature([GroupMember])],
-  controllers: [GroupMembersController],
-  providers: [GroupMembersService, GroupMembersRepository],
+  imports: [
+    // Register TypeORM entities. User is needed as GroupMembersService depends on it.
+    TypeOrmModule.forFeature([GroupMember, User]),
+    // Use forwardRef to resolve circular dependencies.
+    forwardRef(() => GroupsModule), // Allows GroupMembersService to inject GroupsService
+    forwardRef(() => UsersModule), // Allows GroupMembersService to inject UsersService
+    forwardRef(() => AdminsModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
+  ],
+  controllers: [GroupMembersController], // Register controllers
+  providers: [GroupMembersService, GroupMembersRepository], // Register services and repositories
+  // Export services and repositories for use in other modules.
+  exports: [GroupMembersService, GroupMembersRepository, TypeOrmModule],
 })
 export class GroupMembersModule {}
