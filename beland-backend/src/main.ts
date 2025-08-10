@@ -43,6 +43,7 @@ async function bootstrap() {
       'http://localhost:8081',
       'https://auth.expo.io/@beland/Beland',
       'belandnative://redirect',
+      'https://eoy0nfm-beland-8081.exp.direct',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
