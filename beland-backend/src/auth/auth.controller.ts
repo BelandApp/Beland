@@ -30,7 +30,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(FlexibleAuthGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
