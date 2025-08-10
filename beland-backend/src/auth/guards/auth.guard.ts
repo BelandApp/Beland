@@ -15,15 +15,22 @@ export class AuthenticationGuard implements CanActivate {
   ): boolean | Promise<boolean> | Observable<boolean> {
     const request = context.switchToHttp().getRequest();
     const authorizationHeader = request.headers['authorization'];
-    let token = "";
-      if (authorizationHeader) {
-        // El token estará en el formato "Bearer <token>"
-        const parts = authorizationHeader.split(' ');
+    if (!authorizationHeader) {
+      throw new HttpException(
+      { status: 401, error: 'No autorizado. Token no proporcionado.' },
+        401,
+      );
+    }
+    // El token estará en el formato "Bearer <token>"
+    const parts = authorizationHeader.split(' ');
 
-        if (parts.length === 2 && parts[0] === 'Bearer') {
-          token = parts[1];
-        }
-      }
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      throw new HttpException(
+        { status: 401, error: 'No autorizado. Token no proporcionado.' },
+        401,
+      );
+    }
+    const token = parts[1];
 
     if (!token) {
       // Si no encontramos el token ni en cookies ni en headers, lanzamos un error

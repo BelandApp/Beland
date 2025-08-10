@@ -42,6 +42,7 @@ import { AdminsModule } from './admins/admins.module';
 import { PreloadModule } from './preload/preload.module';
 import { CartModule } from './cart/cart.module';
 import { CartItemsModule } from './cart-items/cart-items.module';
+import { UserCardsModule } from './user-cards/user-cards.module';
 
 @Module({
   imports: [
@@ -116,6 +117,7 @@ import { CartItemsModule } from './cart-items/cart-items.module';
     PreloadModule,
     CartModule,
     CartItemsModule,
+    UserCardsModule,
   ],
   controllers: [],
   providers: [
