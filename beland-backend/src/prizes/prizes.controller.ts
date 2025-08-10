@@ -10,7 +10,6 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,18 +17,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PrizesService } from './prizes.service';
 import { Prize } from './entities/prize.entity';
 import { CreatePrizeDto } from './dto/create-prize.dto';
 import { UpdatePrizeDto } from './dto/update-prize.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('orders')
 @Controller('orders')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 export class PrizesController {
   constructor(private readonly service: PrizesService) {}
 

@@ -30,7 +30,7 @@ export class GroupsRepository extends Repository<Group> {
       .createQueryBuilder(alias)
       .leftJoinAndSelect('group.leader', 'leader') // Eager load the leader User entity
       .leftJoinAndSelect('group.members', 'members') // Eager load all GroupMember entities associated with this group
-      .leftJoinAndSelect('members.user', 'memberUser'); // Eager load the User entity for each GroupMember
+      .leftJoinAndSelect('members.user', 'memberUser'); // Eager load member user details
   }
 
   /**
@@ -39,44 +39,31 @@ export class GroupsRepository extends Repository<Group> {
    * @returns The Group entity or null if not found.
    */
   async findOneById(id: string): Promise<Group | null> {
-    return this.createQueryBuilderWithRelations('group')
+    return this.createQueryBuilderWithRelations()
       .where('group.id = :id', { id })
       .getOne();
   }
 
   /**
-   * Finds all groups a specific user is associated with (as leader or member).
-   * This query checks both the 'leader' relationship and the 'group_members' relationship
-   * to ensure all relevant groups are returned.
-   * @param userId The ID of the user.
-   * @returns A list of Group entities.
-   */
-  async findGroupsByUserId(userId: string): Promise<Group[]> {
-    return this.createQueryBuilderWithRelations('group')
-      .where('leader.id = :userId', { userId }) // Groups where the user is the direct leader
-      .orWhere('members.user.id = :userId', { userId }) // Groups where the user is a member (could be leader or regular member via GroupMember)
-      .getMany();
-  }
-
-  /**
    * Finds all groups with pagination, ordering, and optional filters.
-   * Includes leader and member details for comprehensive data retrieval.
-   * @param paginationOptions Pagination parameters (page, limit).
-   * @param orderOptions Ordering parameters (sortBy, order).
-   * @param filterName Optional filter by group name (case-insensitive LIKE search).
-   * @param filterStatus Optional filter by group status.
-   * @returns An object containing the list of Group entities and the total count.
+   * Eagerly loads leader and members for comprehensive data retrieval.
+   * @param page The page number to retrieve (1-based).
+   * @param limit The maximum number of groups to return per page.
+   * @param sortBy The column name to sort the results by (e.g., 'created_at', 'name', 'status').
+   * @param order The sorting order, 'ASC' for ascending or 'DESC' for descending.
+   * @param filterName Optional: A string to filter groups by their name (case-insensitive, partial match).
+   * @param filterStatus Optional: A specific status to filter groups by ('ACTIVE', 'PENDING', 'INACTIVE', 'DELETE').
+   * @returns A promise that resolves to an object containing an array of Group entities and the total count.
    */
   async findAllPaginated(
-    paginationOptions: PaginationDto,
-    orderOptions: OrderDto,
+    page: number = 1,
+    limit: number = 10,
+    sortBy: string = 'created_at',
+    order: 'ASC' | 'DESC' = 'DESC',
     filterName?: string,
     filterStatus?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE',
   ): Promise<{ groups: Group[]; total: number }> {
-    const { page, limit } = paginationOptions;
-    const { sortBy, order } = orderOptions;
-
-    const query = this.createQueryBuilderWithRelations('group'); // Already includes eager loads
+    const query = this.createQueryBuilderWithRelations(); // Start with relations
 
     if (filterName) {
       query.andWhere('LOWER(group.name) LIKE LOWER(:filterName)', {
@@ -87,12 +74,11 @@ export class GroupsRepository extends Repository<Group> {
       query.andWhere('group.status = :filterStatus', { filterStatus });
     }
 
-    // Define valid sortable columns to prevent SQL injection or invalid column names
     const validSortColumns = {
       created_at: 'group.created_at',
       name: 'group.name',
       status: 'group.status',
-      // Add other sortable columns if needed based on your application's requirements
+      // Add other sortable columns as needed based on your application's requirements
     };
 
     const actualSortBy = validSortColumns[sortBy] || 'group.created_at'; // Default sort by creation date
@@ -130,6 +116,7 @@ export class GroupsRepository extends Repository<Group> {
 
   /**
    * Deletes a group by its ID.
+   * Note: This performs a hard delete. Ensure cascading is handled in TypeORM entities if needed.
    * @param id The ID of the group to delete.
    */
   async deleteGroup(id: string): Promise<void> {

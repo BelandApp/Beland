@@ -25,10 +25,10 @@ export class Wallet {
   @Column({ type: 'text', nullable: true })
   qr: string;
 
-  @Column('numeric', { precision: 14, scale: 2, default: 0 })
+  @Column('decimal', { precision: 14, scale: 2, default: 0 })
   becoin_balance: number;             // saldo disponible en Becoin
 
-  @Column( 'numeric', { precision: 14, scale: 2, default: 0 })
+  @Column({ type: 'numeric', default: 0 })
   locked_balance: number;             // opcional: fondos en proceso de retiro
 
   @Column({ type: 'text', nullable: true })

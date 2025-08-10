@@ -18,13 +18,20 @@ import { Role } from 'src/roles/entities/role.entity';
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    HttpModule.register({}), // usa HttpModule.register({}) en version @nestjs/axios >= 10
+    HttpModule.register({}),
     forwardRef(() => UsersModule),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    TypeOrmModule.forFeature([User, Role, Wallet])
+    TypeOrmModule.forFeature([User, Role, Wallet]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UsersRepository, RolesRepository, WalletsRepository, JwtService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    UsersRepository,
+    RolesRepository,
+    WalletsRepository,
+    JwtService,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

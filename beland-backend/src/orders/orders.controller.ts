@@ -10,8 +10,6 @@ import {
   Put,
   HttpCode,
   HttpStatus,
-  UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,20 +17,14 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { Order } from './entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
-import { Request } from 'express';
-import { Cart } from 'src/cart/entities/cart.entity';
 
 @ApiTags('orders')
 @Controller('orders')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 export class OrdersController {
   constructor(private readonly service: OrdersService) {}
 
@@ -41,16 +33,17 @@ export class OrdersController {
   @ApiOperation({ summary: 'Listar ordenes con paginación y filtrado por usuario' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
+  @ApiQuery({ name: 'leader_id', required: false, type: String, description: 'Filtrar ordenes por ID de usuario, si no se envia retorna todas las ordenes' })
   @ApiResponse({ status: 200, description: 'Listado de ordenes retornado correctamente' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Req() req : Request,
+    @Query('leader_id') leader_id = '',
   ): Promise<[Order[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
+    return await this.service.findAll(leader_id, pageNumber, limitNumber);
   }
 
   @Get(':id')
@@ -72,22 +65,6 @@ export class OrdersController {
   @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
   async create(@Body() body: CreateOrderDto): Promise<Order> {
     return await this.service.create(body);
-  }
-
-  @Post('cart')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear una nueva orden desde un carrito' })
-  @ApiResponse({ status: 201, description: 'Orden creado exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos para crear la orden' })
-  @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
-  async createByCart(@Body() body: Cart): Promise<Order> {
-    const order = {
-      total_amount: body.total_amount,
-      total_items: body.total_items,
-      leader_id: body.user_id,
-    }
-
-    return await this.service.create(order);
   }
 
   @Put(':id')
