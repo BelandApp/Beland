@@ -6,9 +6,9 @@ import { GroupMembersController } from './group-members.controller';
 import { GroupMember } from './entities/group-member.entity';
 import { GroupMembersRepository } from './group-members.repository';
 import { GroupsModule } from 'src/groups/groups.module'; // Import GroupsModule for GroupsService dependency
-import { UsersModule } from 'src/users/users.module'; // Import UsersModule for UsersService dependency
-import { User } from 'src/users/entities/users.entity'; // Import User entity for TypeOrmModule.forFeature
-import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
+import { User } from 'src/users/entities/users.entity';
+import { UsersModule } from 'src/users/users.module';
+import { AdminsModule } from 'src/admins/admins.module';
 
 @Module({
   imports: [

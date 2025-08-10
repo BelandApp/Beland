@@ -11,10 +11,14 @@ import {
   Req,
   HttpCode,
   HttpStatus,
-  UseGuards, // Mantener importado, pero la línea de uso estará comentada
+  UseGuards,
   ForbiddenException,
   BadRequestException,
   ParseUUIDPipe,
+  Logger,
+  InternalServerErrorException,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -36,45 +40,51 @@ import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
 import { RequiredPermissions } from 'src/auth/decorators/permissions.decorator';
 import { Request } from 'express';
 import { User } from 'src/users/entities/users.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { OrderDto } from 'src/common/dto/order.dto';
-import { InviteUserDto } from 'src/group-members/dto/create-group-member.dto';
+import { GetGroupsQueryDto } from './dto/get-groups-query.dto';
+import { InviteUserToGroupDto } from './dto/invite-user-to-group.dto'; // Your existing DTO
 import { GroupMemberDto } from 'src/group-members/dto/group-member.dto';
+import { UpdateGroupMemberDto } from 'src/group-members/dto/update-group-member.dto';
+import { UsersService } from 'src/users/users.service'; // <-- ADDED: Import UsersService
+import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto'; // <-- ADDED: Import CreateGroupMemberDto
 
-@ApiTags('groups')
+@ApiTags('groups') // Tag for Swagger documentation
 @Controller('groups')
-// @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // <-- COMENTADO PARA DESACTIVAR AUTENTICACIÓN
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Apply guards to all routes in this controller
 export class GroupsController {
-  constructor(private readonly groupsService: GroupsService) {}
+  private readonly logger = new Logger(GroupsController.name); // Initialize logger
+
+  constructor(
+    private readonly groupsService: GroupsService,
+    private readonly usersService: UsersService, // <-- ADDED: Inject UsersService
+  ) {}
 
   /**
-   * Helper para obtener el ID del usuario.
-   * Prioriza el usuario autenticado (req.user.id).
-   * Si no hay usuario autenticado (ej. guards comentados para pruebas),
-   * intenta obtenerlo de un query parameter 'userId'.
-   * Si tampoco está en la query, lanza un error.
+   * Helper method to get the user ID from the request.
+   * It prioritizes the JWT user ID, then falls back to a query parameter (for testing).
+   * @param req The Express request object.
+   * @param queryUserId Optional user ID from query parameters.
+   * @returns The user ID.
+   * @throws ForbiddenException if no user ID can be determined.
    */
   private getUserId(req: Request, queryUserId?: string): string {
-    const user = req.user as User;
-    if (user && user.id) {
-      return user.id;
+    const userId = (req.user as User)?.id || queryUserId;
+    if (!userId) {
+      this.logger.error(
+        'getUserId(): No user ID found in JWT or query parameter.',
+      );
+      throw new ForbiddenException(
+        'User ID not found. Authentication required.',
+      );
     }
-    if (queryUserId) {
-      // En un entorno real, este userId de la query debería ser validado
-      // o usado solo para entornos de desarrollo/pruebas muy específicos.
-      return queryUserId;
-    }
-    throw new ForbiddenException(
-      'User ID not provided. Please authenticate or provide a userId query parameter for testing.',
-    );
+    return userId;
   }
 
   @Post()
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
+  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA') // All authenticated users can create a group
   @ApiOperation({
-    summary: 'Create a new group/meeting',
+    summary: 'Create a new group',
     description:
-      'Allows any authenticated user to create a new group. The user creating the group is automatically assigned as the leader and a LEADER member of that group. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
+      'Creates a new group and assigns the authenticated user as its leader and first member.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiQuery({
@@ -90,322 +100,152 @@ export class GroupsController {
     description: 'Group created successfully.',
     type: GroupDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data (e.g., missing name).',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized (missing or invalid token).',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden (user does not have required role/permission).',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Leader user not found.',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error (e.g., database issue).',
-  })
+  @ApiResponse({ status: 400, description: 'Invalid input data.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 403, description: 'Forbidden (user ID not found).' })
+  @ApiResponse({ status: 404, description: 'Leader user not found.' })
+  @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createGroupDto: CreateGroupDto,
     @Req() req: Request,
     @Query('userId') queryUserId?: string,
   ): Promise<GroupDto> {
     const userId = this.getUserId(req, queryUserId);
-    return this.groupsService.createGroup(userId, createGroupDto);
-  }
-
-  @Post(':groupId/invite')
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
-  @ApiOperation({
-    summary: 'Invite a user to a group',
-    description:
-      'Allows the group leader (or an Admin/Superadmin) to invite other users to their group by email, username, or phone. The invited user becomes a MEMBER of the group. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
-  })
-  @ApiBearerAuth('JWT-auth')
-  @ApiParam({
-    name: 'groupId',
-    description: 'The ID of the group to invite to',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'userId',
-    required: false,
-    type: String,
-    description:
-      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
-    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
-  })
-  @ApiResponse({
-    status: 200,
-    description:
-      'User invited successfully. Returns the updated group details.',
-    type: GroupDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Invalid input data, or user is already a member, or inviter is not authorized.',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Forbidden (inviter is not the group leader and not an Admin/Superadmin).',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Group or the user to invite not found.',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'User is already a member of this group.',
-  })
-  async invite(
-    @Param('groupId', ParseUUIDPipe) groupId: string,
-    @Body() inviteUserDto: InviteUserDto,
-    @Req() req: Request,
-    @Query('userId') queryUserId?: string,
-  ): Promise<GroupDto> {
-    const userId = this.getUserId(req, queryUserId);
-    return this.groupsService.inviteUserToGroup(userId, groupId, inviteUserDto);
-  }
-
-  @Delete(':groupId/members/:memberId')
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
-  @ApiOperation({
-    summary: 'Remove a member from a group',
-    description:
-      'Allows the group leader (or an Admin/Superadmin) to remove a member from a group. A leader cannot remove themselves if they are the only leader. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
-  })
-  @ApiBearerAuth('JWT-auth')
-  @ApiParam({
-    name: 'groupId',
-    description: 'The ID of the group from which to remove the member',
-    type: String,
-  })
-  @ApiParam({
-    name: 'memberId',
-    description: 'The ID of the user (member) to remove from the group',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'userId',
-    required: false,
-    type: String,
-    description:
-      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
-    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
-  })
-  @ApiResponse({
-    status: 204,
-    description: 'Member removed successfully (No Content).',
-  })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Invalid request (e.g., trying to remove the last leader, or remover is not authorized).',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Forbidden (remover is not the group leader and not an Admin/Superadmin).',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Group or member to remove not found.',
-  })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async removeMember(
-    @Param('groupId', ParseUUIDPipe) groupId: string,
-    @Param('memberId', ParseUUIDPipe) memberId: string,
-    @Req() req: Request,
-    @Query('userId') queryUserId?: string,
-  ): Promise<void> {
-    const userId = this.getUserId(req, queryUserId);
-    await this.groupsService.removeGroupMember(userId, groupId, memberId);
-  }
-
-  @Get('user-groups')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
-  @ApiOperation({
-    summary:
-      'Get all groups the authenticated user is a member of or leader of',
-    description:
-      'Returns a list of all groups in which the authenticated user is either a leader or a regular member. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
-  })
-  @ApiBearerAuth('JWT-auth')
-  @ApiQuery({
-    name: 'userId',
-    required: false,
-    type: String,
-    description:
-      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
-    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'List of groups the user belongs to.',
-    type: [GroupDto],
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden (user does not have required role/permission).',
-  })
-  async getUserGroups(
-    @Req() req: Request,
-    @Query('userId') queryUserId?: string,
-  ): Promise<GroupDto[]> {
-    const userId = this.getUserId(req, queryUserId);
-    return this.groupsService.getGroupsByUserId(userId);
-  }
-
-  @Get(':groupId/members')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
-  @ApiOperation({
-    summary: 'Get the members of a specific group',
-    description:
-      'Returns the list of all users who belong to a specific group. Accessible by any member of the group, or an Admin/Superadmin. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
-  })
-  @ApiBearerAuth('JWT-auth')
-  @ApiParam({
-    name: 'groupId',
-    description: 'The ID of the group to retrieve members for',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'userId',
-    required: false,
-    type: String,
-    description:
-      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
-    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'List of group members.',
-    type: [GroupMemberDto],
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 403,
-    description: 'Forbidden (current user is not a member of the group).',
-  })
-  @ApiResponse({ status: 404, description: 'Group not found.' })
-  async getGroupMembers(
-    @Param('groupId', ParseUUIDPipe) groupId: string,
-    @Req() req: Request,
-    @Query('userId') queryUserId?: string,
-  ): Promise<GroupMemberDto[]> {
-    const userId = this.getUserId(req, queryUserId);
-
-    const group = await this.groupsService.findGroupById(groupId);
-
-    const isMember = group.members.some((member) => member.user.id === userId);
-
-    const currentUserRole = (req.user as User)?.role_name;
-
-    if (
-      !isMember &&
-      currentUserRole !== 'ADMIN' &&
-      currentUserRole !== 'SUPERADMIN'
-    ) {
-      throw new ForbiddenException(
-        'You do not have permission to view the members of this group.',
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups - Creating group by user ID: ${userId}`,
+    );
+    try {
+      const newGroup = await this.groupsService.createGroup(
+        createGroupDto,
+        userId,
+      );
+      return newGroup;
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof ForbiddenException
+      ) {
+        this.logger.warn(
+          `create(): Error creating group: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `create(): Internal server error creating group: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to create group due to an internal error.',
       );
     }
-    return this.groupsService.getGroupMembers(groupId);
   }
 
   @Get()
-  @Roles('ADMIN', 'SUPERADMIN')
+  @Roles('ADMIN', 'SUPERADMIN') // Only Admin and Superadmin can get all groups
+  @RequiredPermissions('content_permission') // Example: Admins/Superadmins might need a 'content_permission' to view all groups
   @ApiOperation({
-    summary: 'Get all groups (for administrators only)',
+    summary: 'Get all groups',
     description:
-      'Lists all groups registered in the system with pagination and filtering options.',
+      'Retrieves a paginated list of all groups, with filtering and sorting options. Only accessible by Admins and Superadmins.',
   })
   @ApiBearerAuth('JWT-auth')
+  // Mueve todos los @ApiQuery a un solo @Query()
   @ApiQuery({
     name: 'page',
     required: false,
     type: Number,
     description: 'Page number, starting from 1.',
-    example: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
-    description: 'Number of items per page (max 100).',
-    example: 10,
+    description: 'Number of items per page (1-100).',
   })
   @ApiQuery({
     name: 'sortBy',
     required: false,
     type: String,
-    description: 'Column to sort by (e.g., "name", "created_at").',
-    example: 'created_at',
+    description: 'Column to sort by (e.g., created_at, name, status).',
   })
   @ApiQuery({
     name: 'order',
     required: false,
     enum: ['ASC', 'DESC'],
     description: 'Sort order (ASC or DESC).',
-    example: 'DESC',
   })
   @ApiQuery({
     name: 'name',
     required: false,
     type: String,
-    description: 'Optional filter by group name (case-insensitive search).',
+    description: 'Filter by group name (partial match).',
   })
   @ApiQuery({
     name: 'status',
     required: false,
     enum: ['ACTIVE', 'PENDING', 'INACTIVE', 'DELETE'],
-    description: 'Optional filter by group status.',
+    description: 'Filter by group status.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Paginated list of all groups.',
+    description: 'Paginated list of groups.',
     type: [GroupDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden (user does not have ADMIN or SUPERADMIN role).',
+    description: 'Forbidden (insufficient role/permission).',
   })
   async findAll(
-    @Query() paginationDto: PaginationDto,
-    @Query() orderDto: OrderDto,
-    @Query('name') name?: string,
-    @Query('status') status?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE',
+    @Query() queryDto: GetGroupsQueryDto, // Usa el nuevo DTO combinado aquí
   ): Promise<{ groups: GroupDto[]; total: number }> {
-    return this.groupsService.findAllGroups(
-      paginationDto,
-      orderDto,
-      name,
-      status,
-    );
+    this.logger.log(`🚧 [BACKEND] Ruta /groups - Fetching all groups.`);
+    try {
+      const { groups, total } = await this.groupsService.findAllGroups(
+        // Pasa los parámetros extraídos del DTO combinado
+        { page: queryDto.page, limit: queryDto.limit },
+        { sortBy: queryDto.sortBy, order: queryDto.order },
+        queryDto.name, // filterName
+        queryDto.status, // filterStatus
+      );
+      return { groups, total };
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException ||
+        error instanceof ForbiddenException
+      ) {
+        this.logger.warn(
+          `findAll(): Error fetching all groups: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `findAll(): Internal server error fetching groups: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve groups due to an internal error.',
+      );
+    }
   }
 
   @Get(':groupId')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
+  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA') // Authenticated users can view groups they are part of. Admins/Superadmins can view any.
   @ApiOperation({
-    summary: 'Get group details by ID',
+    summary: 'Get group by ID',
     description:
-      'Returns detailed information for a specific group. Accessible by any member of the group, or an Admin/Superadmin. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
+      'Retrieves details of a specific group. Group leaders and Admins/Superadmins can view any group. Regular members can view groups they are part of.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'groupId',
-    description: 'The ID of the group to retrieve details for',
+    description: 'ID of the group to retrieve.',
     type: String,
   })
   @ApiQuery({
@@ -418,13 +258,13 @@ export class GroupsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Group details.',
+    description: 'Group found successfully.',
     type: GroupDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden (current user is not a member of the group).',
+    description: 'Forbidden (not authorized to view this group).',
   })
   @ApiResponse({ status: 404, description: 'Group not found.' })
   async findOne(
@@ -433,37 +273,46 @@ export class GroupsController {
     @Query('userId') queryUserId?: string,
   ): Promise<GroupDto> {
     const userId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId - Fetching group with ID: ${groupId} for user ${userId}`,
+    );
 
     const group = await this.groupsService.findGroupById(groupId);
 
-    const isMemberOrLeader = group.members.some(
+    const isCurrentUserLeader = group.leader?.id === userId;
+    const isCurrentUserMember = group.members?.some(
       (member) => member.user.id === userId,
     );
     const currentUserRole = (req.user as User)?.role_name;
+    const isCurrentUserAdminOrSuperAdmin =
+      currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
 
+    // Authorization: User must be leader, a member, or an Admin/Superadmin
     if (
-      !isMemberOrLeader &&
-      currentUserRole !== 'ADMIN' &&
-      currentUserRole !== 'SUPERADMIN'
+      !isCurrentUserLeader &&
+      !isCurrentUserMember &&
+      !isCurrentUserAdminOrSuperAdmin
     ) {
       throw new ForbiddenException(
-        'You do not have permission to view the details of this group.',
+        'You are not authorized to view this group. You must be the leader, a member, or an administrator.',
       );
     }
-    return group;
+
+    return group; // Service already returns GroupDto
   }
 
   @Patch(':groupId')
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN') // Only group leader or Admin/Superadmin can update a group
+  @RequiredPermissions('content_permission') // Admins/Superadmins might need 'content_permission'
   @ApiOperation({
     summary: 'Update a group by ID',
     description:
-      'Allows the group leader (or an Admin/Superadmin) to update its information (name, location, date, status). For testing without authentication, you can optionally provide a `userId` as a query parameter.',
+      'Updates details of a specific group. Only the group leader or an administrator/superadmin can perform this action.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'groupId',
-    description: 'The ID of the group to update',
+    description: 'The ID of the group to update.',
     type: String,
   })
   @ApiQuery({
@@ -494,27 +343,58 @@ export class GroupsController {
     @Query('userId') queryUserId?: string,
   ): Promise<GroupDto> {
     const userId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId - Updating group with ID: ${groupId} by user ${userId}`,
+    );
+
     const group = await this.groupsService.findGroupById(groupId);
 
-    const isCurrentUserLeader = group.leader.id === userId;
+    const isCurrentUserLeader = group.leader?.id === userId;
     const currentUserRole = (req.user as User)?.role_name;
     const isCurrentUserAdminOrSuperAdmin =
       currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
 
     if (!isCurrentUserLeader && !isCurrentUserAdminOrSuperAdmin) {
       throw new ForbiddenException(
-        'Only the group leader or an administrator can update this group.',
+        'Only the group leader or an administrator can update group details.',
       );
     }
-    return this.groupsService.updateGroup(groupId, updateGroupDto);
+
+    try {
+      const updatedGroup = await this.groupsService.updateGroup(
+        groupId,
+        updateGroupDto,
+      );
+      return updatedGroup;
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        this.logger.warn(
+          `update(): Error updating group: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `update(): Internal server error updating group: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update group due to an internal error.',
+      );
+    }
   }
 
   @Delete(':groupId')
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN') // Only group leader, admin or superadmin can delete a group
+  @RequiredPermissions('content_permission') // Admins/Superadmins might need 'content_permission'
   @ApiOperation({
     summary: 'Delete a group by ID',
     description:
-      'Deletes a group. Only the group leader or an administrator/superadmin can perform this action. For testing without authentication, you can optionally provide a `userId` as a query parameter.',
+      'Deletes a group. Only the group leader or an administrator/superadmin can perform this action.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({
@@ -541,16 +421,20 @@ export class GroupsController {
       'Forbidden (current user is not the group leader and not an Admin/Superadmin).',
   })
   @ApiResponse({ status: 404, description: 'Group not found.' })
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.NO_CONTENT) // 204 No Content for successful deletion
   async remove(
     @Param('groupId', ParseUUIDPipe) groupId: string,
     @Req() req: Request,
     @Query('userId') queryUserId?: string,
   ): Promise<void> {
     const userId = this.getUserId(req, queryUserId);
-    const group = await this.groupsService.findGroupById(groupId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId - Deleting group with ID: ${groupId} by user ${userId}`,
+    );
 
-    const isCurrentUserLeader = group.leader.id === userId;
+    const group = await this.groupsService.findGroupById(groupId); // Fetch group to check leader
+
+    const isCurrentUserLeader = group.leader?.id === userId;
     const currentUserRole = (req.user as User)?.role_name;
     const isCurrentUserAdminOrSuperAdmin =
       currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
@@ -560,6 +444,400 @@ export class GroupsController {
         'Only the group leader or an administrator can delete this group.',
       );
     }
-    await this.groupsService.deleteGroup(groupId);
+
+    try {
+      await this.groupsService.deleteGroup(groupId);
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (error instanceof NotFoundException) {
+        this.logger.warn(
+          `remove(): Error deleting group: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `remove(): Internal server error deleting group: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to delete group due to an internal error.',
+      );
+    }
+  }
+
+  @Post(':groupId/members')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
+  @RequiredPermissions('user_permission')
+  @ApiOperation({
+    summary: 'Invite a user to a group',
+    description:
+      'Invites a user to the specified group by email, username, or phone. The invited user will be added as a MEMBER. Only the group leader or an Admin/Superadmin can invite.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({
+    name: 'groupId',
+    description: 'ID of the group to invite the user to.',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    type: String,
+    description:
+      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
+    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'User invited to group successfully.',
+    type: GroupMemberDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data or user already a member.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (not authorized to invite to this group).',
+  })
+  @ApiResponse({ status: 404, description: 'Group or invited user not found.' })
+  @HttpCode(HttpStatus.CREATED)
+  async inviteUser(
+    @Param('groupId', ParseUUIDPipe) groupId: string,
+    @Body() inviteUserDto: InviteUserToGroupDto,
+    @Req() req: Request,
+    @Query('userId') queryUserId?: string,
+  ): Promise<GroupMemberDto> {
+    const currentUserId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId/members - Inviting user to group ${groupId} by user ${currentUserId}`,
+    );
+
+    const group = await this.groupsService.findGroupById(groupId);
+
+    const isCurrentUserLeader = group.leader?.id === currentUserId;
+    const currentUserRole = (req.user as User)?.role_name;
+    const isCurrentUserAdminOrSuperAdmin =
+      currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
+
+    if (!isCurrentUserLeader && !isCurrentUserAdminOrSuperAdmin) {
+      throw new ForbiddenException(
+        'Only the group leader or an administrator can invite members to this group.',
+      );
+    }
+
+    // --- START: Added logic to resolve user and construct CreateGroupMemberDto ---
+    let userToInvite: User | null = null;
+    if (inviteUserDto.email) {
+      userToInvite = await this.usersService.findByEmail(inviteUserDto.email);
+    } else if (inviteUserDto.username) {
+      userToInvite = await this.usersService.findByUsername(
+        inviteUserDto.username,
+      );
+    } else if (inviteUserDto.phone) {
+      // Convert phone to number, as findByPhone expects a number
+      userToInvite = await this.usersService.findByPhone(
+        Number(inviteUserDto.phone),
+      );
+    }
+
+    if (!userToInvite) {
+      throw new NotFoundException(
+        'User not found with the provided email, username, or phone.',
+      );
+    }
+
+    // Construct CreateGroupMemberDto from resolved user ID and groupId
+    const createGroupMemberDto: CreateGroupMemberDto = {
+      group_id: groupId,
+      user_id: userToInvite.id,
+      role: inviteUserDto.role || 'MEMBER', // Default to MEMBER if not specified
+    };
+    // --- END: Added logic ---
+
+    try {
+      // Pass the correctly constructed DTO to the service
+      const newMember = await this.groupsService.inviteUserToGroup(
+        groupId, // groupId from param
+        createGroupMemberDto, // <-- NOW PASSING CreateGroupMemberDto
+      );
+      return newMember;
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        this.logger.warn(
+          `inviteUser(): Error inviting user: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `inviteUser(): Internal server error inviting user: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to invite user to group due to an internal error.',
+      );
+    }
+  }
+
+  @Get(':groupId/members')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN', 'USER', 'EMPRESA') // Leaders and members can see group members. Admins/Superadmins can see all.
+  @ApiOperation({
+    summary: 'Get all members of a specific group',
+    description:
+      'Retrieves a list of all members for a given group. Accessible by the group leader, any group member, or an Admin/Superadmin.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({
+    name: 'groupId',
+    description: 'ID of the group to retrieve members from.',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    type: String,
+    description:
+      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
+    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of group members.',
+    type: [GroupMemberDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (not authorized to view members of this group).',
+  })
+  @ApiResponse({ status: 404, description: 'Group not found.' })
+  async getMembers(
+    @Param('groupId', ParseUUIDPipe) groupId: string,
+    @Req() req: Request,
+    @Query('userId') queryUserId?: string,
+  ): Promise<GroupMemberDto[]> {
+    const userId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId/members - Fetching members for group ${groupId} by user ${userId}`,
+    );
+
+    const group = await this.groupsService.findGroupById(groupId);
+
+    const isCurrentUserLeader = group.leader?.id === userId;
+    const isCurrentUserMember = group.members?.some(
+      (member) => member.user.id === userId,
+    );
+    const currentUserRole = (req.user as User)?.role_name;
+    const isCurrentUserAdminOrSuperAdmin =
+      currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
+
+    if (
+      !isCurrentUserLeader &&
+      !isCurrentUserMember &&
+      !isCurrentUserAdminOrSuperAdmin
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to view the members of this group. You must be the leader, a member, or an administrator.',
+      );
+    }
+
+    try {
+      const members = await this.groupsService.getGroupMembers(groupId);
+      return members;
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (error instanceof NotFoundException) {
+        this.logger.warn(
+          `getMembers(): Error fetching group members: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `getMembers(): Internal server error fetching group members: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve group members due to an internal error.',
+      );
+    }
+  }
+
+  @Patch(':groupId/members/:memberId')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
+  @RequiredPermissions('user_permission')
+  @ApiOperation({
+    summary: 'Update a group member (e.g., change role)',
+    description:
+      'Updates a specific group member. Only the group leader or an Admin/Superadmin can perform this action.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'groupId', description: 'ID of the group.', type: String })
+  @ApiParam({
+    name: 'memberId',
+    description: 'ID of the group member entry.',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    type: String,
+    description:
+      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
+    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Group member updated successfully.',
+    type: GroupMemberDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input data.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (not authorized to update this member).',
+  })
+  @ApiResponse({ status: 404, description: 'Group or group member not found.' })
+  async updateMember(
+    @Param('groupId', ParseUUIDPipe) groupId: string,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+    @Body() updateGroupMemberDto: UpdateGroupMemberDto,
+    @Req() req: Request,
+    @Query('userId') queryUserId?: string,
+  ): Promise<GroupMemberDto> {
+    const currentUserId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId/members/:memberId - Updating member ${memberId} in group ${groupId} by user ${currentUserId}`,
+    );
+
+    const group = await this.groupsService.findGroupById(groupId);
+
+    const isCurrentUserLeader = group.leader?.id === currentUserId;
+    const currentUserRole = (req.user as User)?.role_name;
+    const isCurrentUserAdminOrSuperAdmin =
+      currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
+
+    if (!isCurrentUserLeader && !isCurrentUserAdminOrSuperAdmin) {
+      throw new ForbiddenException(
+        'Only the group leader or an administrator can update group members.',
+      );
+    }
+
+    try {
+      const updatedMember = await this.groupsService.updateGroupMember(
+        memberId,
+        updateGroupMemberDto,
+      );
+      return updatedMember;
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException ||
+        error instanceof ConflictException
+      ) {
+        this.logger.warn(
+          `updateMember(): Error updating group member: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `updateMember(): Internal server error updating group member: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to update group member due to an internal error.',
+      );
+    }
+  }
+
+  @Delete(':groupId/members/:memberId')
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
+  @RequiredPermissions('user_permission')
+  @ApiOperation({
+    summary: 'Remove a member from a group',
+    description:
+      'Removes a specific member from a group. Only the group leader or an Admin/Superadmin can perform this action. Cannot remove the last leader of an active group directly.',
+  })
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'groupId', description: 'ID of the group.', type: String })
+  @ApiParam({
+    name: 'memberId',
+    description: 'ID of the group member entry to remove.',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'userId',
+    required: false,
+    type: String,
+    description:
+      'Optional: User ID for testing purposes when authentication is bypassed. Ignored if a JWT is present.',
+    example: 'cdbc37a5-fd0e-4f0b-b286-de369fb1e44b',
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Group member removed successfully.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot remove last leader of an active group.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (not authorized to remove this member).',
+  })
+  @ApiResponse({ status: 404, description: 'Group or group member not found.' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeMember(
+    @Param('groupId', ParseUUIDPipe) groupId: string,
+    @Param('memberId', ParseUUIDPipe) memberId: string,
+    @Req() req: Request,
+    @Query('userId') queryUserId?: string,
+  ): Promise<void> {
+    const currentUserId = this.getUserId(req, queryUserId);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /groups/:groupId/members/:memberId - Removing member ${memberId} from group ${groupId} by user ${currentUserId}`,
+    );
+
+    const group = await this.groupsService.findGroupById(groupId);
+
+    const isCurrentUserLeader = group.leader?.id === currentUserId;
+    const currentUserRole = (req.user as User)?.role_name;
+    const isCurrentUserAdminOrSuperAdmin =
+      currentUserRole === 'ADMIN' || currentUserRole === 'SUPERADMIN';
+
+    if (!isCurrentUserLeader && !isCurrentUserAdminOrSuperAdmin) {
+      throw new ForbiddenException(
+        'Only the group leader or an administrator can remove members from this group.',
+      );
+    }
+
+    try {
+      await this.groupsService.removeGroupMember(memberId);
+    } catch (error) {
+      // Corrected error handling to properly type 'error'
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        this.logger.warn(
+          `removeMember(): Error removing group member: ${(error as Error).message}`,
+        );
+        throw error;
+      }
+      this.logger.error(
+        `removeMember(): Internal server error removing group member: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to remove group member due to an internal error.',
+      );
+    }
   }
 }

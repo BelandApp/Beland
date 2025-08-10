@@ -22,16 +22,15 @@ import { AuthService } from './auth.service';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { Request } from 'express';
 import { AuthenticationGuard } from './guards/auth.guard';
+import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
 
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
-
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -50,18 +49,17 @@ export class AuthController {
     description: 'No autenticado o usuario bloqueado/desactivado.',
   })
   getProfile(@Req() req: Request): Omit<User, 'password'> {
-    const {password, ...userReturn} = req.user;
+    const { password, ...userReturn } = req.user;
     return userReturn;
   }
-
 
   // provisorio para las pruebas
 
   @Post('signup')
   @ApiOperation({ summary: 'Registra usuarios nuevos' })
   @ApiBody({
-       description: 'Ingrese todos los datos requeridos',
-       type: RegisterAuthDto,
+    description: 'Ingrese todos los datos requeridos',
+    type: RegisterAuthDto,
   })
   async signup(@Body() user: RegisterAuthDto): Promise<{ token: string }> {
     return await this.authService.signup(user);
@@ -70,10 +68,7 @@ export class AuthController {
   @Post('signin')
   @ApiOperation({ summary: 'Realiza el Login de usuarios' })
   @ApiBody({ description: 'Las credenciales', type: LoginAuthDto })
-  async signin(
-    @Body() userLogin: LoginAuthDto
-  ): Promise<{ token: string }> {
+  async signin(@Body() userLogin: LoginAuthDto): Promise<{ token: string }> {
     return await this.authService.signin(userLogin);
   }
-
 }

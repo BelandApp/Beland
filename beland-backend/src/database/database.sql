@@ -48,8 +48,30 @@ CREATE TABLE public.bank_accounts (
   user_id uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT bank_accounts_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_799340cb97c2a26cd1814ac90fc FOREIGN KEY (account_type_id) REFERENCES public.bank_account_types(id),
-  CONSTRAINT FK_29146c4a8026c77c712e01d922b FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_29146c4a8026c77c712e01d922b FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT FK_799340cb97c2a26cd1814ac90fc FOREIGN KEY (account_type_id) REFERENCES public.bank_account_types(id)
+);
+CREATE TABLE public.cart_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  cart_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  quantity integer NOT NULL DEFAULT 1,
+  unit_price numeric NOT NULL,
+  subtotal numeric NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT cart_items_pkey PRIMARY KEY (id),
+  CONSTRAINT FK_6385a745d9e12a89b859bb25623 FOREIGN KEY (cart_id) REFERENCES public.carts(id),
+  CONSTRAINT FK_30e89257a105eab7648a35c7fce FOREIGN KEY (product_id) REFERENCES public.products(id)
+);
+CREATE TABLE public.carts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL UNIQUE,
+  total_amount numeric NOT NULL DEFAULT '0'::numeric,
+  total_items integer NOT NULL DEFAULT 0,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT carts_pkey PRIMARY KEY (id),
+  CONSTRAINT FK_2ec1c94a977b940d85a4f498aea FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.charities (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -102,9 +124,9 @@ CREATE TABLE public.groups (
   date_time timestamp with time zone,
   status text NOT NULL DEFAULT 'ACTIVE'::text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  loader_id uuid NOT NULL,
+  leader_id uuid NOT NULL,
   CONSTRAINT groups_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_72ad1e93ec761661298426680dc FOREIGN KEY (loader_id) REFERENCES public.users(id)
+  CONSTRAINT FK_72ad1e93ec761661298426680dc FOREIGN KEY (leader_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.inventory_items (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -139,6 +161,12 @@ CREATE TABLE public.merchants (
   CONSTRAINT merchants_pkey PRIMARY KEY (id),
   CONSTRAINT FK_698f612a3134c503f711479a4e5 FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.migrations (
+  id integer NOT NULL DEFAULT nextval('migrations_id_seq'::regclass),
+  timestamp bigint NOT NULL,
+  name character varying NOT NULL,
+  CONSTRAINT migrations_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.order_items (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   quantity integer NOT NULL,
@@ -149,9 +177,9 @@ CREATE TABLE public.order_items (
   product_id uuid NOT NULL,
   consumed_by_user_id uuid NOT NULL,
   CONSTRAINT order_items_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_6416a99947f9349d4268bfd33fd FOREIGN KEY (consumed_by_user_id) REFERENCES public.users(id),
   CONSTRAINT FK_145532db85752b29c57d2b7b1f1 FOREIGN KEY (order_id) REFERENCES public.orders(id),
-  CONSTRAINT FK_9263386c35b6b242540f9493b00 FOREIGN KEY (product_id) REFERENCES public.products(id)
+  CONSTRAINT FK_9263386c35b6b242540f9493b00 FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT FK_6416a99947f9349d4268bfd33fd FOREIGN KEY (consumed_by_user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.orders (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -159,7 +187,8 @@ CREATE TABLE public.orders (
   total_amount numeric NOT NULL DEFAULT '0'::numeric,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   paid_at timestamp with time zone,
-  group_id uuid NOT NULL,
+  total_items integer NOT NULL DEFAULT 0,
+  group_id uuid,
   leader_id uuid NOT NULL,
   group_ip uuid,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
@@ -175,8 +204,8 @@ CREATE TABLE public.payments (
   order_id uuid NOT NULL,
   user_id uuid NOT NULL,
   CONSTRAINT payments_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_427785468fb7d2733f59e7d7d39 FOREIGN KEY (user_id) REFERENCES public.users(id),
-  CONSTRAINT FK_b2f7b823a21562eeca20e72b006 FOREIGN KEY (order_id) REFERENCES public.orders(id)
+  CONSTRAINT FK_b2f7b823a21562eeca20e72b006 FOREIGN KEY (order_id) REFERENCES public.orders(id),
+  CONSTRAINT FK_427785468fb7d2733f59e7d7d39 FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.prize_redemptions (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -267,9 +296,9 @@ CREATE TABLE public.transactions (
   reference text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT transactions_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_bf1cb034a93b703e528b926a75d FOREIGN KEY (type_id) REFERENCES public.transaction_types(id),
   CONSTRAINT FK_819b9b741319d533ea9e5617eb0 FOREIGN KEY (status_id) REFERENCES public.transaction_states(id),
-  CONSTRAINT FK_0b171330be0cb621f8d73b87a9e FOREIGN KEY (wallet_id) REFERENCES public.wallets(id)
+  CONSTRAINT FK_0b171330be0cb621f8d73b87a9e FOREIGN KEY (wallet_id) REFERENCES public.wallets(id),
+  CONSTRAINT FK_bf1cb034a93b703e528b926a75d FOREIGN KEY (type_id) REFERENCES public.transaction_types(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -297,13 +326,13 @@ CREATE TABLE public.users (
 CREATE TABLE public.wallets (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   address text,
+  private_key_encrypted text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  user_id uuid NOT NULL,
   alias text,
   qr text,
   becoin_balance numeric NOT NULL DEFAULT '0'::numeric,
   locked_balance numeric NOT NULL DEFAULT '0'::numeric,
-  private_key_encrypted text,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  user_id uuid NOT NULL,
   bank_account_id uuid UNIQUE,
   CONSTRAINT wallets_pkey PRIMARY KEY (id),
   CONSTRAINT FK_94dae15c154c2b28813e04750c7 FOREIGN KEY (bank_account_id) REFERENCES public.bank_accounts(id),

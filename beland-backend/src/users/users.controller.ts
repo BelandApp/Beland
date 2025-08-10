@@ -20,7 +20,8 @@ import {
   HttpCode,
   HttpStatus,
   UsePipes, // Importar UsePipes
-  ValidationPipe, // Importar ValidationPipe
+  ValidationPipe,
+  UseGuards, // Importar ValidationPipe
   // UseGuards, // Comentado temporalmente
 } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -40,7 +41,7 @@ import {
 } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PickType } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer'; // Importar plainToInstance
+import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Comentado temporalmente
 // import { RolesGuard } from '../auth/guards/roles.guard'; // Comentado temporalmente
@@ -88,7 +89,6 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   @ApiResponse({ status: 409, description: 'El email ya está en uso' })
   async create(@Body() createUserDto: CreateUserDto) {
-    // El servicio ya devuelve UserDto, no necesita transformación aquí.
     return await this.usersService.create(createUserDto);
   }
 
@@ -101,7 +101,7 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** con `user_permission` buscar un usuario específico por su dirección de email.',
   })
-  // // @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth('JWT-auth')
   @ApiQuery({
     name: 'email',
     description: 'Email del usuario a buscar',
@@ -125,8 +125,7 @@ export class UsersController {
     );
     try {
       const user = await this.usersService.findByEmail(email);
-      // Transformar la entidad User a UserDto antes de devolverla
-      return plainToInstance(UserDto, user);
+      return user;
     } catch (error) {
       if (error instanceof NotFoundException) {
         this.logger.warn(
@@ -139,6 +138,8 @@ export class UsersController {
   }
 
   @Get('me')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
   @ApiOperation({
@@ -146,7 +147,6 @@ export class UsersController {
     description:
       'Retorna el perfil completo del usuario que está autenticado en la sesión.',
   })
-  // // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Información del usuario autenticado.',
@@ -168,15 +168,15 @@ export class UsersController {
           'Usuario autenticado no encontrado en la solicitud.',
         );
       }
-      // El servicio devuelve la entidad User, transformarla a UserDto
-      const authenticatedUser = await this.usersService.findOne(user.id);
-      return plainToInstance(UserDto, authenticatedUser);
+      return this.usersService.findOne(user.id);
     } catch (error) {
       this.handleError(error, 'getAuthenticatedUser');
     }
   }
 
   @Patch('me')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
   @ApiOperation({
@@ -184,7 +184,6 @@ export class UsersController {
     description:
       'Permite al usuario autenticado actualizar su propio nombre y foto de perfil.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Perfil de usuario actualizado exitosamente.',
@@ -212,7 +211,6 @@ export class UsersController {
           'Usuario autenticado no encontrado en la solicitud.',
         );
       }
-      // El servicio ya devuelve UserDto, no necesita transformación aquí.
       const updatedUser = await this.usersService.updateMe(
         user.id,
         updateUserDto,
@@ -234,6 +232,8 @@ export class UsersController {
   }
 
   @Get()
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener lista de usuarios con paginación, filtrado y ordenación',
     description:
@@ -315,7 +315,7 @@ export class UsersController {
       );
 
       return {
-        users: users, // El servicio ya devuelve UserDto[], no necesita transformación aquí.
+        users: users,
         total,
         page,
         limit,
@@ -334,6 +334,8 @@ export class UsersController {
   }
 
   @Get('deactivated')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -343,7 +345,6 @@ export class UsersController {
     description:
       'Lista todos los usuarios que han sido marcados como desactivados (soft-deleted).',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios desactivados.',
@@ -360,7 +361,6 @@ export class UsersController {
       `🚧 [BACKEND] Ruta /users/deactivated - Buscando usuarios desactivados.`,
     );
     try {
-      // El servicio ya devuelve UserDto[], no necesita transformación aquí.
       const users = await this.usersService.findDeactivatedUsers();
       return users;
     } catch (error) {
@@ -369,6 +369,8 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener un usuario por ID',
     description:
@@ -424,8 +426,7 @@ export class UsersController {
       }
 
       const user = await this.usersService.findOne(id, bIncludeDeleted);
-      // Transformar la entidad User a UserDto antes de devolverla
-      return plainToInstance(UserDto, user);
+      return user;
     } catch (error) {
       if (
         error instanceof NotFoundException ||
@@ -441,6 +442,8 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -450,7 +453,6 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** actualizar cualquier perfil de usuario, incluyendo nombre, foto, rol, estado de bloqueo y estado de activación/desactivación.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a actualizar',
@@ -479,7 +481,6 @@ export class UsersController {
       `🚧 [BACKEND] Ruta /users/:id - Actualizando usuario con ID: ${id}`,
     );
     try {
-      // El servicio ya devuelve UserDto, no necesita transformación aquí.
       const updatedUser = await this.usersService.update(id, updateUserDto);
       return updatedUser;
     } catch (error) {
@@ -499,6 +500,8 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
@@ -508,7 +511,6 @@ export class UsersController {
     description:
       'Marca un usuario como desactivado en la base de datos (soft-delete). Solo accesible por **Admin/Superadmin**. No elimina el registro físicamente.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a desactivar',
@@ -549,6 +551,8 @@ export class UsersController {
   }
 
   @Patch(':id/reactivate')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -558,7 +562,6 @@ export class UsersController {
     description:
       'Marca un usuario previamente desactivado como activo. Solo accesible por **Admin/Superadmin**.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a reactivar',
@@ -582,7 +585,6 @@ export class UsersController {
       `🚧 [BACKEND] Ruta /users/:id/reactivate - Reactivando usuario con ID: ${id}`,
     );
     try {
-      // El servicio ya devuelve UserDto, no necesita transformación aquí.
       const user = await this.usersService.reactivateUser(id);
       return user;
     } catch (error) {
@@ -600,6 +602,8 @@ export class UsersController {
   }
 
   @Patch(':id/block-status')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -609,7 +613,6 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** cambiar el estado de bloqueo (`isBlocked`) de un usuario.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a bloquear/desbloquear',
@@ -636,7 +639,6 @@ export class UsersController {
       `🚧 [BACKEND] Ruta /users/:id/block-status - Actualizando estado de bloqueo para ID: ${id} a ${blockUserDto.isBlocked}`,
     );
     try {
-      // El servicio ya devuelve UserDto, no necesita transformación aquí.
       const updatedUser = await this.usersService.updateBlockStatus(
         id,
         blockUserDto.isBlocked,
