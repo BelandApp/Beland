@@ -46,10 +46,11 @@ import { GroupMemberDto } from 'src/group-members/dto/group-member.dto';
 import { UpdateGroupMemberDto } from 'src/group-members/dto/update-group-member.dto';
 import { UsersService } from 'src/users/users.service'; // <-- ADDED: Import UsersService
 import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto'; // <-- ADDED: Import CreateGroupMemberDto
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('groups') // Tag for Swagger documentation
 @Controller('groups')
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Apply guards to all routes in this controller
+@UseGuards(FlexibleAuthGuard, RolesGuard, PermissionsGuard) // Apply guards to all routes in this controller
 export class GroupsController {
   private readonly logger = new Logger(GroupsController.name); // Initialize logger
 
