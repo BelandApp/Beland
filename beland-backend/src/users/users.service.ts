@@ -222,16 +222,13 @@ export class UsersService {
   }
 
   /**
-   * Busca un usuario por su número de teléfono. Devuelve la entidad User.
-   * @param phone El número de teléfono.
-   * @returns La entidad User o null.
+   * Busca un usuario por su número de teléfono.
+   * @param phone El número de teléfono del usuario.
+   * @returns La entidad User o null si no se encuentra.
    */
   async findByPhone(phone: number): Promise<User | null> {
-    this.logger.debug(
-      `findByPhone(): Buscando usuario con teléfono: ${phone}.`,
-    );
-    const user = await this.usersRepository.findByPhone(phone);
-    return user; // Devuelve la entidad User directamente
+    this.logger.debug(`findByPhone(): Buscando usuario con teléfono: ${phone}`);
+    return this.usersRepository.findByPhone(phone);
   }
 
   /**
