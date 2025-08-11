@@ -9,6 +9,8 @@ import { OrdersRepository } from './orders.repository';
 import { Order } from './entities/order.entity';
 import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { CartsRepository } from 'src/cart/cart.repository';
+import { OrderItemsRepository } from 'src/order-items/order-items.repository';
+import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
 
 @Injectable()
 export class OrdersService {
@@ -16,8 +18,10 @@ export class OrdersService {
 
   constructor(
     private readonly repository: OrdersRepository,
+    private readonly orderItemRepo: OrderItemsRepository,
     private readonly walletRepo: WalletsRepository,
-    private readonly cartRepo: CartsRepository
+    private readonly cartRepo: CartsRepository,
+
   ) {}
 
   async findAll(
@@ -61,18 +65,38 @@ export class OrdersService {
     }
   }
 
-  async createOrderByCart(cart_id: string, wallet_id:string): Promise<Order> {
-    const wallet = await this.walletRepo.findOne(wallet_id);
-    const cart = await this.cartRepo.findOne(cart_id);
-    if (wallet.becoin_balance < cart.total_amount) throw new NotAcceptableException('Saldo Insuficiente')
+  async createOrderByCart(order_create: CreateOrderByCartDto): Promise<Order> {
+    const wallet = await this.walletRepo.findOne(order_create.wallet_id);
+    const cart = await this.cartRepo.findOne(order_create.cart_id);
+    if (!wallet) throw new NotFoundException('Wallet no encontrada');
+    if (!cart) throw new NotFoundException('Carrito no encontrado');
+
+    if (wallet.becoin_balance < cart.total_amount) {
+      throw new NotAcceptableException('Saldo insuficiente');
+    }
+
+    // Crear la orden
+    const { id, user_id, created_at, updated_at, items, ...createOrder } = cart;
+    const order = await this.repository.create({
+      ...createOrder,
+      leader_id: user_id,
+    });
+
+    const savedOrder = await this.repository.create(order);
+    if (!savedOrder) throw new ConflictException('No se pudo crear la orden');
+
+    // Preparar los ítems para insertar
+    const orderItems = cart.items.map(({ id, created_at, cart_id, ...rest }) => ({
+      ...rest,
+      order_id: savedOrder.id,
+    }));
+
+    // Inserción masiva de ítems
+    const itemsCreated = await this.orderItemRepo.createMany(orderItems);
+    if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
+
     
     
-    // incluir todo el codigo necesario. inserta cart en order, inserta cartitems en orderItems
-    // genera el pago desde la wallet.
-    // si no alcanza el fondo da error.
-    // si alcanza crea saldos bloqueados a los vendedores. y los notifica para que envien los productos.
-    // una vez los productos son recibidos por el usuario. se notifica y se habilita  el pago al vendedor.
-    // retorna la orden o un mensage de que todo salio bien.
     return 
   }
 

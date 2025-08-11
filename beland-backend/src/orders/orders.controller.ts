@@ -30,6 +30,7 @@ import { Request } from 'express';
 import { User } from 'src/users/entities/users.entity';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -86,19 +87,18 @@ export class OrdersController {
   @ApiResponse({ status: 400, description: 'Datos inválidos para crear la orden' })
   @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
   async createOrderByCart(
-    @Query('cart_id', ParseUUIDPipe) cart_id,
-    @Query('wallet_id', ParseUUIDPipe) wallet_id,
+    @Body() body: CreateOrderByCartDto,
     @Req() req : Request,
   ): Promise<Order> {
     const user: User = req.user; // tipalo si ya tenés interfaz
   
-  const hasWallet = user.wallets.some((wallet: Wallet) => wallet.id === wallet_id);
+  const hasWallet = user.wallets.some((wallet: Wallet) => wallet.id === body.wallet_id);
 
   if (!hasWallet) {
     throw new ForbiddenException('La billetera no pertenece al usuario autenticado');
   }
 
-  return await this.service.createOrderByCart(cart_id, wallet_id);
+  return await this.service.createOrderByCart(body);
   }
 
   @Put(':id')
