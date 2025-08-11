@@ -119,18 +119,16 @@ const AppContent = () => {
         onStateChange={onNavigationStateChange}
       >
         <View style={{ flex: 1, backgroundColor: colors.background }}>
-          {/* {user ? (
-            // Usuario autenticado - mostrar app principal */}
-          <>
+          {user ? (
+            <>
               <RootStackNavigator />
               {shouldShowQRButton && (
                 <FloatingQRButton onPress={handleQRPress} />
               )}
             </>
-          {/* // ) : (
-          //   // Usuario no autenticado - mostrar pantallas de auth
-          //   <AuthStackNavigator />
-          // )} */}
+          ) : (
+            <AuthStackNavigator />
+          )}
         </View>
       </NavigationContainer>
     </View>

@@ -23,8 +23,10 @@ export class WalletsService {
 
   constructor(
     private readonly repository: WalletsRepository,
-    @InjectRepository(TransactionType) private typeRepo: Repository<TransactionType>,
-    @InjectRepository(TransactionState) private stateRepo: Repository<TransactionState>,
+    @InjectRepository(TransactionType)
+    private typeRepo: Repository<TransactionType>,
+    @InjectRepository(TransactionState)
+    private stateRepo: Repository<TransactionState>,
     @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
   ) {}
 
@@ -58,14 +60,27 @@ export class WalletsService {
 
   async create(body: Partial<Wallet>): Promise<Wallet> {
     try {
+      // Transformar userId a user_id si viene del DTO de forma segura
+      if (body && Object.prototype.hasOwnProperty.call(body, 'userId')) {
+        const { userId, ...rest } = body as any;
+        body = { ...rest, user_id: userId };
+      }
+      // Buscar si ya existe una wallet para ese usuario
+      if (body.user_id) {
+        const existing = await this.repository.findAll(body.user_id, 1, 1);
+        if (existing[0].length > 0) {
+          return existing[0][0]; // Retorna la primera wallet encontrada
+        }
+      }
+      // Si no existe, crearla
       const res = await this.repository.create(body);
       if (!res)
         throw new InternalServerErrorException(
           `No se pudo crear ${this.completeMessage}`,
         );
       return res;
-    } catch (error) {
-      throw new InternalServerErrorException(error);
+    } catch (e) {
+      throw new InternalServerErrorException(e);
     }
   }
 
@@ -73,9 +88,7 @@ export class WalletsService {
     try {
       const res = await this.repository.update(id, body);
       if (res.affected === 0)
-        throw new NotFoundException(
-          `No se encontró ${this.completeMessage}`,
-        );
+        throw new NotFoundException(`No se encontró ${this.completeMessage}`);
       return res;
     } catch (error) {
       throw new InternalServerErrorException(error);
@@ -86,31 +99,33 @@ export class WalletsService {
     try {
       const res = await this.repository.remove(id);
       if (res.affected === 0)
-        throw new NotFoundException(
-          `No se encontró ${this.completeMessage}`,
-        );
+        throw new NotFoundException(`No se encontró ${this.completeMessage}`);
       return res;
     } catch (error) {
-      throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+      throw new ConflictException(
+        `No se puede eliminar ${this.completeMessage}`,
+      );
     }
   }
 
-  async recharge(dto: RechargeDto): Promise<{wallet: Wallet}> {
-    const wallet = await this.repository.findOne( dto.wallet_id );
-    if (!wallet) throw new NotFoundException('No se encuentra la billetera')
+  async recharge(dto: RechargeDto): Promise<{ wallet: Wallet }> {
+    const wallet = await this.repository.findOne(dto.wallet_id);
+    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
     // 2) Convertir USD a Becoin
-    
+
     const becoinAmount = +dto.amountUsd / +this.priceOneBecoin;
     // 3) Actualizar saldo
     wallet.becoin_balance = +wallet.becoin_balance + becoinAmount;
-    const type = await this.typeRepo.findOneBy({code:'RECHARGE'})
-    if (!type) throw new ConflictException ("No se encuentra el tipo 'RECHARGE'")
+    const type = await this.typeRepo.findOneBy({ code: 'RECHARGE' });
+    if (!type)
+      throw new ConflictException("No se encuentra el tipo 'RECHARGE'");
 
-    const status = await this.stateRepo.findOneBy({code:'COMPLETED'})
-    if (!status) throw new ConflictException ("No se encuentra el estado 'COMPLETED'")
+    const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
+    if (!status)
+      throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
     const walletUpdated: Wallet = await this.repository.create(wallet);
-    
+
     // 4) Registrar transacción
     await this.txRepo.save({
       wallet_id: wallet.id,
@@ -147,23 +162,29 @@ export class WalletsService {
     });
     await this.txRepo.save(tx);
     return { wallet, tx };*/
-    return
+    return;
   }
 
-  async transfer(wallet_id: string, dto: TransferDto): Promise<{ wallet: Wallet }> {
-    const from = await this.repository.findOne( wallet_id );
-    if (!from) throw new NotFoundException("No se encuentra la Billetera");
-    if (Number(from.becoin_balance) < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
-    const to = await this.repository.findOne( dto.toWalletId );
+  async transfer(
+    wallet_id: string,
+    dto: TransferDto,
+  ): Promise<{ wallet: Wallet }> {
+    const from = await this.repository.findOne(wallet_id);
+    if (!from) throw new NotFoundException('No se encuentra la Billetera');
+    if (Number(from.becoin_balance) < dto.amountBecoin)
+      throw new BadRequestException('Saldo insuficiente');
+    const to = await this.repository.findOne(dto.toWalletId);
     if (!to) throw new NotFoundException('Billetera destino no existe');
     // 1) Debitar origen
     from.becoin_balance = +from.becoin_balance - dto.amountBecoin;
 
-    const type = await this.typeRepo.findOneBy({code:'TRANSFER'})
-    if (!type) throw new ConflictException ("No se encuentra el tipo 'TRANSFER'")
+    const type = await this.typeRepo.findOneBy({ code: 'TRANSFER' });
+    if (!type)
+      throw new ConflictException("No se encuentra el tipo 'TRANSFER'");
 
-    const status = await this.stateRepo.findOneBy({code:'COMPLETED'})
-    if (!status) throw new ConflictException ("No se encuentra el estado 'COMPLETED'")
+    const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
+    if (!status)
+      throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
     const walletUpdate = await this.repository.create(from);
 
@@ -179,7 +200,7 @@ export class WalletsService {
     // 2) Acreditar destino
     to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
     await this.repository.create(to);
-    
+
     const txTo = this.txRepo.save({
       wallet_id: to.id,
       type,
@@ -191,5 +212,4 @@ export class WalletsService {
 
     return { wallet: walletUpdate };
   }
-
 }

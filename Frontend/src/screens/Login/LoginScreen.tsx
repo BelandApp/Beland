@@ -6,83 +6,93 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from "react-native";
+import { CustomAlert } from "../../components/ui/CustomAlert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackgroundWaves from "../../components/ui/BackgroundWaves";
-import SocialButtons from "./components/SocialButtons";
 import { useAuth } from "../../hooks/AuthContext";
 import { styles } from "./styles";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { login, loginAsDemo, loginWithEmailPassword, isLoading } = useAuth();
+  const { loginAsDemo, loginWithEmailPassword, isLoading } = useAuth();
+  const [alert, setAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "success" | "error" | "info";
+  }>({ visible: false, title: "", message: "", type: "error" });
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Error", "Por favor completa todos los campos");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "Por favor completa todos los campos",
+        type: "error",
+      });
       return;
     }
 
+    // Log de los inputs antes de enviar
+    console.log("[LOGIN] Email:", email);
+    console.log("[LOGIN] Password:", password);
+
     try {
       const success = await loginWithEmailPassword(email, password);
-
-      if (success) {
-        // Eliminamos el Alert aquí porque ya se muestra en AuthContext
-        // La navegación se maneja automáticamente por el cambio de estado en App.tsx
-      } else {
-        Alert.alert("Error", "Credenciales incorrectas");
+      console.log("[LOGIN] Resultado loginWithEmailPassword:", success);
+      if (!success) {
+        setAlert({
+          visible: true,
+          title: "Error",
+          message: "Credenciales incorrectas",
+          type: "error",
+        });
       }
+      // Si es exitoso, la navegación se maneja por el AuthContext
     } catch (error) {
-      Alert.alert("Error", "No se pudo completar el inicio de sesión");
-      console.error("Login error:", error);
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "No se pudo completar el inicio de sesión",
+        type: "error",
+      });
+      console.error("[LOGIN] Error en loginWithEmailPassword:", error);
     }
   };
 
   const handleGoogleLogin = async () => {
-    try {
-      // No mostrar alert adicional, el loading del AuthContext se encarga
-      await login();
-    } catch (error) {
-      Alert.alert(
-        "Error de Google Authentication",
+    setAlert({
+      visible: true,
+      title: "Error de Google Authentication",
+      message:
         "Hay un problema con la configuración de Auth0. Para el demo, puedes usar el botón 'Acceso Demo' que está abajo.",
-        [
-          { text: "OK", style: "default" },
-          {
-            text: "Usar Demo",
-            style: "default",
-            onPress: () => handleDemoLogin(),
-          },
-        ]
-      );
-    }
+      type: "error",
+    });
   };
 
   const handleDemoLogin = async () => {
-    Alert.alert(
-      "Demo Login",
-      "¿Quieres ingresar como usuario demo para probar todas las funcionalidades?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sí, ingresar",
-          onPress: async () => {
-            // Simular delay
-            await new Promise((resolve) => setTimeout(resolve, 800));
+    setAlert({
+      visible: true,
+      title: "Demo Login",
+      message:
+        "¿Quieres ingresar como usuario demo para probar todas las funcionalidades?",
+      type: "info",
+    });
+  };
 
-            // Usar la función del AuthContext
-            loginAsDemo();
-
-            Alert.alert(
-              "¡Bienvenido!",
-              "Has ingresado como usuario demo. ¡Explora todas las funcionalidades!"
-            );
-          },
-        },
-      ]
-    );
+  // Acción para el botón de demo dentro del CustomAlert
+  const handleDemoConfirm = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    loginAsDemo();
+    setAlert({
+      visible: true,
+      title: "¡Bienvenido!",
+      message:
+        "Has ingresado como usuario demo. ¡Explora todas las funcionalidades!",
+      type: "success",
+    });
   };
 
   return (
@@ -92,12 +102,9 @@ export default function LoginScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <BackgroundWaves />
-
-        {/* 🔹 Contenedor centrado y con ancho máximo */}
         <View style={styles.container}>
           <Text style={styles.title}>beland</Text>
           <Text style={styles.subtitle}>Inicia sesión en tu cuenta</Text>
-
           <TextInput
             placeholder="Correo electrónico"
             style={styles.input}
@@ -113,7 +120,6 @@ export default function LoginScreen({ navigation }: any) {
             value={password}
             onChangeText={setPassword}
           />
-
           <TouchableOpacity
             style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -123,13 +129,11 @@ export default function LoginScreen({ navigation }: any) {
               {isLoading ? "Iniciando sesión..." : "Ingresar"}
             </Text>
           </TouchableOpacity>
-
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>O inicia sesión con</Text>
             <View style={styles.dividerLine} />
           </View>
-
           <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleLogin}
@@ -144,13 +148,11 @@ export default function LoginScreen({ navigation }: any) {
               <Text style={styles.googleButtonText}>Continuar con Google</Text>
             </View>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.demoButton} onPress={handleDemoLogin}>
             <Text style={styles.demoButtonText}>
               🎯 Acceso Demo (Para pruebas)
             </Text>
           </TouchableOpacity>
-
           <View style={styles.registerPrompt}>
             <Text style={styles.registerPromptText}>
               ¿No tienes una cuenta?{" "}
@@ -161,6 +163,27 @@ export default function LoginScreen({ navigation }: any) {
           </View>
         </View>
       </ScrollView>
+      {/* CustomAlert para errores y demo */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ ...alert, visible: false })}
+        primaryButton={
+          alert.title === "Demo Login"
+            ? { text: "Sí, ingresar", onPress: handleDemoConfirm }
+            : undefined
+        }
+        secondaryButton={
+          alert.title === "Demo Login"
+            ? {
+                text: "Cancelar",
+                onPress: () => setAlert({ ...alert, visible: false }),
+              }
+            : undefined
+        }
+      />
     </SafeAreaView>
   );
 }

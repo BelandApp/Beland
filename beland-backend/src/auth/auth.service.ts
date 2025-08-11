@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { LoginAuthDto } from './dto/login-auth.dto';
@@ -58,7 +64,6 @@ export class AuthService {
     }
   }
 
-
   // provisorio para presentacion
 
   async signup(user: RegisterAuthDto): Promise<{ token: string }> {
@@ -83,14 +88,12 @@ export class AuthService {
       const HashPassword = await bcrypt.hash(user.password, 10);
 
       // ✅ Crear usuario usando el manager de la transacción
-      const userSave = await queryRunner.manager
-        .getRepository(User)
-        .save({
-          full_name: user.name,
-          email: user.email,
-          role_id: userRole.role_id,
-          password: HashPassword,
-        });
+      const userSave = await queryRunner.manager.getRepository(User).save({
+        full_name: user.name,
+        email: user.email,
+        role_id: userRole.role_id,
+        password: HashPassword,
+      });
 
       const usernamePart = user.email.split('@')[0];
       const randomNumber = Math.floor(Math.random() * 1000);
@@ -98,38 +101,42 @@ export class AuthService {
       const qr = await QRCode.toDataURL(alias);
 
       // ✅ Crear wallet usando el mismo manager
-      const wallet = await queryRunner.manager
-        .getRepository(Wallet)
-        .save({
-          alias,
-          qr,
-          user_id: userSave.id,
-        });
-      
-      if (!wallet) throw new ConflictException('Error al crear la billetera. Intente registrarse Nuevamente'); 
+      const wallet = await queryRunner.manager.getRepository(Wallet).save({
+        alias,
+        qr,
+        user_id: userSave.id,
+      });
+
+      if (!wallet)
+        throw new ConflictException(
+          'Error al crear la billetera. Intente registrarse Nuevamente',
+        );
 
       // ✅ Crear carrito usando el mismo manager
-      const cart = await queryRunner.manager
-        .getRepository(Cart)
-        .save({
-          user_id: userSave.id,
-        });
-      
+      const cart = await queryRunner.manager.getRepository(Cart).save({
+        user_id: userSave.id,
+      });
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
-      const userSavePayload = await this.userRepository.findById(userSave.id)
-      
+      const userSavePayload = await this.userRepository.findById(userSave.id);
+
       //Crea el Token con todos los datos de usuario
       return await this.createToken(userSavePayload);
     } catch (error) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
+      // Si el error es UnauthorizedException o ConflictException, relanzar tal cual
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException('No se pudo registrar el usuario');
     } finally {
       await queryRunner.release();
     }
   }
-
 
   async signin(userLogin: LoginAuthDto): Promise<{ token: string }> {
     // comprueba que el usuario exista, sino devuelve un error
@@ -150,15 +157,17 @@ export class AuthService {
     return await this.createToken(userDB);
   }
 
-  async createToken (user:User): Promise<{ token: string }> {
+  async createToken(user: User): Promise<{ token: string }> {
     const userPayload = {
-        ...user
-      };
+      id: user.id,
+      email: user.email,
+      role_name: user.role_name,
+      full_name: user.full_name,
+      profile_picture_url: user.profile_picture_url,
+    };
     const token = this.jwtService.sign(userPayload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
-
-    
+      secret: this.configService.get<string>('JWT_SECRET'),
+    });
     return { token };
   }
 }

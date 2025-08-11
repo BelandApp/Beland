@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
+import { Platform, Alert } from "react-native";
+import { authService } from "../services/authService";
+import { apiRequest } from "../services/api";
+import { useAuthTokenStore } from "../stores/useAuthTokenStore";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -45,6 +54,12 @@ interface AuthContextType {
   logout: () => void;
   isDemo: boolean;
   loginAsDemo: () => void;
+  loginWithEmailPassword: (email: string, password: string) => Promise<boolean>;
+  registerWithEmailPassword: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<true | string>;
 }
 
 // === CONTEXTO ===
@@ -183,7 +198,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     restoreSession();
   }, []);
 
-  // === Funciones ===
+  // === Login con email y password ===
+  const loginWithEmailPassword = useCallback(
+    async (email: string, password: string): Promise<boolean> => {
+      setIsLoading(true);
+      const setToken = useAuthTokenStore.getState().setToken;
+      try {
+        const loginResp = await authService.loginWithEmail({ email, password });
+        const token = loginResp.token;
+        console.log("[LOGIN] Token recibido:", token);
+        if (!token) throw new Error("No se recibió token del backend");
+        setToken(token);
+        // Obtener datos del usuario con /auth/me
+        const headers = { Authorization: `Bearer ${token}` };
+        console.log("[LOGIN] Headers para /auth/me:", headers);
+        try {
+          const userResp = await apiRequest("/auth/me", {
+            method: "GET",
+            headers,
+          });
+          console.log("[LOGIN] Respuesta de /auth/me:", userResp);
+          setUser({
+            id: userResp.id,
+            email: userResp.email,
+            name: userResp.name || userResp.full_name,
+            picture: userResp.profile_picture_url,
+          });
+          setIsDemo(false);
+          return true;
+        } catch (meError) {
+          console.error("[LOGIN] Error al llamar /auth/me:", meError);
+          return false;
+        }
+      } catch (error: any) {
+        console.error("[LOGIN] Error en loginWithEmail:", error);
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  // === Registro con email y password ===
+  const registerWithEmailPassword = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string
+    ): Promise<true | string> => {
+      setIsLoading(true);
+      const setToken = useAuthTokenStore.getState().setToken;
+      try {
+        const registerResp = await authService.registerWithEmail({
+          name,
+          email,
+          password,
+        });
+        const token = registerResp.token;
+        if (!token) throw new Error("No se recibió token del backend");
+        setToken(token);
+        setUser({ id: email, email, name });
+        setIsDemo(false);
+        return true;
+      } catch (error: any) {
+        if (error?.status === 409 || error?.status === 401) {
+          return "EMAIL_ALREADY_EXISTS";
+        }
+        if (!error.status || error.status >= 500) {
+          return "NETWORK_ERROR";
+        }
+        return "REGISTRATION_ERROR";
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   const loginWithAuth0 = () => {
     promptAsync({ useProxy: true } as any);
   };
@@ -207,7 +299,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, loginWithAuth0, logout, isDemo, loginAsDemo }}
+      value={{
+        user,
+        isLoading,
+        loginWithAuth0,
+        logout,
+        isDemo,
+        loginAsDemo,
+        loginWithEmailPassword,
+        registerWithEmailPassword,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackgroundWaves from "../../components/ui/BackgroundWaves";
-import SocialButtons from "../Login/components/SocialButtons";
 import { CustomAlert } from "../../components/ui/CustomAlert";
 import { useAuth } from "../../hooks/AuthContext";
 import { styles } from "./styles";
@@ -24,11 +23,16 @@ export default function RegisterScreen({ navigation }: any) {
   });
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    registerWithGoogle,
-    registerWithEmailPassword,
-    isLoading: authLoading,
-  } = useAuth();
+  const [alert, setAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: "success" | "error" | "info";
+    onClose?: () => void;
+    primaryButton?: { text: string; onPress: () => void };
+    secondaryButton?: { text: string; onPress: () => void };
+  }>({ visible: false, title: "", message: "" });
+  const { registerWithEmailPassword, isLoading: authLoading } = useAuth();
 
   // Efecto para navegación automática después del alert
   useEffect(() => {
@@ -59,45 +63,72 @@ export default function RegisterScreen({ navigation }: any) {
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      Alert.alert("Error", "El nombre es obligatorio");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "El nombre es obligatorio",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     if (!formData.email.trim()) {
-      Alert.alert("Error", "El email es obligatorio");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "El email es obligatorio",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      Alert.alert("Error", "Por favor ingresa un email válido");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "Por favor ingresa un email válido",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     if (formData.password.length < 8) {
-      Alert.alert("Error", "La contraseña debe tener al menos 8 caracteres");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "La contraseña debe tener al menos 8 caracteres",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     // Validación de contraseña fuerte según backend
     const hasUppercase = /[A-Z]/.test(formData.password);
     const hasLowercase = /[a-z]/.test(formData.password);
     const hasNumber = /\d/.test(formData.password);
     const hasSpecialChar = /[!@#$%^&*]/.test(formData.password);
-
     if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-      Alert.alert(
-        "Error",
-        "La contraseña debe tener al menos:\n• 1 mayúscula\n• 1 minúscula\n• 1 número\n• 1 símbolo (!@#$%^&*)"
-      );
+      setAlert({
+        visible: true,
+        title: "Error",
+        message:
+          "La contraseña debe tener al menos:\n• 1 mayúscula\n• 1 minúscula\n• 1 número\n• 1 símbolo (!@#$%^&*)",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "Las contraseñas no coinciden",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
       return false;
     }
-
     return true;
   };
 
@@ -113,38 +144,56 @@ export default function RegisterScreen({ navigation }: any) {
     if (result === true) {
       setShowSuccessAlert(true);
     } else if (result === "EMAIL_ALREADY_EXISTS") {
-      Alert.alert(
-        "Email ya registrado",
-        "Ya existe una cuenta con este email. ¿Quieres iniciar sesión en su lugar?",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Ir a Login",
-            onPress: () => navigation.navigate("Login"),
+      setAlert({
+        visible: true,
+        title: "Email ya registrado",
+        message:
+          "Ya existe una cuenta con este email. ¿Quieres iniciar sesión en su lugar?",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+        primaryButton: {
+          text: "Ir a Login",
+          onPress: () => {
+            setAlert((a) => ({ ...a, visible: false }));
+            navigation.navigate("Login");
           },
-        ]
-      );
+        },
+        secondaryButton: {
+          text: "Cancelar",
+          onPress: () => setAlert((a) => ({ ...a, visible: false })),
+        },
+      });
     } else if (result === "REGISTRATION_LOGIN_ERROR") {
-      Alert.alert(
-        "Error tras registro",
-        "El usuario fue creado pero no se pudo iniciar sesión automáticamente. Intenta iniciar sesión manualmente."
-      );
+      setAlert({
+        visible: true,
+        title: "Error tras registro",
+        message:
+          "El usuario fue creado pero no se pudo iniciar sesión automáticamente. Intenta iniciar sesión manualmente.",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
     } else if (result === "NETWORK_ERROR") {
-      Alert.alert(
-        "Error de conexión",
-        "No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet e intenta nuevamente."
-      );
+      setAlert({
+        visible: true,
+        title: "Error de conexión",
+        message:
+          "No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet e intenta nuevamente.",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
     } else {
-      Alert.alert("Error", "Hubo un problema al crear tu cuenta");
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "Hubo un problema al crear tu cuenta",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
     }
   };
 
   const handleGoogleRegister = async () => {
-    try {
-      await registerWithGoogle(); // Usar la nueva función específica para registro
-    } catch (error) {
-      Alert.alert("Error", "No se pudo completar el registro con Google");
-    }
+    // Google registration is no longer supported
   };
 
   return (
@@ -250,6 +299,17 @@ export default function RegisterScreen({ navigation }: any) {
         message="Tu cuenta ha sido creada correctamente. Redirigiendo al login..."
         onClose={() => setShowSuccessAlert(false)}
         autoCloseDelay={2500}
+      />
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onClose={
+          alert.onClose || (() => setAlert((a) => ({ ...a, visible: false })))
+        }
+        primaryButton={alert.primaryButton}
+        secondaryButton={alert.secondaryButton}
       />
     </SafeAreaView>
   );

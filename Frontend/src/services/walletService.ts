@@ -17,8 +17,10 @@ export interface Wallet {
 export interface RechargeRequest {
   wallet_id: string;
   amountUsd: number;
-  state: "PENDING" | "COMPLETED" | "FAILED";
   referenceCode: string;
+  clientTransactionId?: string;
+  transactionId?: number;
+  recarge_method?: "CREDIT_CARD" | "DEBIT_CARD" | "PAYPHONE" | "BANK_TRANSFER";
 }
 
 export interface TransferRequest {
@@ -142,7 +144,11 @@ class WalletService {
   async rechargeByUserEmail(
     userEmail: string,
     amountUsd: number,
-    paymentMethod: string = "CREDIT_CARD"
+    recargeMethod:
+      | "CREDIT_CARD"
+      | "DEBIT_CARD"
+      | "PAYPHONE"
+      | "BANK_TRANSFER" = "CREDIT_CARD"
   ): Promise<{ wallet: Wallet }> {
     try {
       console.log(`💰 Iniciando recarga para ${userEmail}: $${amountUsd} USD`);
@@ -160,8 +166,10 @@ class WalletService {
       const rechargeData: RechargeRequest = {
         wallet_id: wallet.id,
         amountUsd: amountUsd,
-        state: "COMPLETED", // Por ahora marcamos como completado inmediatamente
         referenceCode: referenceCode,
+        clientTransactionId: referenceCode, // Para pruebas, igual al referenceCode
+        transactionId: amountUsd, // Para pruebas, igual al amountUsd
+        recarge_method: recargeMethod,
       };
 
       const result = await this.createRecharge(rechargeData);
