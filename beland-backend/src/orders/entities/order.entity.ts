@@ -12,6 +12,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/users.entity';
 import { OrderItem } from 'src/order-items/entities/order-item.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
+import { UserAddress } from 'src/user-address/entities/user-address.entity';
 
 @Entity('orders')
 export class Order {
@@ -41,6 +42,15 @@ export class Order {
   group: Group;
   @Column('uuid', { nullable:true })
   group_id: string;
+
+  @ManyToOne(() => UserAddress, (address) => address.orders, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({name:'address_ip'})
+  address: UserAddress;
+  @Column('uuid', { nullable:true })
+  address_id: string;
 
   @ManyToOne(() => User, (user) => user.orders)
   @JoinColumn({name:'leader_id'})

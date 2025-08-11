@@ -7,8 +7,10 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity'; 
+import { Order } from 'src/orders/entities/order.entity';
 
 @Entity('user_addresses')
 export class UserAddress {
@@ -56,4 +58,7 @@ export class UserAddress {
 
   @DeleteDateColumn()
   deleted_at?: Date; // Soft delete
+
+  @OneToMany(() => Order, (order) => order.address)
+  orders: Order[];
 }

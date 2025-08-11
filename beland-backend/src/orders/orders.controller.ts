@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -28,6 +29,8 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
 import { Cart } from 'src/cart/entities/cart.entity';
+import { User } from 'src/users/entities/users.entity';
+import { Wallet } from 'src/wallets/entities/wallet.entity';
 
 @ApiTags('orders')
 @Controller('orders')
@@ -77,17 +80,25 @@ export class OrdersController {
   @Post('cart')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva orden desde un carrito' })
+  @ApiQuery({ name: 'cart_id', required: true, type: String, description: 'UUID del carrito sobre el cual se genera la orden de compra' })
+  @ApiQuery({ name: 'wallet_id', required: true, type: String, description: 'UUID de la wallet que pagará la orden' })
   @ApiResponse({ status: 201, description: 'Orden creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos para crear la orden' })
   @ApiResponse({ status: 500, description: 'No se pudo crear la orden' })
-  async createByCart(@Body() body: Cart): Promise<Order> {
-    const order = {
-      total_amount: body.total_amount,
-      total_items: body.total_items,
-      leader_id: body.user_id,
-    }
+  async createOrderByCart(
+    @Query('cart_id', ParseUUIDPipe) cart_id,
+    @Query('wallet_id', ParseUUIDPipe) wallet_id,
+    @Req() req : Request,
+  ): Promise<Order> {
+    const user: User = req.user; // tipalo si ya tenés interfaz
+  
+  const hasWallet = user.wallets.some((wallet: Wallet) => wallet.id === wallet_id);
 
-    return await this.service.create(order);
+  if (!hasWallet) {
+    throw new ForbiddenException('La billetera no pertenece al usuario autenticado');
+  }
+
+  return await this.service.createOrderByCart(cart_id, wallet_id);
   }
 
   @Put(':id')

@@ -54,6 +54,16 @@ export class OrdersService {
     }
   }
 
+  async createOrderByCart(cart_id: string, wallet_id:string): Promise<Order> {
+    // incluir todo el codigo necesario. inserta cart en order, inserta cartitems en orderItems
+    // genera el pago desde la wallet.
+    // si no alcanza el fondo da error.
+    // si alcanza crea saldos bloqueados a los vendedores. y los notifica para que envien los productos.
+    // una vez los productos son recibidos por el usuario. se notifica y se habilita  el pago al vendedor.
+    // retorna la orden o un mensage de que todo salio bien.
+    return 
+  }
+
   async update(id: string, body: Partial<Order>) {
     try {
       const res = await this.repository.update(id, body);

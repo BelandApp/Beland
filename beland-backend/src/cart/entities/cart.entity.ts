@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
 import { CartItem } from 'src/cart-items/entities/cart-item.entity';
+import { UserAddress } from 'src/user-address/entities/user-address.entity';
+import { Group } from 'src/groups/entities/group.entity';
 
 @Entity('carts')
 export class Cart { 
@@ -12,6 +14,21 @@ export class Cart {
   user: User;
   @Column('uuid')
   user_id: string;
+
+  @ManyToOne(() => UserAddress, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'address_id' })
+  address: UserAddress;
+  @Column('uuid')
+  address_id: string;
+
+  @ManyToOne(() => Group, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({name:'group_ip'})
+  group: Group;
+  @Column('uuid', { nullable:true })
+  group_id: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   total_amount: number;
