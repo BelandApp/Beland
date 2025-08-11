@@ -126,8 +126,8 @@ export class User {
   @OneToMany(() => Order, (order) => order.leader)
   orders: Order[];
 
-  @OneToMany(() => OrderItem, (item) => item.consumed_by_user)
-  consumed_items: OrderItem[];
+  // @OneToMany(() => OrderItem, (item) => item.consumed_by_user)
+  // consumed_items: OrderItem[];
 
   @OneToMany(() => Payment, (payment) => payment.user)
   payments: Payment[];

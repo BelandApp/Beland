@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/users.entity';
+import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 
 @Entity('payments')
 export class Payment {
@@ -18,14 +19,11 @@ export class Payment {
   @Column({ type: 'numeric' })
   amount_paid: number;
 
-  @Column({ type: 'text' })
-  payment_type: 'FULL' | 'SPLIT' | 'EQUAL_SPLIT';
-
   @Column({ type: 'text', nullable: true })
   transaction_hash: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
-  payment_date: Date;
+  created_at: Date;
 
   @ManyToOne(() => Order, (order) => order.payments, { onDelete: 'CASCADE' })
   @JoinColumn({name:'order_id'})

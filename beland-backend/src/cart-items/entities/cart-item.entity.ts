@@ -4,7 +4,7 @@ import { Product } from 'src/products/entities/product.entity';
 
 @Entity('cart_items')
 export class CartItem {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid') 
   id: string;
 
   @ManyToOne(() => Cart, (cart) => cart.items, { onDelete: 'CASCADE' })
@@ -26,7 +26,7 @@ export class CartItem {
   unit_price: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  subtotal: number;
+  total_price: number;
 
   @CreateDateColumn({ name: 'created_at' })
   created_at: Date;
