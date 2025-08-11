@@ -5,15 +5,17 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
+  forwardRef, // <-- Importar forwardRef
+  Inject, // <-- Importar Inject
 } from '@nestjs/common';
 import { GroupMembersRepository } from './group-members.repository';
-import { GroupsRepository } from 'src/groups/groups.repository'; // Corrected absolute import path
-import { UsersService } from '../users/users.service'; // To find users and check their roles
+import { GroupsRepository } from 'src/groups/groups.repository';
+import { UsersService } from '../users/users.service';
 import { GroupMemberDto } from './dto/group-member.dto';
 import { CreateGroupMemberDto } from './dto/create-group-member.dto';
 import { UpdateGroupMemberDto } from './dto/update-group-member.dto';
 import { plainToInstance } from 'class-transformer';
-import { User } from 'src/users/entities/users.entity'; // Import User entity
+import { User } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class GroupMembersService {
@@ -21,26 +23,39 @@ export class GroupMembersService {
 
   constructor(
     private readonly groupMembersRepository: GroupMembersRepository,
-    private readonly groupsRepository: GroupsRepository, // Injected to validate group existence
-    private readonly usersService: UsersService, // Injected to validate user existence and roles
+    // Uso de @Inject y forwardRef para resolver la dependencia circular con GroupsModule
+    @Inject(forwardRef(() => GroupsRepository))
+    private readonly groupsRepository: GroupsRepository,
+    private readonly usersService: UsersService,
   ) {}
 
   /**
-   * Creates a new group membership. This method is primarily for internal use
-   * (e.g., by GroupsService when creating a group or inviting a user).
-   * Direct API calls for creating memberships should typically go through GroupsService.inviteUserToGroup.
-   * @param createGroupMemberDto Data for creating the group member.
-   * @returns The created GroupMember as a DTO.
-   * @throws NotFoundException if the group or user is not found.
-   * @throws ConflictException if the user is already a member of the group.
+   * Crea una nueva membresía de grupo. Este método es principalmente para uso interno
+   * (ej., por GroupsService cuando crea un grupo o invita a un usuario).
+   * @param createGroupMemberDto Datos para crear la membresía.
+   * @returns El GroupMemberDto de la nueva membresía.
+   * @throws ConflictException si el usuario ya es miembro del grupo.
    */
   async create(
     createGroupMemberDto: CreateGroupMemberDto,
   ): Promise<GroupMemberDto> {
     this.logger.debug(
-      `create(): Attempting to create group member for group ${createGroupMemberDto.group_id} and user ${createGroupMemberDto.user_id}`,
+      `create(): Creando membresía de grupo para grupo ${createGroupMemberDto.group_id} y usuario ${createGroupMemberDto.user_id}`,
     );
 
+    // Verificar si el usuario ya es miembro de este grupo
+    const existingMembership =
+      await this.groupMembersRepository.findOneByGroupAndUser(
+        createGroupMemberDto.group_id,
+        createGroupMemberDto.user_id,
+      );
+    if (existingMembership) {
+      throw new ConflictException(
+        `User ${createGroupMemberDto.user_id} is already a member of group ${createGroupMemberDto.group_id}.`,
+      );
+    }
+
+    // Busca el grupo y el usuario para asegurar que existen y para asociarlos correctamente
     const group = await this.groupsRepository.findOneById(
       createGroupMemberDto.group_id,
     );
@@ -50,7 +65,6 @@ export class GroupMembersService {
       );
     }
 
-    // IMPORTANT: usersService.findOne MUST return a User entity.
     const user = await this.usersService.findOne(createGroupMemberDto.user_id);
     if (!user) {
       throw new NotFoundException(
@@ -58,119 +72,130 @@ export class GroupMembersService {
       );
     }
 
-    // Prevent duplicate memberships
-    const existingMembership =
-      await this.groupMembersRepository.findOneByGroupAndUser(
-        createGroupMemberDto.group_id,
-        createGroupMemberDto.user_id,
-      );
-    if (existingMembership) {
-      throw new ConflictException(
-        `User "${user.email}" is already a member of group "${group.name}".`,
-      );
-    }
-
-    // Create and save the new group member entity
-    const newGroupMember = await this.groupMembersRepository.createGroupMember({
+    // Crea y guarda la nueva membresía
+    const newGroupMember = this.groupMembersRepository.create({
       group: group,
       user: user,
-      role: createGroupMemberDto.role || 'MEMBER', // Default to 'MEMBER' if not specified
+      role: createGroupMemberDto.role || 'MEMBER', // Por defecto 'MEMBER'
     });
 
-    this.logger.log(
-      `create(): Group member created successfully for user ${user.id} in group ${group.id}.`,
-    );
-    return plainToInstance(GroupMemberDto, newGroupMember);
+    const savedGroupMember =
+      await this.groupMembersRepository.saveGroupMember(newGroupMember);
+    this.logger.log(`create(): Membresía creada: ${savedGroupMember.id}`);
+    return plainToInstance(GroupMemberDto, savedGroupMember);
   }
 
   /**
-   * Finds a group membership by its unique ID.
-   * @param id The ID of the group membership.
-   * @returns The GroupMember as a DTO.
-   * @throws NotFoundException if the group membership is not found.
+   * Busca un miembro de grupo por su ID.
+   * @param id El ID de la membresía del grupo.
+   * @returns El GroupMemberDto o null si no se encuentra.
    */
-  async findOne(id: string): Promise<GroupMemberDto> {
-    this.logger.debug(`findOne(): Searching group member with ID: ${id}`);
-    // Corrected: Use findOneById method from the repository
+  async findOne(id: string): Promise<GroupMemberDto | null> {
+    this.logger.debug(`findOne(): Buscando miembro de grupo con ID: ${id}`);
     const groupMember = await this.groupMembersRepository.findOneById(id);
     if (!groupMember) {
-      throw new NotFoundException(`Group member with ID "${id}" not found.`);
+      this.logger.warn(
+        `findOne(): Miembro de grupo con ID "${id}" no encontrado.`,
+      );
+      return null;
     }
     return plainToInstance(GroupMemberDto, groupMember);
   }
 
   /**
-   * Updates an existing group membership. This can be used, for example, to change a member's role.
-   * Authorization checks (e.g., only leader/admin can update) should be handled in the controller.
-   * @param id The ID of the group membership to update.
-   * @param updateGroupMemberDto Data for updating the group member.
-   * @returns The updated GroupMember as a DTO.
-   * @throws NotFoundException if the group membership is not found.
-   * @throws BadRequestException if attempting to change the associated group or user (these are immutable for a membership).
+   * Obtiene todos los miembros de un grupo específico.
+   * @param groupId El ID del grupo.
+   * @returns Una lista de GroupMemberDto.
+   * @throws NotFoundException si el grupo no se encuentra.
+   */
+  async getGroupMembersByGroupId(groupId: string): Promise<GroupMemberDto[]> {
+    this.logger.debug(
+      `getGroupMembersByGroupId(): Obteniendo miembros para el grupo con ID: ${groupId}`,
+    );
+    const group = await this.groupsRepository.findOneById(groupId);
+    if (!group) {
+      throw new NotFoundException(`Group with ID "${groupId}" not found.`);
+    }
+    // Usa el nuevo método en el repositorio para obtener los miembros con sus relaciones
+    const members = await this.groupMembersRepository.findByGroupId(groupId);
+    return members.map((member) => plainToInstance(GroupMemberDto, member));
+  }
+
+  /**
+   * Actualiza un miembro de grupo existente.
+   * @param id El ID de la membresía del grupo a actualizar.
+   * @param updateGroupMemberDto Los datos de actualización para la membresía.
+   * @returns El GroupMemberDto actualizado.
+   * @throws NotFoundException si la membresía no se encuentra.
+   * @throws BadRequestException si hay un problema con la actualización del rol de líder.
    */
   async update(
     id: string,
     updateGroupMemberDto: UpdateGroupMemberDto,
   ): Promise<GroupMemberDto> {
-    this.logger.debug(`update(): Updating group member with ID: ${id}`);
-    // Corrected: Use findOneById method from the repository
+    this.logger.debug(`update(): Actualizando miembro de grupo con ID: ${id}`);
     const existingMembership =
       await this.groupMembersRepository.findOneById(id);
     if (!existingMembership) {
       throw new NotFoundException(`Group member with ID "${id}" not found.`);
     }
 
-    // Prevent changing the group or user associated with the membership, as these define the membership itself.
+    // Lógica para asignar LEADER: asegurar que solo hay un líder o manejar la transferencia.
     if (
-      updateGroupMemberDto.group_id &&
-      updateGroupMemberDto.group_id !== existingMembership.group.id
+      updateGroupMemberDto.role === 'LEADER' &&
+      existingMembership.role !== 'LEADER'
     ) {
-      throw new BadRequestException(
-        'Cannot change the group associated with a group membership.',
+      const group = await this.groupsRepository.findOneById(
+        existingMembership.group.id,
       );
-    }
-    if (
-      updateGroupMemberDto.user_id &&
-      updateGroupMemberDto.user_id !== existingMembership.user.id
-    ) {
-      throw new BadRequestException(
-        'Cannot change the user associated with a group membership.',
-      );
+      if (group) {
+        const currentLeaderMembership = group.members.find(
+          (m) => m.role === 'LEADER' && m.id !== id,
+        );
+        if (currentLeaderMembership) {
+          // Si ya hay un líder, lo degradamos a 'MEMBER'
+          await this.groupMembersRepository.saveGroupMember({
+            ...currentLeaderMembership,
+            role: 'MEMBER',
+          });
+          this.logger.log(
+            `Degradado el líder anterior ${currentLeaderMembership.user.email} a MEMBER.`,
+          );
+        }
+      }
     }
 
-    // Apply partial updates to the existing membership entity
+    // Aplica las actualizaciones
     Object.assign(existingMembership, updateGroupMemberDto);
     const updatedMembership =
       await this.groupMembersRepository.saveGroupMember(existingMembership);
-    this.logger.log(`update(): Group member ${id} updated successfully.`);
+    this.logger.log(
+      `update(): Miembro de grupo ${id} actualizado exitosamente.`,
+    );
     return plainToInstance(GroupMemberDto, updatedMembership);
   }
 
   /**
-   * Deletes a group membership by its ID.
-   * Authorization checks (e.g., only leader/admin can delete) and specific business rules
-   * (e.g., preventing the last leader from being removed) should be handled in the controller.
-   * @param id The ID of the group membership to delete.
-   * @returns void
-   * @throws NotFoundException if the group membership is not found.
-   * @throws BadRequestException if specific business rules prevent deletion (e.g., last leader).
+   * Elimina una membresía de grupo.
+   * @param id El ID de la membresía a eliminar.
+   * @throws NotFoundException si la membresía no se encuentra.
+   * @throws BadRequestException si se intenta eliminar el último LEADER de un grupo activo.
    */
   async remove(id: string): Promise<void> {
-    this.logger.debug(`remove(): Deleting group member with ID: ${id}`);
-    // Corrected: Use findOneById method from the repository
-    const groupMember = await this.groupMembersRepository.findOneById(id);
+    this.logger.debug(`remove(): Eliminando miembro de grupo con ID: ${id}`);
+    const groupMember = await this.groupMembersRepository.findOneById(id); // Obtiene la membresía para verificar el rol y el grupo
     if (!groupMember) {
       throw new NotFoundException(`Group member with ID "${id}" not found.`);
     }
 
-    // Additional check: Prevent deleting the last LEADER of a group if the group is still active.
-    // This check is also in the controller, but having it here adds robustness.
+    // Regla especial: Prevenir la eliminación del último LEADER de un grupo si el grupo está activo.
     if (groupMember.role === 'LEADER') {
       const group = await this.groupsRepository.findOneById(
         groupMember.group.id,
       );
-      if (group) {
-        // Filter to find other leaders in the group (excluding the one being removed)
+      if (group && group.status !== 'DELETE') {
+        // Solo si el grupo no está soft-deleted
+        // Filtra para encontrar otros líderes en el grupo (excluyendo el que se está eliminando)
         const leaderMemberships = group.members.filter(
           (m) => m.role === 'LEADER' && m.id !== id,
         );
@@ -182,7 +207,22 @@ export class GroupMembersService {
       }
     }
 
-    await this.groupMembersRepository.deleteGroupMember(id);
-    this.logger.log(`remove(): Group member ${id} deleted successfully.`);
+    await this.groupMembersRepository.deleteGroupMember(id); // Realiza el borrado físico de la membresía
+    this.logger.log(
+      `remove(): Membresía de grupo ${id} eliminada exitosamente.`,
+    );
+  }
+
+  /**
+   * Busca todas las membresías de grupo para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupMemberDto.
+   */
+  async findUserGroupMemberships(userId: string): Promise<GroupMemberDto[]> {
+    this.logger.debug(
+      `findUserGroupMemberships(): Buscando membresías para el usuario con ID: ${userId}`,
+    );
+    const memberships = await this.groupMembersRepository.findByUserId(userId);
+    return memberships.map((member) => plainToInstance(GroupMemberDto, member));
   }
 }

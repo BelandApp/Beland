@@ -1,10 +1,13 @@
 // src/groups/groups.repository.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
 import { Group } from './entities/group.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
+
+// Define the type for valid group statuses for clarity within this repository
+type ValidGroupStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE';
 
 @Injectable()
 export class GroupsRepository extends Repository<Group> {
@@ -19,76 +22,118 @@ export class GroupsRepository extends Repository<Group> {
   }
 
   /**
-   * Helper to create a query builder with common eager loads for Group and its relations.
-   * This ensures that when a group is fetched, its leader and members (with their user details)
-   * are also loaded, avoiding N+1 query problems.
-   * @param alias The alias for the group entity in the query.
-   * @returns A TypeORM QueryBuilder instance.
+   * Helper para crear un query builder con cargas ansiosas comunes para Group y sus relaciones.
+   * Esto asegura que cuando se busca un grupo, su líder y miembros (con sus detalles de usuario)
+   * también se carguen, evitando problemas de consulta N+1.
+   * @param alias El alias para la entidad Group en la consulta.
+   * @param includeDeleted Si se deben incluir los grupos marcados como eliminados (soft-deleted).
+   * @returns Una instancia de TypeORM QueryBuilder.
    */
-  private createQueryBuilderWithRelations(alias = 'group') {
-    return this.groupORMRepository
+  private createQueryBuilderWithRelations(
+    alias = 'group',
+    includeDeleted: boolean = false, // <-- Nuevo parámetro
+  ) {
+    const query = this.groupORMRepository
       .createQueryBuilder(alias)
-      .leftJoinAndSelect('group.leader', 'leader') // Eager load the leader User entity
-      .leftJoinAndSelect('group.members', 'members') // Eager load all GroupMember entities associated with this group
-      .leftJoinAndSelect('members.user', 'memberUser'); // Eager load member user details
+      .leftJoinAndSelect('group.leader', 'leader') // Carga ansiosa de la entidad User del líder
+      .leftJoinAndSelect('group.members', 'members') // Carga ansiosa de todas las entidades GroupMember
+      .leftJoinAndSelect('members.user', 'memberUser'); // Carga ansiosa de los detalles del usuario miembro
+
+    if (!includeDeleted) {
+      // Por defecto, excluye grupos con deleted_at no nulo
+      query.andWhere(`${alias}.deleted_at IS NULL`);
+    }
+
+    return query;
   }
 
   /**
-   * Finds a single group by its ID, including its leader and members.
-   * @param id The ID of the group to find.
+   * Busca un grupo por su ID, con sus relaciones cargadas.
+   * @param id El ID del grupo.
+   * @param includeDeleted Si se debe incluir el grupo si está soft-deleted.
+   * @returns La entidad Group o null si no se encuentra.
+   */
+  async findOneById(
+    id: string,
+    includeDeleted: boolean = false,
+  ): Promise<Group | null> {
+    const query = this.createQueryBuilderWithRelations(
+      'group',
+      includeDeleted,
+    ).where('group.id = :id', { id });
+    return query.getOne();
+  }
+
+  /**
+   * Finds a single group by its name (case-insensitive).
+   * @param name The name of the group to find.
    * @returns The Group entity or null if not found.
    */
-  async findOneById(id: string): Promise<Group | null> {
-    return this.createQueryBuilderWithRelations()
-      .where('group.id = :id', { id })
-      .getOne();
+  async findOneByName(name: string): Promise<Group | null> {
+    return this.groupORMRepository.findOne({
+      where: { name: name },
+      relations: ['leader', 'members', 'members.user'], // Eager load relations for completeness
+    });
   }
 
   /**
-   * Finds all groups with pagination, ordering, and optional filters.
-   * Eagerly loads leader and members for comprehensive data retrieval.
-   * @param page The page number to retrieve (1-based).
-   * @param limit The maximum number of groups to return per page.
-   * @param sortBy The column name to sort the results by (e.g., 'created_at', 'name', 'status').
-   * @param order The sorting order, 'ASC' for ascending or 'DESC' for descending.
-   * @param filterName Optional: A string to filter groups by their name (case-insensitive, partial match).
-   * @param filterStatus Optional: A specific status to filter groups by ('ACTIVE', 'PENDING', 'INACTIVE', 'DELETE').
-   * @returns A promise that resolves to an object containing an array of Group entities and the total count.
+   * Busca todos los grupos con paginación, ordenación y filtros opcionales.
+   * @param paginationDto DTO para paginación (page, limit).
+   * @param orderDto DTO para ordenación (sortBy, order).
+   * @param filters Filtros adicionales (ej. name, status, leaderId).
+   * @returns Un objeto que contiene la lista de grupos y el total.
    */
   async findAllPaginated(
-    page: number = 1,
-    limit: number = 10,
-    sortBy: string = 'created_at',
-    order: 'ASC' | 'DESC' = 'DESC',
-    filterName?: string,
-    filterStatus?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE',
+    paginationDto: PaginationDto,
+    orderDto: OrderDto,
+    filters?: {
+      name?: string;
+      status?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE';
+      leaderId?: string;
+      includeDeleted?: boolean; // Added for filtering by deleted_at
+    },
   ): Promise<{ groups: Group[]; total: number }> {
-    const query = this.createQueryBuilderWithRelations(); // Start with relations
+    const { page, limit } = paginationDto;
+    const { sortBy, order } = orderDto;
 
-    if (filterName) {
-      query.andWhere('LOWER(group.name) LIKE LOWER(:filterName)', {
-        filterName: `%${filterName}%`,
+    const query = this.createQueryBuilderWithRelations(
+      'group',
+      filters?.includeDeleted, // Pass the includeDeleted filter to the query builder
+    );
+
+    // Apply optional filters
+    if (filters?.name) {
+      query.andWhere('LOWER(group.name) LIKE LOWER(:name)', {
+        name: `%${filters.name}%`,
       });
     }
-    if (filterStatus) {
-      query.andWhere('group.status = :filterStatus', { filterStatus });
+    if (filters?.status) {
+      query.andWhere('group.status = :status', { status: filters.status });
     }
+    if (filters?.leaderId) {
+      query.andWhere('group.leader.id = :leaderId', {
+        leaderId: filters.leaderId,
+      });
+    }
+    // The includeDeleted filter is already handled in createQueryBuilderWithRelations
 
+    // Define valid sort columns
     const validSortColumns = {
-      created_at: 'group.created_at',
       name: 'group.name',
       status: 'group.status',
-      // Add other sortable columns as needed based on your application's requirements
+      created_at: 'group.created_at',
+      date_time: 'group.date_time',
+      // Add other sortable columns here if needed, following your application's requirements
     };
 
     const actualSortBy = validSortColumns[sortBy] || 'group.created_at'; // Default sort by creation date
 
-    query.orderBy(actualSortBy, order);
+    query.orderBy(actualSortBy, order); // Apply ordering
 
     const [groups, total] = await query
       .skip((page - 1) * limit) // Apply pagination offset
       .take(limit) // Apply pagination limit
-      .getManyAndCount(); // Execute query and get results with count
+      .getManyAndCount(); // Execute query and get results with total count
 
     return { groups, total };
   }
@@ -115,11 +160,42 @@ export class GroupsRepository extends Repository<Group> {
   }
 
   /**
-   * Deletes a group by its ID.
-   * Note: This performs a hard delete. Ensure cascading is handled in TypeORM entities if needed.
-   * @param id The ID of the group to delete.
+   * Realiza un "soft delete" en un grupo, marcándolo como eliminado lógicamente.
+   * Esto establece la columna `deleted_at` a la fecha y hora actuales,
+   * y también puede establecer el `status` a 'DELETE'.
+   * @param id El ID del grupo a desactivar.
    */
-  async deleteGroup(id: string): Promise<void> {
+  async softDeleteGroup(id: string): Promise<void> {
+    await this.groupORMRepository.update(
+      { id },
+      { deleted_at: new Date(), status: 'DELETE' }, // Mark deleted_at and update status
+    );
+    this.logger.log(
+      `softDeleteGroup(): Group ${id} soft-deleted successfully.`,
+    );
+  }
+
+  /**
+   * Reactiva un grupo previamente soft-deleted.
+   * Esto establece `deleted_at` a NULL y puede restaurar el `status` a 'ACTIVE'.
+   * @param id El ID del grupo a reactivar.
+   */
+  async reactivateGroup(id: string): Promise<void> {
+    await this.groupORMRepository.update(
+      { id },
+      { deleted_at: null, status: 'ACTIVE' }, // Clear deleted_at and restore status
+    );
+    this.logger.log(`reactivateGroup(): Grupo ${id} reactivated successfully.`);
+  }
+
+  /**
+   * Elimina un grupo por su ID.
+   * NOTA: Esto realiza un borrado físico. Úsalo con precaución.
+   * La lógica de la API debe preferir softDeleteGroup.
+   * @param id El ID del grupo a eliminar.
+   */
+  async hardDeleteGroup(id: string): Promise<void> {
     await this.groupORMRepository.delete(id);
+    this.logger.log(`hardDeleteGroup(): Grupo ${id} physically deleted.`);
   }
 }
