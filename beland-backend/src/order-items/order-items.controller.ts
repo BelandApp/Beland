@@ -10,6 +10,7 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +18,18 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { OrderItemsService } from './order-items.service';
 import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('order-items')
 @Controller('order-items')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(FlexibleAuthGuard)
 export class OrderItemsController {
   constructor(private readonly service: OrderItemsService) {}
 

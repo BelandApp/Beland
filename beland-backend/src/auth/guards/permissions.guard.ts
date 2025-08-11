@@ -49,7 +49,7 @@ export class PermissionsGuard implements CanActivate {
         'No tienes los permisos necesarios para esta solicitud.',
       );
     }
-
+    //JOHN ACA CONVIENE CONSULTAR A USER.ROLE_RELATIONS.NAME. Y QUE ELIMINEMOS ROLE_NAME DE USER AL CREAR EL USUARIO NO CARGO ESTA VARIALBLE... SOLO ASIGNO LA RELACION
     // Si el usuario no es ADMIN o SUPERADMIN, no tiene permisos administrativos granulares
     if (user.role_name !== 'ADMIN' && user.role_name !== 'SUPERADMIN') {
       this.logger.warn(

@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   Param,
-  Delete,
   Query,
   ParseUUIDPipe,
   Put,
@@ -19,18 +18,19 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
 import { Cart } from './entities/cart.entity';
 import { CartsService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('carts')
 @Controller('carts')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class CartsController {
   constructor(private readonly service: CartsService) {}
 
@@ -72,12 +72,41 @@ export class CartsController {
   @ApiResponse({ status: 200, description: 'Carrito actualizado correctamente' })
   @ApiResponse({ status: 404, description: 'No se encontró el carrito a actualizar' })
   @ApiResponse({ status: 500, description: 'Error al actualizar el carrito' })
-  async update(
+  async updateGroup(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateCartDto,
   ) {
     return this.service.update(id, body);
   }
 
+  @Put('group/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar un carrito existente' })
+  @ApiParam({ name: 'id', description: 'UUID del carrito' })
+  @ApiQuery({ name: 'group_id', required: true, type: String, description: 'UUID del grupo a asignar' })
+  @ApiResponse({ status: 200, description: 'Carrito actualizado correctamente' })
+  @ApiResponse({ status: 404, description: 'No se encontró el carrito a actualizar' })
+  @ApiResponse({ status: 500, description: 'Error al actualizar el carrito' })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('group_id', ParseUUIDPipe) group_id: string,
+  ) {
+    return this.service.update(id, {group_id});
+  }
+
+  @Put('address/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar un carrito existente' })
+  @ApiParam({ name: 'id', description: 'UUID del carrito' })
+  @ApiQuery({ name: 'address_id', required: true, type: String, description: 'UUID de la dirección a asignar' })
+  @ApiResponse({ status: 200, description: 'Carrito actualizado correctamente' })
+  @ApiResponse({ status: 404, description: 'No se encontró el carrito a actualizar' })
+  @ApiResponse({ status: 500, description: 'Error al actualizar el carrito' })
+  async updateAddress(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('address_id', ParseUUIDPipe) address_id: string,
+  ) {
+    return this.service.update(id, {address_id});
+  }
   
 }

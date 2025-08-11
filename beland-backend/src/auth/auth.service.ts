@@ -86,7 +86,7 @@ export class AuthService {
       const userSave = await queryRunner.manager
         .getRepository(User)
         .save({
-          name: user.name,
+          full_name: user.name,
           email: user.email,
           role_id: userRole.role_id,
           password: HashPassword,

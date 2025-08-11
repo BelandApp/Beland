@@ -1,47 +1,43 @@
 import {
   CanActivate,
   ExecutionContext,
-  HttpException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Observable } from 'rxjs';
+import { Request } from 'express';
+import { User } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const authorizationHeader = request.headers['authorization'];
-    let token = "";
-      if (authorizationHeader) {
-        // El token estará en el formato "Bearer <token>"
-        const parts = authorizationHeader.split(' ');
 
-        if (parts.length === 2 && parts[0] === 'Bearer') {
-          token = parts[1];
-        }
-      }
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<Request>();
 
+    const token = this.extractToken(request);
     if (!token) {
-      // Si no encontramos el token ni en cookies ni en headers, lanzamos un error
-      throw new HttpException(
-        { status: 401, error: 'No autorizado. Token no proporcionado.' },
-        401,
-      );
+      throw new UnauthorizedException('No autorizado. Token no proporcionado.');
     }
 
     try {
-      const secret = process.env.JWT_SECRET;
-      const payload = this.jwtService.verify(token, { secret });
-      payload.iat = new Date(payload.iat * 1000);
-      payload.exp = new Date(payload.exp * 1000);
-      request.user = payload;
+      const payload = this.jwtService.verify<User>(token, {
+        secret: process.env.JWT_SECRET,
+      });
+      request.user = payload; // aquí se guarda el usuario
       return true;
-    } catch (err) {
-      throw new HttpException({ status: 401, error: `Token Invalido` }, 401);
+    } catch {
+      throw new UnauthorizedException('Token inválido.');
     }
+  }
+
+  private extractToken(request: Request): string | null {
+    const authHeader = request.headers['authorization'];
+    if (authHeader?.startsWith('Bearer ')) {
+      return authHeader.split(' ')[1];
+    }
+    // Si quisieras soportar cookies HTTP-only
+    // return request.cookies?.['auth_token'] ?? null;
+    return null;
   }
 }

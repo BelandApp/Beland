@@ -106,8 +106,8 @@ export class WalletsService {
     const type = await this.typeRepo.findOneBy({code:'RECHARGE'})
     if (!type) throw new ConflictException ("No se encuentra el tipo 'RECHARGE'")
 
-    const status = await this.stateRepo.findOneBy({code:dto.status})
-    if (!status) throw new ConflictException ("No se encuentra el estado" + dto.status)
+    const status = await this.stateRepo.findOneBy({code:'COMPLETED'})
+    if (!status) throw new ConflictException ("No se encuentra el estado 'COMPLETED'")
 
     const walletUpdated: Wallet = await this.repository.create(wallet);
     

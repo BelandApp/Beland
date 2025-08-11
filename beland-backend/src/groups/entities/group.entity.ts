@@ -50,4 +50,5 @@ export class Group {
 
   @OneToMany(() => Order, (order) => order.group)
   orders: Order[];
+
 }
