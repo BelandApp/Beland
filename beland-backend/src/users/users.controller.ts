@@ -61,8 +61,6 @@ type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 
 @ApiTags('users')
 @Controller('users')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);

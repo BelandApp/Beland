@@ -87,6 +87,8 @@ import { PaymentTypesModule } from './payment-types/payment-types.module';
       },
       inject: [ConfigService],
     }),
+    
+    
     DatabaseModule,
     DatabaseInitModule,
     UsersModule,

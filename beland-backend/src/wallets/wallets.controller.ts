@@ -33,11 +33,7 @@ import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 @ApiTags('wallets')
 @Controller('wallets')
 @ApiBearerAuth('JWT-auth')
-<<<<<<< HEAD
-@UseGuards(AuthenticationGuard)
-=======
 @UseGuards(FlexibleAuthGuard)
->>>>>>> dev
 export class WalletsController {
   constructor(private readonly service: WalletsService) {}
 

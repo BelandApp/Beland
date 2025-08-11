@@ -16,10 +16,11 @@ export class PaymentsRepository {
     page: number,
     limit: number,
   ): Promise<[Payment[], number]> {
-    
-    const where: any = { user_id };
+    let where: Object; 
     if (group_id) {
-      where.group_id = group_id;
+        where = {group_id} 
+    } else {
+        where = user_id ? {user_id} : {};
     }
 
     return this.repository.findAndCount({

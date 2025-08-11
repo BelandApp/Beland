@@ -51,7 +51,7 @@ export class Order {
   address_id: string;
 
   @ManyToOne(() => User, (user) => user.orders)
-  @JoinColumn({name:'leader_id'})
+  @JoinColumn({name:'leader_ip'})
   leader: User;
   @Column('uuid')
   leader_id: string;

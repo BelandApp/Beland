@@ -24,20 +24,12 @@ import { OrderItemsService } from './order-items.service';
 import { OrderItem } from './entities/order-item.entity';
 import { CreateOrderItemDto } from './dto/create-order-item.dto';
 import { UpdateOrderItemDto } from './dto/update-order-item.dto';
-<<<<<<< HEAD
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
-=======
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
->>>>>>> dev
 
 @ApiTags('order-items')
 @Controller('order-items')
 @ApiBearerAuth('JWT-auth')
-<<<<<<< HEAD
-@UseGuards(AuthenticationGuard)
-=======
 @UseGuards(FlexibleAuthGuard)
->>>>>>> dev
 export class OrderItemsController {
   constructor(private readonly service: OrderItemsService) {}
 
