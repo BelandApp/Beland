@@ -41,11 +41,11 @@ import { RequiredPermissions } from 'src/auth/decorators/permissions.decorator';
 import { Request } from 'express';
 import { User } from 'src/users/entities/users.entity';
 import { GetGroupsQueryDto } from './dto/get-groups-query.dto';
-import { InviteUserToGroupDto } from './dto/invite-user-to-group.dto'; // Your existing DTO
+import { InviteUserDto } from 'src/group-members/dto/create-group-member.dto'; // Use InviteUserDto for body
 import { GroupMemberDto } from 'src/group-members/dto/group-member.dto';
 import { UpdateGroupMemberDto } from 'src/group-members/dto/update-group-member.dto';
-import { UsersService } from 'src/users/users.service'; // <-- ADDED: Import UsersService
-import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto'; // <-- ADDED: Import CreateGroupMemberDto
+import { UsersService } from 'src/users/users.service'; // <-- Keeping this as it's used for user lookup in inviteUser
+import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto'; // <-- Added: Import CreateGroupMemberDto
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('groups') // Tag for Swagger documentation
@@ -56,7 +56,7 @@ export class GroupsController {
 
   constructor(
     private readonly groupsService: GroupsService,
-    private readonly usersService: UsersService, // <-- ADDED: Inject UsersService
+    private readonly usersService: UsersService, // <-- Keep UsersService for user resolution in controller
   ) {}
 
   /**
@@ -206,11 +206,7 @@ export class GroupsController {
     this.logger.log(`🚧 [BACKEND] Ruta /groups - Fetching all groups.`);
     try {
       const { groups, total } = await this.groupsService.findAllGroups(
-        // Pasa los parámetros extraídos del DTO combinado
-        { page: queryDto.page, limit: queryDto.limit },
-        { sortBy: queryDto.sortBy, order: queryDto.order },
-        queryDto.name, // filterName
-        queryDto.status, // filterStatus
+        queryDto, // Pass the entire queryDto
       );
       return { groups, total };
     } catch (error) {
@@ -506,7 +502,7 @@ export class GroupsController {
   @HttpCode(HttpStatus.CREATED)
   async inviteUser(
     @Param('groupId', ParseUUIDPipe) groupId: string,
-    @Body() inviteUserDto: InviteUserToGroupDto,
+    @Body() inviteUserDto: InviteUserDto, // This DTO is for the request body
     @Req() req: Request,
     @Query('userId') queryUserId?: string,
   ): Promise<GroupMemberDto> {
@@ -528,7 +524,7 @@ export class GroupsController {
       );
     }
 
-    // --- START: Added logic to resolve user and construct CreateGroupMemberDto ---
+    // --- START: Logic to resolve user and construct CreateGroupMemberDto ---
     let userToInvite: User | null = null;
     if (inviteUserDto.email) {
       userToInvite = await this.usersService.findByEmail(inviteUserDto.email);
@@ -555,14 +551,12 @@ export class GroupsController {
       user_id: userToInvite.id,
       role: inviteUserDto.role || 'MEMBER', // Default to MEMBER if not specified
     };
-    // --- END: Added logic ---
+    // --- END: Logic ---
 
     try {
-      // Pass the correctly constructed DTO to the service
-      const newMember = await this.groupsService.inviteUserToGroup(
-        groupId, // groupId from param
-        createGroupMemberDto, // <-- NOW PASSING CreateGroupMemberDto
-      );
+      // Pass the correctly constructed DTO to the service's new method
+      const newMember =
+        await this.groupsService.addGroupMember(createGroupMemberDto);
       return newMember;
     } catch (error) {
       // Corrected error handling to properly type 'error'
@@ -730,7 +724,8 @@ export class GroupsController {
     }
 
     try {
-      const updatedMember = await this.groupsService.updateGroupMember(
+      // Corrected: Call updateGroupMemberRole instead of updateGroupMember
+      const updatedMember = await this.groupsService.updateGroupMemberRole(
         memberId,
         updateGroupMemberDto,
       );

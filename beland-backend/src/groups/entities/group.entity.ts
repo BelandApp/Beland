@@ -6,7 +6,8 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
-  JoinColumn, // <-- ¡IMPORTADO!
+  JoinColumn,
+  UpdateDateColumn, // <-- Correctly imported
 } from 'typeorm';
 import { GroupMember } from 'src/group-members/entities/group-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
@@ -35,14 +36,20 @@ export class Group {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  // Relación ManyToOne con la entidad User (el líder del grupo)
+  @UpdateDateColumn({ type: 'timestamptz' }) // <-- New column for last update date
+  updated_at: Date;
+
+  @Column({ type: 'timestamptz', nullable: true }) // <-- New column for soft delete
+  deleted_at: Date | null;
+
+  // ManyToOne relationship with User entity (the group leader)
   @ManyToOne(() => User, (user) => user.led_groups, {
-    nullable: true, // Un grupo podría no tener un líder asignado inicialmente (aunque la lógica lo asigna)
-    onDelete: 'SET NULL', // Si el usuario líder es eliminado, su referencia en el grupo se establece a NULL
+    nullable: true, // A group might not have a leader assigned initially (though logic assigns one)
+    onDelete: 'SET NULL', // If the leader user is deleted, their reference in the group is set to NULL
   })
-  @JoinColumn({ name: 'leader_id', referencedColumnName: 'id' }) // <-- ¡AÑADIDO ESTO! Define la columna FK explícitamente
+  @JoinColumn({ name: 'leader_id', referencedColumnName: 'id' }) // <-- Explicitly define FK column
   leader: User;
-  @Column('uuid')
+  @Column('uuid') // This column stores the actual UUID of the leader
   leader_id: string;
 
   @OneToMany(() => GroupMember, (member) => member.group)

@@ -7,6 +7,7 @@ import {
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { GroupsRepository } from './groups.repository';
 import { GroupMembersRepository } from '../group-members/group-members.repository';
 import { UsersService } from '../users/users.service';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -21,8 +22,8 @@ import { DataSource } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
 import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto';
 import { GroupMemberDto } from 'src/group-members/dto/group-member.dto';
-import { UpdateGroupMemberDto } from 'src/group-members/dto/update-group-member.dto'; // <-- ADDED: Import UpdateGroupMemberDto
-import { GroupsRepository } from './groups.repository';
+import { UpdateGroupMemberDto } from 'src/group-members/dto/update-group-member.dto';
+import { GetGroupsQueryDto } from './dto/get-groups-query.dto'; // Import GetGroupsQueryDto
 
 @Injectable()
 export class GroupsService {
@@ -67,8 +68,17 @@ export class GroupsService {
         );
       }
 
+      // Check for existing group with the same name (case-insensitive)
+      const existingGroup = await this.groupsRepository.findOneByName(
+        createGroupDto.name,
+      );
+      if (existingGroup) {
+        throw new ConflictException(
+          `Group with name "${createGroupDto.name}" already exists.`,
+        );
+      }
+
       // Create the new group entity
-      // Ensure the leader_id is set correctly from the leaderUserEntity
       const newGroup = this.groupsRepository.create({
         ...createGroupDto,
         leader_id: leaderUserEntity.id, // Assign the leader's ID
@@ -115,32 +125,39 @@ export class GroupsService {
 
   /**
    * Retrieves a paginated list of all groups, with filtering and sorting options.
-   * @param paginationDto Pagination options.
-   * @param orderDto Ordering options.
-   * @param filterName Optional: Filter by group name.
-   * @param filterStatus Optional: Filter by group status.
+   * @param queryDto DTO containing pagination, order, and filter criteria.
    * @returns A promise that resolves to an object containing an array of GroupDto and the total count.
+   * @throws InternalServerErrorException for unexpected errors.
    */
   async findAllGroups(
-    paginationDto: PaginationDto,
-    orderDto: OrderDto,
-    filterName?: string,
-    filterStatus?: 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE',
+    queryDto: GetGroupsQueryDto,
   ): Promise<{ groups: GroupDto[]; total: number }> {
     this.logger.debug(
-      `findAllGroups(): Fetching all groups with pagination: ${JSON.stringify(paginationDto)}, order: ${JSON.stringify(orderDto)}, filters: name=${filterName}, status=${filterStatus}`,
+      `findAllGroups(): Fetching all groups with query: ${JSON.stringify(queryDto)}`,
     );
-    const { groups, total } = await this.groupsRepository.findAllPaginated(
-      paginationDto.page,
-      paginationDto.limit,
-      orderDto.sortBy,
-      orderDto.order,
-      filterName,
-      filterStatus,
-    );
-    // Transform entities to DTOs for the response
-    const groupsDto = plainToInstance(GroupDto, groups);
-    return { groups: groupsDto, total };
+    try {
+      const { groups, total } = await this.groupsRepository.findAllPaginated(
+        { page: queryDto.page, limit: queryDto.limit },
+        { sortBy: queryDto.sortBy, order: queryDto.order },
+        {
+          name: queryDto.name,
+          status: queryDto.status,
+          leaderId: queryDto.leaderId,
+          includeDeleted: queryDto.includeDeleted,
+        },
+      );
+      // Transform entities to DTOs for the response
+      const groupsDto = plainToInstance(GroupDto, groups);
+      return { groups: groupsDto, total };
+    } catch (error) {
+      this.logger.error(
+        `findAllGroups(): Internal server error fetching groups: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve groups due to an internal error.',
+      );
+    }
   }
 
   /**
@@ -199,31 +216,26 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException(`Group with ID "${groupId}" not found.`);
     }
-    // Delete the group. TypeORM's onDelete: 'CASCADE' in Group entity will handle
-    // cascading deletion of related GroupMembers if configured.
-    await this.groupsRepository.deleteGroup(groupId);
+    // Correctly calling hardDeleteGroup as per your repository's method
+    await this.groupsRepository.hardDeleteGroup(groupId);
     this.logger.log(`deleteGroup(): Group ${groupId} deleted successfully.`);
   }
 
   /**
-   * Invites a user to a specific group, creating a new GroupMember entry.
-   * This method handles finding the user by email, username, or phone.
+   * Adds a user as a member to a group based on a CreateGroupMemberDto.
+   * This method is called by the controller after resolving the user from an InviteUserDto.
    *
-   * @param groupId The ID of the group to invite the user to.
-   * @param inviteUserDto DTO containing user identification (email, username, or phone).
-   * @returns A promise that resolves to the newly created GroupMemberDto.
+   * @param createGroupMemberDto The DTO containing group_id, user_id, and optional role.
+   * @returns The created GroupMemberDto.
    * @throws NotFoundException if the group or invited user is not found.
    * @throws BadRequestException if the user is already a member of the group.
    * @throws InternalServerErrorException if the transaction fails.
    */
-  async inviteUserToGroup(
-    groupId: string,
-    // Ensure this matches the `CreateGroupMemberDto` structure if `InviteUserDto` is an alias for it
-    // Or create a new specific DTO for invitation if it truly only contains these fields.
-    inviteUserDto: CreateGroupMemberDto, // Changed to CreateGroupMemberDto
+  async addGroupMember(
+    createGroupMemberDto: CreateGroupMemberDto,
   ): Promise<GroupMemberDto> {
     this.logger.debug(
-      `inviteUserToGroup(): Inviting user to group ${groupId} with data: ${JSON.stringify(inviteUserDto)}`,
+      `addGroupMember(): Adding user ${createGroupMemberDto.user_id} to group ${createGroupMemberDto.group_id}`,
     );
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -231,23 +243,21 @@ export class GroupsService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Verify group existence
+      // 1. Verify group existence and eagerly load members with their user details
       const group = await queryRunner.manager.findOne(Group, {
-        where: { id: groupId },
+        where: { id: createGroupMemberDto.group_id },
+        relations: ['members', 'leader', 'members.user'], // Eager load members and their associated users
       });
       if (!group) {
-        throw new NotFoundException(`Group with ID "${groupId}" not found.`);
+        throw new NotFoundException(
+          `Group with ID "${createGroupMemberDto.group_id}" not found.`,
+        );
       }
 
       // 2. Find the invited user
-      let invitedUser: User | null = null;
-      if (inviteUserDto.user_id) {
-        // Use user_id from CreateGroupMemberDto
-        invitedUser = await this.usersService.findOne(inviteUserDto.user_id);
-      }
-      // If you still want to support invite by email/username/phone from a *different* DTO
-      // you would need separate methods or more complex logic here.
-      // For now, assuming inviteUserDto only contains user_id.
+      const invitedUser: User | null = await queryRunner.manager.findOne(User, {
+        where: { id: createGroupMemberDto.user_id },
+      });
 
       if (!invitedUser) {
         throw new NotFoundException(
@@ -256,24 +266,33 @@ export class GroupsService {
       }
 
       // 3. Check if user is already a member
-      const existingMembership = await queryRunner.manager.findOne(
-        GroupMember,
-        {
-          where: { group: { id: groupId }, user: { id: invitedUser.id } },
-        },
+      const isAlreadyMember = group.members.some(
+        (member) => member.user?.id === invitedUser.id, // Use optional chaining to safely access id
       );
 
-      if (existingMembership) {
-        throw new BadRequestException(
+      if (isAlreadyMember) {
+        throw new ConflictException(
           `User "${invitedUser.email}" is already a member of group "${group.name}".`,
         );
       }
 
-      // 4. Create and save new group membership
+      // 4. Prevent directly setting a new leader via this method unless it's the initial group creation handled by createGroup
+      // For promoting a member to leader, use updateGroupMemberRole
+      if (
+        createGroupMemberDto.role === 'LEADER' &&
+        group.leader !== null &&
+        group.leader.id !== invitedUser.id
+      ) {
+        throw new BadRequestException(
+          'Cannot directly add a new leader to an existing group via this method. Use the update member role endpoint to promote an existing member.',
+        );
+      }
+
+      // 5. Create and save new group membership
       const newMembership = this.groupMembersRepository.create({
         group: group,
         user: invitedUser,
-        role: inviteUserDto.role || 'MEMBER', // Use role from DTO or default to MEMBER
+        role: createGroupMemberDto.role || 'MEMBER', // Use role from DTO or default to MEMBER
       });
 
       const savedMembership = await queryRunner.manager.save(
@@ -283,7 +302,7 @@ export class GroupsService {
 
       await queryRunner.commitTransaction();
       this.logger.log(
-        `inviteUserToGroup(): User ${invitedUser.email} invited to group ${group.name} successfully.`,
+        `addGroupMember(): User ${invitedUser.email} added to group ${group.name} successfully.`,
       );
       // Return the DTO representation of the new membership, including populated relations
       return plainToInstance(GroupMemberDto, savedMembership, {
@@ -293,7 +312,7 @@ export class GroupsService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(
-        `inviteUserToGroup(): Error during invitation transaction:`,
+        `addGroupMember(): Error during adding group member transaction:`,
         error,
       );
       if (
@@ -304,7 +323,7 @@ export class GroupsService {
         throw error;
       }
       throw new InternalServerErrorException(
-        'Failed to invite user to group due to an internal error.',
+        'Failed to add user to group due to an internal error.',
       );
     } finally {
       await queryRunner.release();
@@ -326,13 +345,30 @@ export class GroupsService {
       throw new NotFoundException(`Group with ID "${groupId}" not found.`);
     }
 
-    // Use the repository to find members, ensuring relations are loaded
-    const groupMembers = await this.groupMembersRepository.find({
-      where: { group: { id: groupId } }, // Filter by group ID
-      relations: ['user', 'group'], // Eager load user details and group details
-    });
-    // Transform entities to DTOs for the response
-    return plainToInstance(GroupMemberDto, groupMembers);
+    // Correctly calling the method from GroupMembersRepository
+    const members =
+      await this.groupMembersRepository.findGroupMembersByGroupId(groupId);
+    // Ensure plainToInstance handles an array of GroupMember entities to GroupMemberDto
+    return plainToInstance(GroupMemberDto, members);
+  }
+
+  /**
+   * Retrieves all groups a specific user is a member of.
+   * @param userId The ID of the user.
+   * @returns A promise that resolves to an array of GroupMemberDto.
+   * @throws NotFoundException if the user is not found.
+   */
+  async getUserMemberships(userId: string): Promise<GroupMemberDto[]> {
+    this.logger.debug(
+      `getUserMemberships(): Fetching memberships for user ID: ${userId}`,
+    );
+    const user = await this.usersService.findOne(userId); // Assuming findOne method exists and works in UsersService
+    if (!user) {
+      throw new NotFoundException(`User with ID "${userId}" not found.`);
+    }
+
+    const memberships = await this.groupMembersRepository.findByUserId(userId);
+    return plainToInstance(GroupMemberDto, memberships);
   }
 
   /**
@@ -343,18 +379,16 @@ export class GroupsService {
    * @throws NotFoundException if the group membership is not found.
    * @throws BadRequestException if business rules are violated (e.g., trying to assign multiple leaders).
    */
-  async updateGroupMember(
+  async updateGroupMemberRole(
     memberId: string,
     updateGroupMemberDto: UpdateGroupMemberDto, // Corrected type here
   ): Promise<GroupMemberDto> {
     this.logger.debug(
-      `updateGroupMember(): Updating group member with ID: ${memberId} with data: ${JSON.stringify(updateGroupMemberDto)}`,
+      `updateGroupMemberRole(): Updating group member with ID: ${memberId} with data: ${JSON.stringify(updateGroupMemberDto)}`,
     );
 
-    const existingMembership = await this.groupMembersRepository.findOne({
-      where: { id: memberId },
-      relations: ['group', 'user'], // Ensure group and user are loaded for checks
-    });
+    const existingMembership =
+      await this.groupMembersRepository.findOneById(memberId);
 
     if (!existingMembership) {
       throw new NotFoundException(
@@ -390,9 +424,9 @@ export class GroupsService {
     Object.assign(existingMembership, updateGroupMemberDto);
 
     const updatedMembership =
-      await this.groupMembersRepository.save(existingMembership);
+      await this.groupMembersRepository.saveGroupMember(existingMembership);
     this.logger.log(
-      `updateGroupMember(): Group member ${memberId} updated successfully.`,
+      `updateGroupMemberRole(): Group member ${memberId} updated successfully.`,
     );
     return plainToInstance(GroupMemberDto, updatedMembership);
   }
@@ -409,10 +443,7 @@ export class GroupsService {
       `removeGroupMember(): Deleting group member with ID: ${memberId}`,
     );
     // Fetch the group member to ensure it exists and to get its role and associated group
-    const groupMember = await this.groupMembersRepository.findOne({
-      where: { id: memberId },
-      relations: ['group', 'user'], // Load group and user for checks
-    });
+    const groupMember = await this.groupMembersRepository.findOneById(memberId); // Using findOneById
 
     if (!groupMember) {
       throw new NotFoundException(
@@ -439,9 +470,9 @@ export class GroupsService {
       }
     }
 
-    await this.groupMembersRepository.delete(memberId);
+    await this.groupMembersRepository.deleteGroupMember(memberId);
     this.logger.log(
-      `removeGroupMember(): Group member ${memberId} removed successfully.`,
+      `removeGroupMember(): Group member ${memberId} deleted successfully.`,
     );
   }
 }
