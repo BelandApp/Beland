@@ -26,11 +26,12 @@ import { CartItem } from './entities/cart-item.entity';
 import { CartItemsService } from './cart-items.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('cart-items')
 @Controller('cart-items')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class CartItemsController {
   constructor(private readonly service: CartItemsService) {}
 
@@ -87,6 +88,21 @@ export class CartItemsController {
     @Body() body: UpdateCartItemDto,
   ) {
     return this.service.update(id, body);
+  }
+
+  @Put('quantity/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar la cantidad de un item de carrito existente' })
+  @ApiParam({ name: 'id', description: 'UUID del item de carrito' })
+  @ApiQuery({ name: 'quantity', required: true, type: Number, example: 1, description: 'Cantidad a reemplazar' })
+  @ApiResponse({ status: 200, description: 'item de carrito actualizado correctamente' })
+  @ApiResponse({ status: 404, description: 'No se encontró el item de carrito a actualizar' })
+  @ApiResponse({ status: 500, description: 'Error al actualizar el item de carrito' })
+  async updateQuantity(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('quantity') quantity: number,
+  ) {
+    return this.service.update(id, {quantity});
   }
 
   @Delete(':id')

@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,14 +19,18 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { RecycledItemsService } from './recycled-items.service';
 import { RecycledItem } from './entities/recycled-item.entity';
 import { CreateRecycledItemDto } from './dto/create-recycled-item.dto';
 import { UpdateRecycledItemDto } from './dto/update-recycled-item.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('recycled-items')
 @Controller('recycled-items')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(FlexibleAuthGuard)
 export class RecycledItemsController {
   constructor(private readonly service: RecycledItemsService) {}
 

@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,14 +19,18 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PrizeRedemptionsService } from './prize-redemptions.service';
 import { PrizeRedemption } from './entities/prize-redemption.entity';
 import { CreatePrizeRedemptionDto } from './dto/create-prize-redemption.dto';
 import { UpdatePrizeRedemptionDto } from './dto/update-prize-redemption.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('prize-redemptions')
 @Controller('prize-redemptions')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(FlexibleAuthGuard)
 export class PrizeRedemptionsController {
   constructor(private readonly service: PrizeRedemptionsService) {}
 

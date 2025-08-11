@@ -25,11 +25,12 @@ import { BankAccountTypesService } from './bank-account-type.service';
 import { CreateBankAccountTypeDto } from './dto/create-bank-account-type.dto';
 import { UpdateBankAccountTypeDto } from './dto/update-bank-account-type.dto';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('bank-account-types')
 @Controller('bank-account-types')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class BankAccountTypesController {
   constructor(private readonly service: BankAccountTypesService) {}
 

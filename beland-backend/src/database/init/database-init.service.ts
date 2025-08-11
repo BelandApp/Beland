@@ -15,6 +15,7 @@ export class DatabaseInitService implements OnModuleInit {
     this.logger.log(
       '🚀 Iniciando todos los procesos de inicialización de la aplicación...',
     );
+    
     try {
       await this.defaultRolesSeeder.seed();
       await this.superAdminUserSeeder.seed();
