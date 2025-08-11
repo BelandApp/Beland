@@ -3,7 +3,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
-import { JwtModule, JwtService } from '@nestjs/jwt'; // JwtModule es necesario aquí
+import { JwtModule } from '@nestjs/jwt'; // JwtModule es necesario aquí
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Entidades necesarias para TypeOrmModule.forFeature en este módulo
@@ -25,7 +25,7 @@ import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
 
 // Módulos externos que proveen dependencias
 import { UsersModule } from 'src/users/users.module';
-import { RolesModule } from 'src/roles/roles.module'; // Importa RolesModule si AuthService inyecta RolesRepository
+import { RolesModule } from 'src/roles/roles.module';
 
 import { AuthController } from './auth.controller';
 
@@ -33,40 +33,45 @@ import { AuthController } from './auth.controller';
   imports: [
     ConfigModule.forRoot(),
     HttpModule.register({}),
+    // Uso de forwardRef para resolver posibles dependencias circulares
     forwardRef(() => UsersModule),
-    forwardRef(() => RolesModule), // Asegúrate de importar RolesModule si es necesario para RolesRepository
+    forwardRef(() => RolesModule),
+    // Configura Passport para usar la estrategia 'jwt' por defecto
     PassportModule.register({ defaultStrategy: 'jwt' }),
     // ¡IMPORTANTE! Agrega JwtModule a los imports aquí.
-    // Usamos registerAsync para obtener JWT_SECRET de ConfigService.
+    // Usamos registerAsync para obtener JWT_SECRET de ConfigService de forma asíncrona.
     JwtModule.registerAsync({
       imports: [ConfigModule], // Necesario para inyectar ConfigService
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret:
           configService.get<string>('JWT_SECRET') ||
-          'fallback_secret_for_dev_if_not_set',
-        signOptions: { expiresIn: '1h' },
+          'fallback_secret_for_dev_if_not_set', // Clave secreta para firmar tokens JWT locales
+        signOptions: { expiresIn: '1h' }, // Tiempo de expiración para tokens locales
       }),
     }),
+    // Registra las entidades de TypeORM necesarias para este módulo
     TypeOrmModule.forFeature([User, Role, Wallet]),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
-    JwtStrategy,
+    JwtStrategy, // Estrategia de Auth0
     UsersRepository,
     RolesRepository,
     WalletsRepository,
-    AuthenticationGuard,
-    JwtAuthGuard,
-    FlexibleAuthGuard,
+    // JwtService ya no es necesario listarlo aquí explícitamente,
+    // ya que JwtModule (importado arriba) lo provee automáticamente.
+    AuthenticationGuard, // Guard de autenticación local
+    JwtAuthGuard, // Guard de autenticación de Auth0
+    FlexibleAuthGuard, // Guard que combina ambos
   ],
   exports: [
     AuthService,
     AuthenticationGuard,
     JwtAuthGuard,
     FlexibleAuthGuard,
-    JwtModule, // Ahora sí puedes exportar JwtModule porque está importado
+    JwtModule, // Se exporta correctamente porque está importado en este módulo
     UsersRepository,
     RolesRepository,
     WalletsRepository,
