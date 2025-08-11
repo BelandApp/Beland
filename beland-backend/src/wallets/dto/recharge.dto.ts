@@ -1,11 +1,6 @@
-import { IsNumber, IsString, IsUUID, IsEnum } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
-
-enum RechargeState {
-  PENDING = 'PENDING',
-  COMPLETED = 'COMPLETED',
-  FAILED = 'FAILED',
-}
+import { IsNumber, IsString, IsUUID, IsEnum, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Column } from 'typeorm';
 
 export class RechargeDto {
   @ApiProperty({ example: 50.0, description: 'Amount in USD to recharge' })
@@ -16,11 +11,21 @@ export class RechargeDto {
   @IsUUID()
   wallet_id: string;
 
-  @ApiProperty({ enum: RechargeState, description: 'State of the recharge transaction' })
-  @IsEnum(RechargeState)
-  status: RechargeState;
-
   @ApiProperty({ example: 'REF123456789', description: 'Reference code for tracking' })
   @IsString()
   referenceCode: string;
+
+  @Column('uuid')
+  recarge_method:string; // generar tabla y relacion- En principio el unico metodo sera tarjeta.
+
+  @ApiPropertyOptional({ example: 'REF123456789', description: 'Reference code for tracking' })
+  @IsString()
+  @IsOptional()
+  clientTransactionId?: string;
+
+  @ApiPropertyOptional({ example: 50.0, description: 'Amount in USD to recharge' })
+  @IsNumber()
+  @IsOptional()
+  transactionId?: number;
+
 }

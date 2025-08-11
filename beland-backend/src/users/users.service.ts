@@ -11,7 +11,7 @@ import { UsersRepository } from './users.repository';
 import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/users.entity';
+import { User } from './entities/users.entity'; // Importar la entidad User
 import { Role } from '../roles/entities/role.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
@@ -41,6 +41,14 @@ export class UsersService {
     private readonly dataSource: DataSource,
   ) {}
 
+  /**
+   * Crea un nuevo usuario en el sistema.
+   * @param createUserDto Datos para la creación del usuario.
+   * @returns El usuario creado como UserDto.
+   * @throws ConflictException si el email ya está en uso.
+   * @throws BadRequestException si las contraseñas no coinciden o el rol no es válido.
+   * @throws InternalServerErrorException si el rol por defecto no se encuentra.
+   */
   async create(createUserDto: CreateUserDto): Promise<UserDto> {
     this.logger.debug(
       `create(): Intentando crear usuario con email: ${createUserDto.email}`,
@@ -114,7 +122,12 @@ export class UsersService {
     return plainToInstance(UserDto, savedUser);
   }
 
-  // Método para la creación del usuario inicial (SUPERADMIN) desde el seeder externo
+  /**
+   * Crea un usuario inicial (por ejemplo, SUPERADMIN) desde un seeder.
+   * Este método devuelve la entidad User directamente.
+   * @param createUserDto Datos para la creación del usuario.
+   * @returns La entidad User creada o existente.
+   */
   async createInitialUser(createUserDto: CreateUserDto): Promise<User> {
     this.logger.debug(
       `createInitialUser(): Procesando usuario inicial con email: ${createUserDto.email}.`,
@@ -184,21 +197,54 @@ export class UsersService {
     return savedUser; // Retornar la entidad User creada
   }
 
-  async findByEmail(email: string): Promise<UserDto> {
+  /**
+   * Busca un usuario por su email. Devuelve la entidad User.
+   * @param email El email del usuario.
+   * @returns La entidad User o null.
+   */
+  async findByEmail(email: string): Promise<User | null> {
     this.logger.debug(`findByEmail(): Buscando usuario con email: ${email}.`);
     const user = await this.usersRepository.findByEmail(email);
-    if (!user) {
-      throw new NotFoundException(
-        `Usuario con email "${email}" no encontrado.`,
-      );
-    }
-    return plainToInstance(UserDto, user);
+    return user; // Devuelve la entidad User directamente
   }
 
-  // ¡ACTUALIZADO para usar GetUsersQueryDto!
+  /**
+   * Busca un usuario por su nombre de usuario. Devuelve la entidad User.
+   * @param username El nombre de usuario.
+   * @returns La entidad User o null.
+   */
+  async findByUsername(username: string): Promise<User | null> {
+    this.logger.debug(
+      `findByUsername(): Buscando usuario con username: ${username}.`,
+    );
+    const user = await this.usersRepository.findByUsername(username);
+    return user; // Devuelve la entidad User directamente
+  }
+
+  /**
+   * Busca un usuario por su número de teléfono.
+   * @param phone El número de teléfono del usuario.
+   * @returns La entidad User o null si no se encuentra.
+   */
+  async findByPhone(phone: number): Promise<User | null> {
+    this.logger.debug(`findByPhone(): Buscando usuario con teléfono: ${phone}`);
+    return this.usersRepository.findByPhone(phone);
+  }
+
+  /**
+   * Busca todos los usuarios con paginación, ordenación y filtros. Devuelve UserDto[].
+   * @param paginationOptions Opciones de paginación.
+   * @param orderOptions Opciones de ordenación.
+   * @param includeDeleted Si se deben incluir usuarios eliminados.
+   * @param filterId ID para filtrar.
+   * @param filterEmail Email para filtrar.
+   * @param filterRoleName Nombre del rol para filtrar.
+   * @param filterIsBlocked Estado de bloqueo para filtrar.
+   * @returns Un objeto con la lista de UserDto y el total.
+   */
   async findAll(
-    paginationOptions: PaginationDto, // Mantener si PaginationDto y OrderDto se usan internamente
-    orderOptions: OrderDto, // Mantener si PaginationDto y OrderDto se usan internamente
+    paginationOptions: PaginationDto,
+    orderOptions: OrderDto,
     includeDeleted: boolean = false,
     filterId?: string,
     filterEmail?: string,
@@ -219,6 +265,10 @@ export class UsersService {
     return { users: plainToInstance(UserDto, users), total };
   }
 
+  /**
+   * Busca usuarios que han sido desactivados (soft-deleted). Devuelve UserDto[].
+   * @returns Una lista de UserDto desactivados.
+   */
   async findDeactivatedUsers(): Promise<UserDto[]> {
     this.logger.debug(
       `findDeactivatedUsers(): Buscando usuarios desactivados.`,
@@ -230,16 +280,30 @@ export class UsersService {
     return plainToInstance(UserDto, users);
   }
 
-  async findOne(id: string, includeDeleted: boolean = false): Promise<UserDto> {
+  /**
+   * Busca un usuario por su ID. Devuelve la entidad User.
+   * Este método es para uso interno de otros servicios que necesitan la entidad completa.
+   * @param id El ID del usuario.
+   * @param includeDeleted Si se deben incluir usuarios marcados como eliminados.
+   * @returns La entidad User o null si no se encuentra.
+   */
+  async findOne(
+    id: string,
+    includeDeleted: boolean = false,
+  ): Promise<User | null> {
     this.logger.debug(`findOne(): Buscando usuario con ID: ${id}.`);
     const user = await this.usersRepository.findOne(id, includeDeleted);
-    if (!user) {
-      throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
-    }
-    this.logger.log(`findOne(): Usuario ${id} encontrado.`);
-    return plainToInstance(UserDto, user);
+    return user; // Devuelve la entidad User directamente
   }
 
+  /**
+   * Actualiza el perfil del usuario autenticado. Devuelve UserDto.
+   * @param id El ID del usuario.
+   * @param updateUserDto Datos a actualizar.
+   * @returns El UserDto actualizado.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws ForbiddenException si se intenta modificar campos no permitidos.
+   */
   async updateMe(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
     this.logger.debug(`updateMe(): Actualizando perfil del usuario ${id}.`);
 
@@ -293,6 +357,16 @@ export class UsersService {
     return plainToInstance(UserDto, updatedUser);
   }
 
+  /**
+   * Actualiza un usuario por su ID (para uso administrativo). Devuelve UserDto.
+   * @param id El ID del usuario a actualizar.
+   * @param updateUserDto Datos a actualizar.
+   * @returns El UserDto actualizado.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws ConflictException si el email ya está en uso.
+   * @throws BadRequestException si el rol no es válido.
+   * @throws InternalServerErrorException para errores internos.
+   */
   async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
     this.logger.debug(`update(): Actualizando usuario con ID: ${id}.`);
 
@@ -401,6 +475,15 @@ export class UsersService {
     }
   }
 
+  /**
+   * Actualiza el estado de bloqueo de un usuario. Devuelve UserDto.
+   * @param id El ID del usuario.
+   * @param isBlocked El nuevo estado de bloqueo.
+   * @returns El UserDto actualizado.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws BadRequestException si el usuario ya tiene el estado deseado.
+   * @throws InternalServerErrorException para errores internos.
+   */
   async updateBlockStatus(id: string, isBlocked: boolean): Promise<UserDto> {
     this.logger.debug(
       `updateBlockStatus(): Actualizando estado de bloqueo para usuario con ID: ${id} a ${isBlocked}.`,
@@ -435,6 +518,12 @@ export class UsersService {
     return plainToInstance(UserDto, updatedUser);
   }
 
+  /**
+   * Realiza un "soft delete" en un usuario.
+   * @param id El ID del usuario a desactivar.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws BadRequestException si el usuario ya está desactivado.
+   */
   async softDeleteUser(id: string): Promise<void> {
     this.logger.debug(`softDeleteUser(): Desactivando usuario con ID: ${id}.`);
     const user = await this.usersRepository.findOne(id);
@@ -453,6 +542,13 @@ export class UsersService {
     );
   }
 
+  /**
+   * Reactiva un usuario previamente desactivado. Devuelve UserDto.
+   * @param id El ID del usuario a reactivar.
+   * @returns El UserDto reactivado.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws BadRequestException si el usuario ya está activo.
+   */
   async reactivateUser(id: string): Promise<UserDto> {
     this.logger.debug(`reactivateUser(): Reactivando usuario con ID: ${id}.`);
     const user = await this.usersRepository.findOne(id, true);

@@ -27,13 +27,17 @@ import { CreateWalletDto } from './dto/create-wallet.dto';
 import { UpdateWalletDto } from './dto/update-wallet.dto';
 import { RechargeDto } from './dto/recharge.dto';
 import { TransferDto } from './dto/transfer.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('wallets')
 @Controller('wallets')
 @ApiBearerAuth('JWT-auth')
+<<<<<<< HEAD
 @UseGuards(AuthenticationGuard)
+=======
+@UseGuards(FlexibleAuthGuard)
+>>>>>>> dev
 export class WalletsController {
   constructor(private readonly service: WalletsService) {}
 

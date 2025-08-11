@@ -1,4 +1,4 @@
-// group.entity.ts
+// src/groups/entities/group.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   OneToMany,
-  JoinColumn,
+  JoinColumn, // <-- ¡IMPORTADO!
 } from 'typeorm';
 import { GroupMember } from 'src/group-members/entities/group-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
@@ -35,18 +35,20 @@ export class Group {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
+  // Relación ManyToOne con la entidad User (el líder del grupo)
   @ManyToOne(() => User, (user) => user.led_groups, {
-    nullable: true,
-    onDelete: 'SET NULL',
+    nullable: true, // Un grupo podría no tener un líder asignado inicialmente (aunque la lógica lo asigna)
+    onDelete: 'SET NULL', // Si el usuario líder es eliminado, su referencia en el grupo se establece a NULL
   })
-  @JoinColumn({name:'loader_id'})
+  @JoinColumn({ name: 'leader_id', referencedColumnName: 'id' }) // <-- ¡AÑADIDO ESTO! Define la columna FK explícitamente
   leader: User;
   @Column('uuid')
-  loader_id: string
+  leader_id: string;
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members: GroupMember[];
 
   @OneToMany(() => Order, (order) => order.group)
   orders: Order[];
+
 }

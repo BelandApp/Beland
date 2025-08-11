@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-} from 'typeorm';
+} from 'typeorm'; 
 import { Order } from 'src/orders/entities/order.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/users.entity';
@@ -40,9 +40,9 @@ export class OrderItem {
   @Column('uuid')
   product_id: string;
 
-  @ManyToOne(() => User, (user) => user.consumed_items, { nullable: true })
-  @JoinColumn({name:'consumed_by_user_id'})
-  consumed_by_user: User;
-  @Column('uuid')
-  consumed_by_user_id: string;
+  // @ManyToOne(() => User, (user) => user.consumed_items, { nullable: true })
+  // @JoinColumn({name:'consumed_by_user_id'})
+  // consumed_by_user: User;
+  // @Column('uuid')
+  // consumed_by_user_id: string;
 }

@@ -12,6 +12,7 @@ import * as QRCode from 'qrcode';
 import { DataSource } from 'typeorm';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
+import { Cart } from 'src/cart/entities/cart.entity';
 
 @Injectable()
 export class AuthService {
@@ -67,7 +68,7 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
-      const userDB = await this.userRepository.getUserByEmail(user.email);
+      const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
         throw new UnauthorizedException(
           `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
@@ -85,7 +86,7 @@ export class AuthService {
       const userSave = await queryRunner.manager
         .getRepository(User)
         .save({
-          name: user.name,
+          full_name: user.name,
           email: user.email,
           role_id: userRole.role_id,
           password: HashPassword,
@@ -104,24 +105,23 @@ export class AuthService {
           qr,
           user_id: userSave.id,
         });
-
-        await queryRunner.commitTransaction(); // ✅ Confirma todo
-        
-      if (!wallet) throw new ConflictException('Error al crear la billetera');
-
-      const userSavePayload = await this.userRepository.getUserById(userSave.id)
       
-      const userPayload = {
-        ...userSavePayload
-      };
+      if (!wallet) throw new ConflictException('Error al crear la billetera. Intente registrarse Nuevamente'); 
 
-      const token = this.jwtService.sign(userPayload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-      });
-
+      // ✅ Crear carrito usando el mismo manager
+      const cart = await queryRunner.manager
+        .getRepository(Cart)
+        .save({
+          user_id: userSave.id,
+        });
       
 
-      return { token };
+      await queryRunner.commitTransaction(); // ✅ Confirma todo
+
+      const userSavePayload = await this.userRepository.findById(userSave.id)
+      
+      //Crea el Token con todos los datos de usuario
+      return await this.createToken(userSavePayload);
     } catch (error) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
       throw new InternalServerErrorException('No se pudo registrar el usuario');
@@ -133,7 +133,7 @@ export class AuthService {
 
   async signin(userLogin: LoginAuthDto): Promise<{ token: string }> {
     // comprueba que el usuario exista, sino devuelve un error
-    const userDB: User = await this.userRepository.getUserByEmail(userLogin.email);
+    const userDB: User = await this.userRepository.findByEmail(userLogin.email);
     if (!userDB) {
       throw new BadRequestException('Usuario o Clave incorrectos');
     }
@@ -146,9 +146,13 @@ export class AuthService {
       throw new BadRequestException('Usuario o Clave incorrectos');
     }
 
-    //creo el Payload a guardar en el token, con id, email, y los roles asignados al usuario
+    //Crea el Token con todos los datos de usuario
+    return await this.createToken(userDB);
+  }
+
+  async createToken (user:User): Promise<{ token: string }> {
     const userPayload = {
-        ...userDB
+        ...user
       };
     const token = this.jwtService.sign(userPayload, {
         secret: this.configService.get<string>('JWT_SECRET'),

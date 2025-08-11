@@ -39,7 +39,11 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://localhost:3001',
       'https://beland.app',
-      'https://api.beland.app',
+      'https://*-beland-8081.exp.direct',
+      'http://localhost:8081',
+      'https://auth.expo.io/@beland/Beland',
+      'belandnative://redirect',
+      'https://eoy0nfm-beland-8081.exp.direct',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
@@ -64,7 +68,14 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      docExpansion: 'none', // <--- Esto contrae todo por defecto
+      displayRequestDuration: true,
+      filter: true,
+      operationsSorter: 'alpha',
+    },
+  });
 
   // Middleware para parsear JSON normal en todas las rutas excepto webhooks
   app.use(json());

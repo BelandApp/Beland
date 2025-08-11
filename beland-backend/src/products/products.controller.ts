@@ -26,12 +26,20 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { ProductQueryDto } from './dto/product-query.dto';
+<<<<<<< HEAD
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+=======
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+>>>>>>> dev
 
 @ApiTags('products')
 @Controller('products')
 @ApiBearerAuth('JWT-auth')
+<<<<<<< HEAD
 @UseGuards(AuthenticationGuard)
+=======
+@UseGuards(FlexibleAuthGuard)
+>>>>>>> dev
 export class ProductsController {
   private readonly logger = new Logger(ProductsController.name);
 
@@ -51,11 +59,12 @@ export class ProductsController {
     summary: 'Listar productos con paginación, ordenamiento y filtrado',
   })
   async findAll(@Query() query: ProductQueryDto) {
-    const { page, limit, sortBy, order, category } = query;
+    const { page, limit, sortBy, order, category, name } = query;
     return this.productsService.findAll(
       { page, limit },
       { sortBy, order },
       category,
+      name
     );
   }
 

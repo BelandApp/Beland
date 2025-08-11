@@ -103,7 +103,7 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** con `user_permission` buscar un usuario específico por su dirección de email.',
   })
-  // // @ApiBearerAuth('JWT-auth')
+  @ApiBearerAuth('JWT-auth')
   @ApiQuery({
     name: 'email',
     description: 'Email del usuario a buscar',
@@ -140,6 +140,8 @@ export class UsersController {
   }
 
   @Get('me')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
   @ApiOperation({
@@ -147,7 +149,6 @@ export class UsersController {
     description:
       'Retorna el perfil completo del usuario que está autenticado en la sesión.',
   })
-  // // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Información del usuario autenticado.',
@@ -176,6 +177,8 @@ export class UsersController {
   }
 
   @Patch('me')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
   @ApiOperation({
@@ -183,7 +186,6 @@ export class UsersController {
     description:
       'Permite al usuario autenticado actualizar su propio nombre y foto de perfil.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Perfil de usuario actualizado exitosamente.',
@@ -232,6 +234,8 @@ export class UsersController {
   }
 
   @Get()
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener lista de usuarios con paginación, filtrado y ordenación',
     description:
@@ -332,6 +336,8 @@ export class UsersController {
   }
 
   @Get('deactivated')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -341,7 +347,6 @@ export class UsersController {
     description:
       'Lista todos los usuarios que han sido marcados como desactivados (soft-deleted).',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios desactivados.',
@@ -366,6 +371,8 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener un usuario por ID',
     description:
@@ -437,6 +444,8 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -446,7 +455,6 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** actualizar cualquier perfil de usuario, incluyendo nombre, foto, rol, estado de bloqueo y estado de activación/desactivación.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a actualizar',
@@ -494,6 +502,8 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
@@ -503,7 +513,6 @@ export class UsersController {
     description:
       'Marca un usuario como desactivado en la base de datos (soft-delete). Solo accesible por **Admin/Superadmin**. No elimina el registro físicamente.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a desactivar',
@@ -544,6 +553,8 @@ export class UsersController {
   }
 
   @Patch(':id/reactivate')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -553,7 +564,6 @@ export class UsersController {
     description:
       'Marca un usuario previamente desactivado como activo. Solo accesible por **Admin/Superadmin**.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a reactivar',
@@ -594,6 +604,8 @@ export class UsersController {
   }
 
   @Patch(':id/block-status')
+  @UseGuards(AuthenticationGuard)
+  @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
   // @RequiredPermissions('user_permission') // Comentado temporalmente
@@ -603,7 +615,6 @@ export class UsersController {
     description:
       'Permite a un **Admin/Superadmin** cambiar el estado de bloqueo (`isBlocked`) de un usuario.',
   })
-  // @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     description: 'ID del usuario a bloquear/desbloquear',

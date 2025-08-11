@@ -25,7 +25,7 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Comentado temporalmente
 // import { RolesGuard } from '../auth/guards/roles.guard'; // Comentado temporalmente
 // import { Roles } from '../auth/decorators/roles.decorator'; // Comentado temporalmente
@@ -35,7 +35,7 @@ import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 @ApiTags('roles')
 @Controller('roles')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
 export class RolesController {
   private readonly logger = new Logger(RolesController.name); // Añadir logger

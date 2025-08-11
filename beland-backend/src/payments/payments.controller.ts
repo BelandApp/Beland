@@ -12,7 +12,10 @@ import {
   HttpStatus,
   BadRequestException,
   UseGuards,
+<<<<<<< HEAD
   Req,
+=======
+>>>>>>> dev
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,13 +29,21 @@ import { PaymentsService } from './payments.service';
 import { Payment } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+<<<<<<< HEAD
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+=======
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+>>>>>>> dev
 
 @ApiTags('payments')
 @Controller('payments')
 @ApiBearerAuth('JWT-auth')
+<<<<<<< HEAD
 @UseGuards(AuthenticationGuard)
+=======
+@UseGuards(FlexibleAuthGuard)
+>>>>>>> dev
 export class PaymentsController {
   constructor(private readonly service: PaymentsService) {}
 

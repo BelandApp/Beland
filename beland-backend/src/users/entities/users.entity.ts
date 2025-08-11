@@ -24,6 +24,17 @@ import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 import { Merchant } from 'src/merchants/entities/merchant.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
+import { UserAddress } from 'src/user-address/entities/user-address.entity';
+import { UserCard } from 'src/user-cards/entities/user-card.entity';
+
+// Definición de tipo para todos los roles válidos (importante para consistencia)
+export type ValidRoleNames =
+  | 'USER'
+  | 'LEADER'
+  | 'ADMIN'
+  | 'SUPERADMIN'
+  | 'EMPRESA';
 
 @Entity('users')
 export class User {
@@ -49,7 +60,7 @@ export class User {
   current_balance: number | null;
 
   @Column({ type: 'text', default: 'USER' })
-  role_name: string; // Nombre del rol (ej. 'USER', 'ADMIN')
+  role_name: ValidRoleNames; // Nombre del rol (ej. 'USER', 'ADMIN')
 
   @Column({ type: 'uuid', nullable: true })
   role_id: string | null; // ID del rol (FK)
@@ -99,6 +110,9 @@ export class User {
   @OneToOne(() => Admin, (admin) => admin.user)
   admin: Admin;
 
+  @OneToOne(() => Cart, (cart) => cart.user)
+  cart: Cart;
+
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
   @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
   wallets: Wallet[];
@@ -112,8 +126,8 @@ export class User {
   @OneToMany(() => Order, (order) => order.leader)
   orders: Order[];
 
-  @OneToMany(() => OrderItem, (item) => item.consumed_by_user)
-  consumed_items: OrderItem[];
+  // @OneToMany(() => OrderItem, (item) => item.consumed_by_user)
+  // consumed_items: OrderItem[];
 
   @OneToMany(() => Payment, (payment) => payment.user)
   payments: Payment[];
@@ -136,4 +150,9 @@ export class User {
   @OneToOne(() => Merchant, (merchant) => merchant.user)
   merchant: Merchant;
 
+  @OneToMany(() => UserAddress, address => address.user, { cascade: true })
+  addresses: UserAddress[];
+
+  @OneToMany(() => UserCard, card => card.user, { cascade: true })
+  cards: UserCard[];
 }

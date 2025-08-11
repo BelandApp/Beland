@@ -1,0 +1,17 @@
+[
+  {
+    "code": "PENDING",
+    "name": "Pendiente",
+    "description": "La transacción ha sido iniciada pero aún no finaliza"
+  },
+  {
+    "code": "COMPLETED",
+    "name": "Completada",
+    "description": "La transacción se procesó correctamente"
+  },
+  {
+    "code": "FAILED",
+    "name": "Fallida",
+    "description": "La transacción no pudo ser procesada por un error"
+  }
+]

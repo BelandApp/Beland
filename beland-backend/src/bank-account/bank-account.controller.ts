@@ -27,11 +27,12 @@ import { CreateBankAccountDto } from './dto/create-bank-account.dto';
 import { UpdateBankAccountDto } from './dto/update-bank-account.dto';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('bank_account')
 @Controller('bank_account')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class BankAccountsController {
   constructor(private readonly service: BankAccountsService) {}
 

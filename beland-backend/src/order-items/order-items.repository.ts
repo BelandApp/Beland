@@ -37,6 +37,10 @@ export class OrderItemsRepository {
     return await this.repository.save(body);
   }
 
+  async createMany(items: Partial<OrderItem>[]) {
+    return await this.repository.save(items);
+  }
+
   async update(id: string, body: Partial<OrderItem>): Promise<UpdateResult> {
     return await this.repository.update(id, body);
   }
