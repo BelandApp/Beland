@@ -2,16 +2,23 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { OrdersRepository } from './orders.repository';
 import { Order } from './entities/order.entity';
+import { WalletsRepository } from 'src/wallets/wallets.repository';
+import { CartsRepository } from 'src/cart/cart.repository';
 
 @Injectable()
 export class OrdersService {
   private readonly completeMessage = 'la orden';
 
-  constructor(private readonly repository: OrdersRepository) {}
+  constructor(
+    private readonly repository: OrdersRepository,
+    private readonly walletRepo: WalletsRepository,
+    private readonly cartRepo: CartsRepository
+  ) {}
 
   async findAll(
     leader_id: string,
@@ -55,6 +62,11 @@ export class OrdersService {
   }
 
   async createOrderByCart(cart_id: string, wallet_id:string): Promise<Order> {
+    const wallet = await this.walletRepo.findOne(wallet_id);
+    const cart = await this.cartRepo.findOne(cart_id);
+    if (wallet.becoin_balance < cart.total_amount) throw new NotAcceptableException('Saldo Insuficiente')
+    
+    
     // incluir todo el codigo necesario. inserta cart en order, inserta cartitems en orderItems
     // genera el pago desde la wallet.
     // si no alcanza el fondo da error.
