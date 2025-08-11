@@ -25,7 +25,7 @@ export class PaymentsRepository {
 
     return this.repository.findAndCount({
         where,
-        order: { payment_date: 'DESC' },
+        order: { created_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
         relations: ['group', 'user'],

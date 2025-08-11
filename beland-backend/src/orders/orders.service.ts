@@ -2,16 +2,27 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { OrdersRepository } from './orders.repository';
 import { Order } from './entities/order.entity';
+import { WalletsRepository } from 'src/wallets/wallets.repository';
+import { CartsRepository } from 'src/cart/cart.repository';
+import { OrderItemsRepository } from 'src/order-items/order-items.repository';
+import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
 
 @Injectable()
 export class OrdersService {
   private readonly completeMessage = 'la orden';
 
-  constructor(private readonly repository: OrdersRepository) {}
+  constructor(
+    private readonly repository: OrdersRepository,
+    private readonly orderItemRepo: OrderItemsRepository,
+    private readonly walletRepo: WalletsRepository,
+    private readonly cartRepo: CartsRepository,
+
+  ) {}
 
   async findAll(
     leader_id: string,
@@ -52,6 +63,41 @@ export class OrdersService {
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
+  }
+
+  async createOrderByCart(order_create: CreateOrderByCartDto): Promise<Order> {
+    const wallet = await this.walletRepo.findOne(order_create.wallet_id);
+    const cart = await this.cartRepo.findOne(order_create.cart_id);
+    if (!wallet) throw new NotFoundException('Wallet no encontrada');
+    if (!cart) throw new NotFoundException('Carrito no encontrado');
+
+    if (wallet.becoin_balance < cart.total_amount) {
+      throw new NotAcceptableException('Saldo insuficiente');
+    }
+
+    // Crear la orden
+    const { id, user_id, created_at, updated_at, items, ...createOrder } = cart;
+    const order = await this.repository.create({
+      ...createOrder,
+      leader_id: user_id,
+    });
+
+    const savedOrder = await this.repository.create(order);
+    if (!savedOrder) throw new ConflictException('No se pudo crear la orden');
+
+    // Preparar los ítems para insertar
+    const orderItems = cart.items.map(({ id, created_at, cart_id, ...rest }) => ({
+      ...rest,
+      order_id: savedOrder.id,
+    }));
+
+    // Inserción masiva de ítems
+    const itemsCreated = await this.orderItemRepo.createMany(orderItems);
+    if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
+
+    
+    
+    return 
   }
 
   async update(id: string, body: Partial<Order>) {

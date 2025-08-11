@@ -66,8 +66,9 @@ export class SuperAdminUserSeeder {
       deleted_at: null,
       profile_picture_url: '',
     };
-
+   
     try {
+
       await this.usersService.create(superAdminData);
       this.logger.log(
         `✅ Usuario SUPERADMIN creado exitosamente: ${superAdminEmail}`,

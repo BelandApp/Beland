@@ -10,6 +10,7 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,14 +18,18 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Merchant } from './entities/merchant.entity';
 import { MerchantsService } from './merchants.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('merchants')
 @Controller('merchants')
+@ApiBearerAuth('JWT-auth')
+@UseGuards(FlexibleAuthGuard)
 export class MerchantsController {
   constructor(private readonly service: MerchantsService) {}
 
