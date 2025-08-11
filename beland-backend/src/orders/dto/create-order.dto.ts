@@ -13,13 +13,13 @@ export class CreateOrderDto {
 
   @ApiProperty({
     description: 'Estado de la orden',
-    enum: ['PENDING_PAYMENT', 'PAID'],
-    default: 'PENDING_PAYMENT',
+    enum: ['PENDING', 'PAID'],
+    default: 'PENDING',
     required: false,
   })
   @IsOptional()
-  @IsEnum(['PENDING_PAYMENT', 'PAID'])
-  status?: 'PENDING_PAYMENT' | 'PAID';
+  @IsEnum(['PENDING', 'PAID'])
+  status?: 'PENDING' | 'PAID';
 
   @ApiProperty({
     description: 'Total de la orden en monedas internas',
