@@ -43,6 +43,7 @@ import { PreloadModule } from './preload/preload.module';
 import { CartModule } from './cart/cart.module';
 import { CartItemsModule } from './cart-items/cart-items.module';
 import { UserCardsModule } from './user-cards/user-cards.module';
+import { UserAddressModule } from './user-address/user-address.module';
 
 @Module({
   imports: [
@@ -118,6 +119,7 @@ import { UserCardsModule } from './user-cards/user-cards.module';
     CartModule,
     CartItemsModule,
     UserCardsModule,
+    UserAddressModule,
   ],
   controllers: [],
   providers: [

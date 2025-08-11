@@ -4,20 +4,20 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { UserCard } from './entities/user-card.entity';
-import { UserCardsRepository } from './user-cards.repository';
+import { UserAddress } from './entities/user-address.entity';
+import { UserAddressRepository } from './user-address.repository';
 
 @Injectable()
-export class UserCardsService {
-  private readonly completeMessage = 'la tarjeta';
+export class UserAddressService {
+  private readonly completeMessage = 'la dirección de usuario';
 
-  constructor(private readonly repository: UserCardsRepository) {}
+  constructor(private readonly repository: UserAddressRepository) {}
 
   async findAll(
     user_id: string,
     pageNumber: number,
     limitNumber: number,
-  ): Promise<[UserCard[], number]> {
+  ): Promise<[UserAddress[], number]> {
     try {
       const response = await this.repository.findAll(
         user_id,
@@ -30,7 +30,7 @@ export class UserCardsService {
     }
   }
 
-  async findOne(id: string): Promise<UserCard> {
+  async findOne(id: string): Promise<UserAddress> {
     try {
       const res = await this.repository.findOne(id);
       if (!res)
@@ -41,7 +41,7 @@ export class UserCardsService {
     }
   }
 
-  async create(body: Partial<UserCard>): Promise<UserCard> {
+  async create(body: Partial<UserAddress>): Promise<UserAddress> {
     try {
       const res = await this.repository.create(body);
       if (!res)
@@ -54,7 +54,7 @@ export class UserCardsService {
     }
   }
 
-  async update(id: string, body: Partial<UserCard>) {
+  async update(id: string, body: Partial<UserAddress>) {
     try {
       const res = await this.repository.update(id, body);
       if (res.affected === 0)

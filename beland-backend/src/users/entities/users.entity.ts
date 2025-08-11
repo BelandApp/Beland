@@ -25,6 +25,8 @@ import { Exclude } from 'class-transformer';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 import { Merchant } from 'src/merchants/entities/merchant.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
+import { UserAddress } from 'src/user-address/entities/user-address.entity';
+import { UserCard } from 'src/user-cards/entities/user-card.entity';
 
 @Entity('users')
 export class User {
@@ -140,4 +142,9 @@ export class User {
   @OneToOne(() => Merchant, (merchant) => merchant.user)
   merchant: Merchant;
 
+  @OneToMany(() => UserAddress, address => address.user, { cascade: true })
+  addresses: UserAddress[];
+
+  @OneToMany(() => UserCard, card => card.user, { cascade: true })
+  cards: UserCard[];
 }

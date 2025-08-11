@@ -29,7 +29,7 @@ export class CreateUserCardDto {
 
   @ApiProperty({ example: 'Credit', description: 'Credit o Debit' })
   @IsString()
-  cardType: string;
+  cardType: 'Credit' | 'Debit';
 
   @ApiProperty({ example: 3456, description: 'Ultimos cuatro digitos de la tarjeta' })
   @IsNumber()
