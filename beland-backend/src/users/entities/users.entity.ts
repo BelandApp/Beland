@@ -28,6 +28,14 @@ import { Cart } from 'src/cart/entities/cart.entity';
 import { UserAddress } from 'src/user-address/entities/user-address.entity';
 import { UserCard } from 'src/user-cards/entities/user-card.entity';
 
+// Definición de tipo para todos los roles válidos (importante para consistencia)
+export type ValidRoleNames =
+  | 'USER'
+  | 'LEADER'
+  | 'ADMIN'
+  | 'SUPERADMIN'
+  | 'EMPRESA';
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -52,7 +60,7 @@ export class User {
   current_balance: number | null;
 
   @Column({ type: 'text', default: 'USER' })
-  role_name: string; // Nombre del rol (ej. 'USER', 'ADMIN')
+  role_name: ValidRoleNames; // Nombre del rol (ej. 'USER', 'ADMIN')
 
   @Column({ type: 'uuid', nullable: true })
   role_id: string | null; // ID del rol (FK)

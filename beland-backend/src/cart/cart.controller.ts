@@ -4,7 +4,6 @@ import {
   Post,
   Body,
   Param,
-  Delete,
   Query,
   ParseUUIDPipe,
   Put,
@@ -21,17 +20,17 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
 import { Cart } from './entities/cart.entity';
 import { CartsService } from './cart.service';
 import { CreateCartDto } from './dto/create-cart.dto';
 import { UpdateCartDto } from './dto/update-cart.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('carts')
 @Controller('carts')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class CartsController {
   constructor(private readonly service: CartsService) {}
 

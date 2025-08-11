@@ -27,11 +27,12 @@ import { UserCard } from './entities/user-card.entity';
 import { UserCardsService } from './user-cards.service';
 import { CreateUserCardDto } from './dto/create-user-card.dto';
 import { UpdateUserCardDto } from './dto/update-user-card.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('user-cards')
 @Controller('user-cards')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class UserCardsController {
   constructor(private readonly service: UserCardsService) {}
 

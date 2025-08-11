@@ -24,17 +24,18 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 // Absolute paths for guards and decorators (assuming tsconfig.json is configured)
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
 import { Request } from 'express'; // Import Request from express for req.user
 import { User } from 'src/users/entities/users.entity'; // Import User entity for type casting req.user
 import { GroupsService } from 'src/groups/groups.service'; // Import GroupsService to check group leader/members
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('group-members') // Tag for Swagger documentation
 @Controller('group-members') // Base route for this controller
-@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Apply authentication and authorization guards to all routes
+@ApiBearerAuth('JWT-auth')
+@UseGuards(FlexibleAuthGuard, RolesGuard, PermissionsGuard) // Apply authentication and authorization guards to all routes
 export class GroupMembersController {
   constructor(
     private readonly groupMembersService: GroupMembersService,

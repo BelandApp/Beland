@@ -24,12 +24,12 @@ import { RecyclePrice } from './entities/recycle_price.entity';
 import { RecyclePricesService } from './recycle_prices.service';
 import { CreateRecyclePriceDto } from './dto/create-recycle_price.dto';
 import { UpdateRecyclePriceDto } from './dto/update-recycle_price.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
-@ApiTags('recycle-prices')
-@Controller('recycle-prices')
+@ApiTags('orders')
+@Controller('orders')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class RecyclePricesController {
   constructor(private readonly service: RecyclePricesService) {}
 

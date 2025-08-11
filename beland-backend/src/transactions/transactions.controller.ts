@@ -24,12 +24,12 @@ import { Transaction } from './entities/transaction.entity';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { TransactionsService } from './transactions.service';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('transactions')
 @Controller('transactions')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class TransactionsController {
   constructor(private readonly service: TransactionsService) {}
 

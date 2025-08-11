@@ -27,11 +27,12 @@ import { CreateCharityDto } from './dto/create-charity.dto';
 import { UpdateCharityDto } from './dto/update-charity.dto';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('charities')
 @Controller('charities')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class CharitiesController {
   constructor(private readonly service: CharitiesService) {}
 

@@ -18,7 +18,7 @@ export class Cart {
   @ManyToOne(() => UserAddress, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'address_id' })
   address: UserAddress;
-  @Column('uuid')
+  @Column('uuid', {nullable:true})
   address_id: string;
 
   @ManyToOne(() => Group, {

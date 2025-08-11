@@ -24,12 +24,12 @@ import { PrizesService } from './prizes.service';
 import { Prize } from './entities/prize.entity';
 import { CreatePrizeDto } from './dto/create-prize.dto';
 import { UpdatePrizeDto } from './dto/update-prize.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('orders')
 @Controller('orders')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class PrizesController {
   constructor(private readonly service: PrizesService) {}
 

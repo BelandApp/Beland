@@ -12,7 +12,6 @@ import {
   HttpStatus,
   BadRequestException,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,13 +25,12 @@ import { PaymentsService } from './payments.service';
 import { Payment } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
-import { Request } from 'express';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('payments')
 @Controller('payments')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class PaymentsController {
   constructor(private readonly service: PaymentsService) {}
 
@@ -41,18 +39,23 @@ export class PaymentsController {
 @ApiOperation({ summary: 'Listar pagos con paginación y filtro exclusivo' })
 @ApiQuery({ name: 'page', required: false, type: Number, example: 1, description: 'Número de página' })
 @ApiQuery({ name: 'limit', required: false, type: Number, example: 10, description: 'Cantidad de elementos por página' })
-@ApiQuery({ name: 'group_id', required: false, type: String, description: 'Filtrar por ID de grupo. Si no se envia retorna todos los grupos del usuario.' })
+@ApiQuery({ name: 'user_id', required: false, type: String, description: 'Filtrar por ID de usuario. No usar junto con group_id.' })
+@ApiQuery({ name: 'group_id', required: false, type: String, description: 'Filtrar por ID de grupo. No usar junto con user_id.' })
 @ApiResponse({ status: 200, description: 'Listado de pagos retornado correctamente' })
+@ApiResponse({ status: 400, description: 'Solo puede enviarse user_id o group_id, no ambos.' })
 @ApiResponse({ status: 500, description: 'Error interno del servidor' })
 async findAll(
   @Query('page') page = '1',
   @Query('limit') limit = '10',
-  @Req() req: Request,
+  @Query('user_id') user_id = '',
   @Query('group_id') group_id = '',
 ): Promise<[Payment[], number]> {
+  const hasUserId = user_id.trim() !== '';
+  const hasGroupId = group_id.trim() !== '';
+  if (hasUserId && hasGroupId) throw new BadRequestException('Solo puede buscar por usuario o grupo pero no ambos al mismo tiempo.');
   const pageNumber = parseInt(page, 10);
   const limitNumber = parseInt(limit, 10);
-  return await this.service.findAll(group_id, req.user?.id, pageNumber, limitNumber);
+  return await this.service.findAll(group_id, user_id, pageNumber, limitNumber);
 }
 
 @Get(':id')

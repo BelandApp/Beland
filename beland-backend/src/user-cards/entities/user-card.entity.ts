@@ -14,7 +14,7 @@ export class UserCard {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.cards, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User,/* user => user.cards,*/ { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
   @Column('uuid')

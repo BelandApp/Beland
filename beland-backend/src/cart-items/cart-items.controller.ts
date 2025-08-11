@@ -26,11 +26,12 @@ import { CartItem } from './entities/cart-item.entity';
 import { CartItemsService } from './cart-items.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('cart-items')
 @Controller('cart-items')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class CartItemsController {
   constructor(private readonly service: CartItemsService) {}
 

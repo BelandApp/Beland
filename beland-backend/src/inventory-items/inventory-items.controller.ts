@@ -24,12 +24,12 @@ import { InventoryItemsService } from './inventory-items.service';
 import { InventoryItem } from './entities/inventory-item.entity';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('inventory-items')
 @Controller('inventory-items')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class InventoryItemsController {
   constructor(private readonly service: InventoryItemsService) {}
 

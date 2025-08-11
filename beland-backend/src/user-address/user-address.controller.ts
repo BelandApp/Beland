@@ -27,11 +27,12 @@ import { UserAddress } from './entities/user-address.entity';
 import { UserAddressService } from './user-address.service';
 import { CreateUserAddressDto } from './dto/create-user-address.dto';
 import { UpdateUserAddressDto } from './dto/update-user-address.dto';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 @ApiTags('user-address')
 @Controller('user-address')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(AuthenticationGuard)
+@UseGuards(FlexibleAuthGuard)
 export class UserAddressController {
   constructor(private readonly service: UserAddressService) {}
 
