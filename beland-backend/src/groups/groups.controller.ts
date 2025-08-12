@@ -527,16 +527,20 @@ export class GroupsController {
     // --- START: Logic to resolve user and construct CreateGroupMemberDto ---
     let userToInvite: User | null = null;
     if (inviteUserDto.email) {
-      userToInvite = await this.usersService.findByEmail(inviteUserDto.email);
+      userToInvite = await this.usersService.findOneByEmail(
+        inviteUserDto.email,
+      );
     } else if (inviteUserDto.username) {
-      userToInvite = await this.usersService.findByUsername(
+      userToInvite = await this.usersService.findOneByUsername(
         inviteUserDto.username,
       );
     } else if (inviteUserDto.phone) {
       // Convert phone to number, as findByPhone expects a number
-      userToInvite = await this.usersService.findByPhone(
-        Number(inviteUserDto.phone),
-      );
+      const phoneNumber = Number(inviteUserDto.phone);
+      if (isNaN(phoneNumber)) {
+        throw new BadRequestException('Phone number must be numeric.');
+      }
+      userToInvite = await this.usersService.findOneByPhone(phoneNumber);
     }
 
     if (!userToInvite) {

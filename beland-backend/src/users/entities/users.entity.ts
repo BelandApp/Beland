@@ -13,7 +13,7 @@ import { Wallet } from '../../wallets/entities/wallet.entity';
 import { Group } from '../../groups/entities/group.entity';
 import { GroupMember } from '../../group-members/entities/group-member.entity';
 import { Order } from '../../orders/entities/order.entity';
-import { OrderItem } from '../../order-items/entities/order-item.entity';
+// import { OrderItem } from '../../order-items/entities/order-item.entity'; // No utilizada actualmente
 import { Payment } from '../../payments/entities/payment.entity';
 import { Action } from '../../actions/entities/action.entity';
 import { RecycledItem } from '../../recycled-items/entities/recycled-item.entity';
@@ -42,6 +42,9 @@ export class User {
   id: string; // Clave primaria UUID
 
   @Column({ type: 'text', nullable: true })
+  auth0_id: string | null; // ID de Auth0 (se mantiene para usuarios OAuth)
+
+  @Column({ type: 'text', nullable: true })
   oauth_provider: string | null;
 
   @Column({ type: 'text', unique: true })
@@ -64,9 +67,6 @@ export class User {
 
   @Column({ type: 'uuid', nullable: true })
   role_id: string | null; // ID del rol (FK)
-
-  @Column({ type: 'text', nullable: true })
-  auth0_id: string | null; // ID de Auth0 (se mantiene para usuarios OAuth)
 
   @Column({ type: 'text', nullable: true })
   address: string | null;
@@ -127,7 +127,7 @@ export class User {
   orders: Order[];
 
   // @OneToMany(() => OrderItem, (item) => item.consumed_by_user)
-  // consumed_items: OrderItem[];
+  // consumed_items: OrderItem[]; // Comentada si no está en uso
 
   @OneToMany(() => Payment, (payment) => payment.user)
   payments: Payment[];
@@ -150,9 +150,9 @@ export class User {
   @OneToOne(() => Merchant, (merchant) => merchant.user)
   merchant: Merchant;
 
-  @OneToMany(() => UserAddress, address => address.user, { cascade: true })
+  @OneToMany(() => UserAddress, (address) => address.user, { cascade: true })
   addresses: UserAddress[];
 
-  @OneToMany(() => UserCard, card => card.user, { cascade: true })
+  @OneToMany(() => UserCard, (card) => card.user, { cascade: true })
   cards: UserCard[];
 }

@@ -16,22 +16,39 @@ import {
   useAuthRequest,
   exchangeCodeAsync,
 } from "expo-auth-session";
+import Constants from "expo-constants"; // Importar Constants para acceder a extra
 
 WebBrowser.maybeCompleteAuthSession();
 
 // === CONFIGURACIÓN ===
-const auth0Domain = "dev-vf7nz76r1qsjwysf.us.auth0.com";
-const clientWebId = "jNonnDIwGXK83rtiKGkGYxegh4S8eANt";
-const scheme = "belandnative";
-const apiBaseUrl = "https://api.beland.app";
+// Acceder a las variables de entorno desde Constants.expoConfig.extra
+const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
+const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
+const scheme = Constants.expoConfig?.scheme as string; // Usar el scheme definido en app.json/app.config.js
+const apiBaseUrl = Constants.expoConfig?.extra?.apiUrl as string || "http://localhost:8081";
+const auth0Audience = "https://beland.onrender.com/api";
 
+// Validar que las variables de entorno estén definidas
+if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
+  console.error(
+    "❌ Error: Las variables de entorno de Auth0 o API no están configuradas correctamente en app.config.js."
+  );
+  // Puedes lanzar un error o manejarlo de otra manera, dependiendo de tu estrategia
+  // throw new Error("Auth0 or API environment variables are missing.");
+}
+
+const isWeb = Platform.OS === "web";
 // Redirección con soporte a proxy y esquema nativo
 const redirectUri = makeRedirectUri({
   scheme,
-  useProxy: true,
+  useProxy: !isWeb,
 } as any);
 
 console.log("🔁 redirectUri:", redirectUri);
+console.log("Domain:", auth0Domain);
+console.log("Client Web ID:", clientWebId);
+console.log("Audience:", auth0Audience);
+console.log("Redirect URI:", redirectUri);
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -41,10 +58,10 @@ const discovery = {
 
 // === TIPADO ===
 export interface AuthUser {
-  id: string;
+  id: string; // ID de tu base de datos (UUID)
   email: string;
-  name?: string;
-  picture?: string;
+  name?: string; // full_name o username de tu DB
+  picture?: string; // profile_picture_url de tu DB
 }
 
 interface AuthContextType {
@@ -76,11 +93,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       clientId: clientWebId,
       redirectUri,
       scopes: ["openid", "profile", "email"],
-      responseType: "code", // <-- Ahora usamos Authorization Code Flow
+      responseType: "code", // Usamos Authorization Code Flow con PKCE
       usePKCE: true,
+      extraParams: {
+        audience: auth0Audience,
+      },
     },
     discovery
   );
+console.log(response)
+console.log(request)
 
   const saveToken = async (token: string) => {
     if (Platform.OS === "web") {
@@ -106,12 +128,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Función para obtener el perfil del usuario desde tu backend
+  const fetchUserProfileFromBackend = async (
+    token: string
+  ): Promise<AuthUser> => {
+    const res = await fetch(`${apiBaseUrl}auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      console.error("❌ Error al obtener el perfil del backend:", errorData);
+      throw new Error(
+        errorData.message || "Error al obtener el perfil del backend."
+      );
+    }
+
+    const backendUser = await res.json();
+    // Mapear los datos del backend a la interfaz AuthUser del frontend
+    return {
+      id: backendUser.id,
+      email: backendUser.email,
+      name: backendUser.full_name || backendUser.username, // Preferir full_name, si no username
+      picture: backendUser.profile_picture_url,
+    };
+  };
+
   // === Manejo de Login con Auth0 ===
   useEffect(() => {
     const handleAuth = async () => {
       if (response?.type === "success" && response.params?.code) {
         try {
-          // Intercambiar el código por el token
+          // 1. Intercambiar el código por el token de acceso de Auth0
           const tokenResult = await exchangeCodeAsync(
             {
               code: response.params.code,
@@ -123,45 +171,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           );
 
           const accessToken = tokenResult.accessToken;
+          console.log(accessToken, "✅ Access Token obtenido")
           if (!accessToken) {
-            console.error("❌ No se obtuvo accessToken");
-            return;
+            console.error("❌ No se obtuvo accessToken de Auth0.");
+            throw new Error("No access token from Auth0.");
           }
 
-          // Obtener info de usuario
-          const userInfoRes = await fetch(`https://${auth0Domain}/userinfo`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
-          const userInfo = await userInfoRes.json();
-
-          const authUser: AuthUser = {
-            id: userInfo.sub,
-            email: userInfo.email,
-            name: userInfo.name,
-            picture: userInfo.picture,
-          };
-
-          // Guardar token y usuario
+          // 2. Guardar el token de Auth0 (este es el que el backend validará)
           await saveToken(accessToken);
+
+          // 3. Llamar a tu backend para obtener el perfil del usuario.
+          // El backend usará el accessToken para validar con Auth0 y sincronizar el usuario en Supabase.
+          const authUser = await fetchUserProfileFromBackend(accessToken);
+
+          // 4. Establecer el usuario en el estado del contexto
           setUser(authUser);
           setIsDemo(false);
-
-          // Insertar en tu backend / Supabase
-          await fetch(`${apiBaseUrl}/api/auth/me`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(authUser),
-          });
         } catch (err) {
-          console.error("❌ Error autenticando:", err);
+          console.error(
+            "❌ Error durante el flujo de autenticación o sincronización con el backend:",
+            err
+          );
+          await deleteToken(); // Limpiar token si falla la autenticación o sincronización
         } finally {
           setIsLoading(false);
         }
+      } else if (response?.type === "error") {
+        console.error("❌ Error de autenticación de Auth0:", response.error);
+        setIsLoading(false);
       }
     };
 
     handleAuth();
-  }, [response]);
+  }, [response, request]); // Dependencias: response y request para el flujo de Auth0
 
   // === Restaurar sesión al cargar ===
   useEffect(() => {
@@ -173,30 +215,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        const res = await fetch(`https://${auth0Domain}/userinfo`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const userInfo = await res.json();
-
-        const authUser: AuthUser = {
-          id: userInfo.sub,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture,
-        };
+        // Llamar a tu backend para obtener el perfil del usuario.
+        // El backend validará el token y devolverá el usuario de tu DB.
+        const authUser = await fetchUserProfileFromBackend(token);
 
         setUser(authUser);
         setIsDemo(false);
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
-        await deleteToken();
+        await deleteToken(); // Limpiar token si falla la restauración
       } finally {
         setIsLoading(false);
       }
     };
 
     restoreSession();
-  }, []);
+  }, []); // Se ejecuta solo una vez al montar el componente
 
   // === Login con email y password ===
   const loginWithEmailPassword = useCallback(
@@ -277,15 +311,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const loginWithAuth0 = () => {
-    promptAsync({ useProxy: true } as any);
+    // `promptAsync` inicia el flujo de autenticación
+    promptAsync();
   };
 
   const loginAsDemo = () => {
     setUser({
-      id: "demo-user",
+      id: "demo-user-uuid", // Un UUID de ejemplo para el usuario demo
       email: "demo@beland.app",
       name: "Usuario Demo",
-      picture: "https://ui-avatars.com/api/?name=Demo+User",
+      picture: "https://ui-avatars.com/api/?name=Demo+User&background=random",
     });
     setIsDemo(true);
     setIsLoading(false);
@@ -295,6 +330,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setIsDemo(false);
     await deleteToken();
+    // Opcional: Redirigir a Auth0 para cerrar sesión completamente (logout de Auth0)
+    // WebBrowser.openAuthSessionAsync(`https://${auth0Domain}/v2/logout?client_id=${clientWebId}&returnTo=${encodeURIComponent(redirectUri)}`);
   };
 
   return (

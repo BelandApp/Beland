@@ -65,7 +65,9 @@ export class GroupMembersService {
       );
     }
 
-    const user = await this.usersService.findOne(createGroupMemberDto.user_id);
+    const user = await this.usersService.findUserEntityById(
+      createGroupMemberDto.user_id,
+    );
     if (!user) {
       throw new NotFoundException(
         `User with ID "${createGroupMemberDto.user_id}" not found.`,

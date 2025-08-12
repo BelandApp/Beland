@@ -1,3 +1,4 @@
+// src/auth/auth.service.ts
 import {
   BadRequestException,
   ConflictException,
@@ -64,8 +65,6 @@ export class AuthService {
     }
   }
 
-  // provisorio para presentacion
-
   async signup(user: RegisterAuthDto): Promise<{ token: string }> {
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -73,25 +72,41 @@ export class AuthService {
     await queryRunner.startTransaction();
 
     try {
+      // ✅ VALIDACIÓN: Comparar password y confirmPassword here
+      if (user.password !== user.confirmPassword) {
+        throw new BadRequestException('Las contraseñas no coinciden.');
+      }
+
       const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
-        throw new UnauthorizedException(
+        throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
           `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
         );
       }
 
       const userRole: Role = await this.roleRepository.findByName('USER');
       if (!userRole) {
-        throw new ConflictException('No se pudo obtener el rol USER');
+        throw new InternalServerErrorException(
+          'No se pudo obtener el rol USER. Asegúrate de que el rol "USER" exista en la base de datos.',
+        );
       }
 
       const HashPassword = await bcrypt.hash(user.password, 10);
 
       // ✅ Crear usuario usando el manager de la transacción
       const userSave = await queryRunner.manager.getRepository(User).save({
-        full_name: user.name,
+        full_name: user.full_name || null, // Ensure nullable fields can be null
         email: user.email,
+        username: user.username || null, // Ensure nullable fields can be null
+        profile_picture_url: user.profile_picture_url || null, // Ensure nullable fields can be null
+        address: user.address,
+        phone: user.phone,
+        country: user.country,
+        city: user.city,
+        isBlocked: false, // Por defecto, no bloqueado
+        deleted_at: null, // Por defecto, no eliminado
         role_id: userRole.role_id,
+        role_name: userRole.name as any,
         password: HashPassword,
       });
 
@@ -108,7 +123,7 @@ export class AuthService {
       });
 
       if (!wallet)
-        throw new ConflictException(
+        throw new InternalServerErrorException(
           'Error al crear la billetera. Intente registrarse Nuevamente',
         );
 
@@ -119,20 +134,33 @@ export class AuthService {
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
-      const userSavePayload = await this.userRepository.findById(userSave.id);
+
+      const userSavePayload = await this.userRepository.findOne(userSave.id);
+
+      // Asegurarse de que userSavePayload no sea null antes de usarlo
+      if (!userSavePayload) {
+        throw new InternalServerErrorException(
+          'Error al recuperar el usuario registrado.',
+        );
+      }
 
       //Crea el Token con todos los datos de usuario
       return await this.createToken(userSavePayload);
-    } catch (error) {
+    } catch (error: any) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
-      // Si el error es UnauthorizedException o ConflictException, relanzar tal cual
+
       if (
-        error instanceof UnauthorizedException ||
-        error instanceof ConflictException
+        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
       ) {
-        throw error;
+        throw error; // Re-lanza excepciones específicas
       }
-      throw new InternalServerErrorException('No se pudo registrar el usuario');
+      // Log the unexpected error before throwing a generic one
+      console.error('Error durante el registro de usuario:', error);
+      throw new InternalServerErrorException(
+        'No se pudo registrar el usuario debido a un error interno.',
+      );
     } finally {
       await queryRunner.release();
     }
@@ -161,13 +189,23 @@ export class AuthService {
     const userPayload = {
       id: user.id,
       email: user.email,
-      role_name: user.role_name,
+
+      username: user.username,
       full_name: user.full_name,
       profile_picture_url: user.profile_picture_url,
+      role_name: user.role_name,
+      role_id: user.role_id,
+      isBlocked: user.isBlocked,
+      deleted_at: user.deleted_at,
+      oauth_provider: user.oauth_provider,
+      auth0_id: user.auth0_id,
     };
     const token = this.jwtService.sign(userPayload, {
       secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
     });
+
+
     return { token };
   }
 }
