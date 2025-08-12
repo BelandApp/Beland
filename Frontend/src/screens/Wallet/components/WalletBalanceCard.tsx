@@ -55,16 +55,36 @@ export const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
                   typeof avatarUrl === "string" ? { uri: avatarUrl } : avatarUrl
                 }
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 24,
-                  backgroundColor: "#eee",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 40,
                 }}
                 resizeMode="cover"
               />
             </View>
           ) : (
-            <View style={walletCardStyles.walletAvatar} />
+            <View style={walletCardStyles.walletAvatar}>
+              <View
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 40,
+                  backgroundColor: "rgba(255,255,255,0.5)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 24,
+                    fontWeight: "bold",
+                    color: "#666",
+                  }}
+                >
+                  👤
+                </Text>
+              </View>
+            </View>
           )}
         </View>
       </View>

@@ -1,5 +1,4 @@
 // src/auth/auth.service.ts
-
 import {
   BadRequestException,
   ConflictException,
@@ -135,6 +134,7 @@ export class AuthService {
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
+
       const userSavePayload = await this.userRepository.findOne(userSave.id);
 
       // Asegurarse de que userSavePayload no sea null antes de usarlo
@@ -148,6 +148,7 @@ export class AuthService {
       return await this.createToken(userSavePayload);
     } catch (error: any) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
+
       if (
         error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
         error instanceof ConflictException ||
@@ -188,6 +189,7 @@ export class AuthService {
     const userPayload = {
       id: user.id,
       email: user.email,
+
       username: user.username,
       full_name: user.full_name,
       profile_picture_url: user.profile_picture_url,
@@ -202,6 +204,7 @@ export class AuthService {
       secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
     });
+
 
     return { token };
   }

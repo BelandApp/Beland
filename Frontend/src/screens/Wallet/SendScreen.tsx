@@ -5,11 +5,14 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
+  Alert,
+  ScrollView,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-
-import { WalletBalanceCard } from "../Wallet/components/WalletBalanceCard";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../hooks/AuthContext";
+import { walletService } from "../../services/walletService";
+import Constants from "expo-constants";
 import { useWalletData } from "../Wallet/hooks/useWalletData";
 
 const digitalCurrencies = [
@@ -18,334 +21,495 @@ const digitalCurrencies = [
   { label: "ARS", value: "ars" },
 ];
 
-const SendScreen = ({ navigation }: any) => {
-  const { walletData } = useWalletData();
+const SendScreen = () => {
+  const navigation = useNavigation();
+  const { walletData, refetch } = useWalletData();
+  const { user } = useAuth();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState(digitalCurrencies[0].value);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [sentAmount, setSentAmount] = useState("");
   const [sentCurrency, setSentCurrency] = useState("");
   const [sentAddress, setSentAddress] = useState("");
 
-  const handleSend = () => {
-    setSentAmount(amount);
-    setSentCurrency(currency);
-    setSentAddress(address);
-    setShowSuccess(true);
-    setAmount("");
-    setAddress("");
+  // Verificar si usar modo demo
+  const useDemoMode = Constants.expoConfig?.extra?.useDemoMode === "true";
+
+  const validateTransfer = (): boolean => {
+    const transferAmount = parseFloat(amount);
+
+    if (!amount || isNaN(transferAmount) || transferAmount <= 0) {
+      Alert.alert("Error", "Por favor ingresa un monto válido");
+      return false;
+    }
+
+    if (transferAmount > walletData.balance) {
+      Alert.alert("Error", "Saldo insuficiente para realizar la transferencia");
+      return false;
+    }
+
+    if (!address.trim()) {
+      Alert.alert("Error", "Por favor ingresa un alias o número de teléfono");
+      return false;
+    }
+
+    return true;
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Modal de éxito visual */}
-      {showSuccess && (
-        <View
-          style={{
-            position: "absolute",
-            zIndex: 100,
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.18)",
-            justifyContent: "center",
-            alignItems: "center",
+  const handleSend = async () => {
+    if (!validateTransfer()) return;
+
+    setIsLoading(true);
+
+    try {
+      if (useDemoMode) {
+        // Modo demo: simular transferencia
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setSentAmount(amount);
+        setSentCurrency(currency);
+        setSentAddress(address);
+        setShowSuccess(true);
+      } else {
+        // Modo producción: transferencia real usando nueva funcionalidad
+        if (!user?.email) {
+          Alert.alert("Error", "Usuario no autenticado");
+          return;
+        }
+
+        const amountNumber = parseFloat(amount);
+        const recipientIdentifier = address.trim();
+
+        try {
+          const result = await walletService.transferBetweenUsers(
+            user.email,
+            recipientIdentifier,
+            amountNumber,
+            `Transferencia de ${amount} ${currency.toUpperCase()}`
+          );
+
+          if (result.isPending) {
+            Alert.alert(
+              "Invitación enviada",
+              `Se ha enviado una invitación a ${recipientIdentifier}. Recibirá los BeCoins cuando se registre en la app.`,
+              [{ text: "OK", onPress: () => navigation.goBack() }]
+            );
+          } else {
+            // Transferencia completada exitosamente
+            setSentAmount(amount);
+            setSentCurrency(currency);
+            setSentAddress(address);
+            setShowSuccess(true);
+
+            // Actualizar datos de la wallet
+            refetch();
+          }
+        } catch (transferError: any) {
+          console.error("Error en transferencia:", transferError);
+          Alert.alert(
+            "Error en transferencia",
+            transferError.message ||
+              "No se pudo completar la transferencia. Verifica los datos e intenta nuevamente."
+          );
+        }
+      }
+
+      // Limpiar formulario
+      setAmount("");
+      setAddress("");
+    } catch (error: any) {
+      console.error("Error en transferencia:", error);
+      Alert.alert(
+        "Error en transferencia",
+        error.message ||
+          "No se pudo completar la transferencia. Intenta nuevamente."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showSuccess) {
+    return (
+      <View style={styles.successContainer}>
+        <MaterialCommunityIcons
+          name="check-decagram"
+          size={80}
+          color="#4ecdc4"
+          style={{ marginBottom: 16 }}
+        />
+        <Text style={styles.successTitle}>¡Transferencia Exitosa!</Text>
+        <Text style={styles.successSubtitle}>
+          Se han enviado {sentAmount}{" "}
+          {sentCurrency === "becoin" ? "BECOINS" : sentCurrency.toUpperCase()} a{" "}
+          {sentAddress}
+        </Text>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => {
+            setShowSuccess(false);
+            navigation.goBack();
           }}
         >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 24,
-              padding: 28,
-              width: 320,
-              alignItems: "center",
-              elevation: 8,
-            }}
-          >
-            {/* Icono visual de éxito */}
-            <MaterialCommunityIcons
-              name="check-decagram"
-              size={64}
-              color="#4ecdc4"
-              style={{ marginBottom: 8 }}
-            />
-            <Text
-              style={{
-                fontSize: 22,
-                fontWeight: "bold",
-                color: "#4ecdc4",
-                marginBottom: 6,
-                textAlign: "center",
-              }}
-            >
-              ¡Transferencia enviada!
-            </Text>
-            <Text
-              style={{
-                fontSize: 16,
-                color: "#222",
-                marginBottom: 2,
-                textAlign: "center",
-              }}
-            >
-              Se le informó al usuario por WhatsApp
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                color: "#888",
-                marginBottom: 8,
-                textAlign: "center",
-                marginTop: 8,
-              }}
-            >
-              Monto enviado:
-              <Text style={{ color: "#f55b5b", fontWeight: "bold" }}>
-                {sentAmount
-                  ? ` ${sentAmount} ${
-                      sentCurrency === "becoin"
-                        ? "BECOINS"
-                        : sentCurrency.toUpperCase()
-                    }`
-                  : " ..."}
-              </Text>
-            </Text>
-            <Text
-              style={{
-                fontSize: 15,
-                color: "#888",
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
-              Destinatario:
-              <Text style={{ color: "#222", fontWeight: "bold" }}>
-                {sentAddress ? ` ${sentAddress}` : " ..."}
-              </Text>
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#888",
-                marginBottom: 12,
-                textAlign: "center",
-              }}
-            >
-              El destinatario recibirá una notificación y podrá ver la
-              transacción en su historial.
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: "#f55b5b",
-                borderRadius: 16,
-                paddingVertical: 10,
-                paddingHorizontal: 32,
-                marginTop: 6,
-                shadowColor: "#f55b5b",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-              onPress={() => {
-                setShowSuccess(false);
-                navigation.goBack();
-              }}
-            >
-              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 17 }}>
-                Cerrar
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      {/* Header y saldo */}
-      <WalletBalanceCard
-        walletData={walletData}
-        backgroundColor="#EB5D4F"
-        accentColor="#fff"
-      />
-      <Text style={styles.label}>Enviar</Text>
-      <View style={styles.row}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ingresar monto"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={setAmount}
-        />
-        <TouchableOpacity
-          style={styles.select}
-          onPress={() => setShowCurrencyModal(true)}
-        >
-          <Text
-            style={[
-              styles.selectText,
-              { color: "#f55b5b", fontWeight: "bold", letterSpacing: 1 },
-            ]}
-          >
-            {" "}
-            {currency === "becoin" ? "BECOINS" : currency.toUpperCase()}{" "}
-            <Ionicons name="chevron-down" size={16} color="#f55b5b" />{" "}
-          </Text>
+          <Text style={styles.closeButtonText}>Cerrar</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Enviar BeCoins</Text>
+      </View>
+
+      {/* Monto */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Monto a enviar</Text>
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.amountInput}
+            placeholder="0"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="numeric"
+            maxLength={10}
+          />
+          <TouchableOpacity
+            style={styles.currencySelector}
+            onPress={() => setShowCurrencyModal(true)}
+          >
+            <Text style={styles.currencyText}>
+              {currency === "becoin" ? "BECOINS" : currency.toUpperCase()}
+            </Text>
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={16}
+              color="#4ecdc4"
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Destinatario */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Destinatario</Text>
+        <View style={styles.recipientContainer}>
+          <TextInput
+            style={styles.recipientInput}
+            placeholder="Alias o número de teléfono"
+            value={address}
+            onChangeText={setAddress}
+            keyboardType="default"
+          />
+          <TouchableOpacity
+            style={styles.qrButton}
+            onPress={() => navigation.navigate("QR" as never)}
+          >
+            <MaterialCommunityIcons
+              name="qrcode-scan"
+              size={24}
+              color="#4ecdc4"
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Información del saldo */}
+      <View style={styles.balanceInfo}>
+        <Text style={styles.balanceLabel}>Saldo disponible:</Text>
+        <Text style={styles.balanceAmount}>{walletData.balance} BECOINS</Text>
+      </View>
+
+      {/* Botón enviar */}
+      <TouchableOpacity
+        style={[
+          styles.sendButton,
+          { opacity: amount && address && !isLoading ? 1 : 0.5 },
+        ]}
+        disabled={!amount || !address || isLoading}
+        onPress={handleSend}
+      >
+        <Text style={styles.sendButtonText}>
+          {isLoading ? "ENVIANDO..." : "ENVIAR"}
+        </Text>
+      </TouchableOpacity>
+
       {/* Modal selector de moneda */}
       {showCurrencyModal && (
-        <View
-          style={{
-            position: "absolute",
-            zIndex: 100,
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.18)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 18,
-              paddingVertical: 12,
-              width: 260,
-              elevation: 8,
-            }}
-          >
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: 18,
-                color: "#222",
-                textAlign: "center",
-                marginBottom: 10,
-              }}
-            >
-              Selecciona moneda
-            </Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccionar moneda</Text>
             {digitalCurrencies.map((item) => (
               <TouchableOpacity
                 key={item.value}
+                style={[
+                  styles.currencyOption,
+                  currency === item.value && styles.currencyOptionSelected,
+                ]}
                 onPress={() => {
                   setCurrency(item.value);
                   setShowCurrencyModal(false);
                 }}
-                style={{
-                  paddingVertical: 14,
-                  paddingHorizontal: 18,
-                  backgroundColor: currency === item.value ? "#f55b5b" : "#fff",
-                  borderRadius: 12,
-                  marginBottom: 6,
-                  alignItems: "center",
-                }}
               >
                 <Text
-                  style={{
-                    fontSize: 17,
-                    color: "#222",
-                    fontWeight: currency === item.value ? "bold" : "normal",
-                  }}
+                  style={[
+                    styles.currencyOptionText,
+                    currency === item.value &&
+                      styles.currencyOptionTextSelected,
+                  ]}
                 >
                   {item.label}
                 </Text>
+                {currency === item.value && (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={20}
+                    color="#4ecdc4"
+                  />
+                )}
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowCurrencyModal(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
-      <Text style={styles.label}>Alias o teléfono</Text>
-      <View style={styles.row}>
-        <TextInput
-          style={styles.inputFull}
-          placeholder="Ingresar alias o número de teléfono"
-          value={address}
-          onChangeText={setAddress}
-          keyboardType="default"
-        />
-        <TouchableOpacity
-          style={styles.qrButton}
-          onPress={() => navigation.navigate("QR")}
-        >
-          <Ionicons name="qr-code-outline" size={28} color="#f55b5b" />
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity
-        style={[styles.sendButton, { opacity: amount && address ? 1 : 0.5 }]}
-        disabled={!amount || !address}
-        onPress={handleSend}
-      >
-        <Text style={styles.sendButtonText}>ENVIAR</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#eaf1f8", padding: 16 },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 16, color: "#222" },
-  label: { fontSize: 16, color: "#555", marginTop: 12 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  input: {
+  container: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginRight: 8,
-    fontSize: 16,
+    backgroundColor: "#f8f9fa",
   },
-  select: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderWidth: 2,
-    borderColor: "#f55b5b",
-    minWidth: 90,
-    justifyContent: "center",
-    alignItems: "center",
+  header: {
     flexDirection: "row",
-    marginLeft: 2,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 50,
+    backgroundColor: "#4ecdc4",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  selectText: { fontSize: 16, color: "#222", fontWeight: "bold" },
-  inputFull: {
-    flex: 1,
-    backgroundColor: "#fff",
+  backButton: {
+    marginRight: 16,
+    padding: 8,
     borderRadius: 8,
-    padding: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  section: {
+    margin: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
     fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 12,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    padding: 16,
+  },
+  currencySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#f0f9ff",
+    borderRadius: 8,
+    marginRight: 4,
+  },
+  currencyText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4ecdc4",
+    marginRight: 4,
+  },
+  recipientContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recipientInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+    padding: 16,
   },
   qrButton: {
-    marginLeft: 8,
-    backgroundColor: "#fff",
+    padding: 12,
+    marginRight: 8,
     borderRadius: 8,
-    padding: 10,
-    justifyContent: "center",
+    backgroundColor: "#f0f9ff",
+  },
+  balanceInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#f55b5b",
-    shadowColor: "#f55b5b",
+    backgroundColor: "#fff",
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  balanceAmount: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4ecdc4",
   },
   sendButton: {
-    backgroundColor: "#f55b5b",
-    borderRadius: 12,
+    backgroundColor: "#4ecdc4",
+    margin: 16,
     padding: 18,
-    marginTop: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#4ecdc4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   sendButtonText: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
+  },
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    width: "80%",
+    maxWidth: 300,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
     textAlign: "center",
+    marginBottom: 16,
+  },
+  currencyOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  currencyOptionSelected: {
+    backgroundColor: "#f0f9ff",
+  },
+  currencyOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  currencyOptionTextSelected: {
+    fontWeight: "600",
+    color: "#4ecdc4",
+  },
+  modalCloseButton: {
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#f5f5f5",
+    alignItems: "center",
+  },
+  modalCloseButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#4ecdc4",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  closeButton: {
+    backgroundColor: "#4ecdc4",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
