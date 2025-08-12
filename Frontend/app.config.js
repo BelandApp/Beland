@@ -16,6 +16,7 @@ export default {
       auth0Domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
       auth0MobileClientId: process.env.EXPO_PUBLIC_AUTH0_MOBILE_CLIENT_ID,
       auth0WebClientId: process.env.EXPO_PUBLIC_AUTH0_WEB_CLIENT_ID,
+      auth0Audience: process.env.EXPO_PUBLIC_AUTH0_AUDIENCE,
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
       useDemoMode: process.env.EXPO_PUBLIC_USE_DEMO_MODE,
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
