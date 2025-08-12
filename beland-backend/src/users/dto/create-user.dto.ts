@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsString,
   IsEnum,
-  Matches,
   IsStrongPassword,
   MaxLength,
   MinLength,
@@ -13,15 +12,15 @@ import {
   IsNumber,
   IsBoolean,
   IsDate,
-  // IsEmpty, // No se usa, se puede eliminar
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateUserDto {
   @ApiProperty({
     description:
-      'Proveedor de autenticación externo (google, instagram, facebook)',
+      'Proveedor de autenticación externo (google, instagram, facebook, etc.)',
     example: 'google',
-    required: false, // Ahora es opcional
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -30,13 +29,16 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Correo electrónico del usuario',
     example: 'usuario@example.com',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'Nombre de usuario (opcional)',
+    description: 'Nombre de usuario (opcional)', // Keep as optional here
     example: 'johndoe',
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -45,6 +47,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Nombre completo del usuario',
     example: 'John Doe',
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -53,63 +56,48 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'URL de la imagen de perfil',
     example: 'https://example.com/photo.jpg',
+    nullable: true,
+    required: false,
   })
   @IsOptional()
   @IsString()
-  profile_picture_url?: string;
+  profile_picture_url?: string | null;
 
   @ApiProperty({
-    description: 'Rol del usuario',
-    // ¡Añadido 'EMPRESA' aquí!
-    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
-    default: 'USER',
-  })
-  @IsOptional() // El rol puede ser asignado por defecto en el servicio
-  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'])
-  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
-
-  @ApiProperty({
-    required: true,
-    description: 'password - contraseña de usuario',
-    example: 'Clave!123',
+    description: 'Contraseña del usuario',
+    example: 'SecurePass123!',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsString()
-  @MinLength(8)
-  @MaxLength(15)
-  @IsStrongPassword({
-    minUppercase: 1,
-    minLowercase: 1,
-    minNumbers: 1,
-  })
-  @Matches(/^[A-Za-z\d!@#$%^&*]+$/, {
-    message:
-      'solo se permiten los siguientes simbolos: !@#$%^&* (sin otros caracteres especiales)',
-  })
-  @Matches(/[A-Za-z\d!@#$%^&*]/, {
-    message: 'Debe incluir al menos uno de los siguientes simbolos: !@#$%^&*',
-  })
+  @IsStrongPassword(
+    {
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    },
+    {
+      message:
+        'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo.',
+    },
+  )
   password: string;
 
   @ApiProperty({
-    required: true,
-    description: 'confirmPassword - contraseña de usuario',
-    example: 'Clave!123',
+    description: 'Confirmación de la contraseña del usuario',
+    example: 'SecurePass123!',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsString()
-  @MinLength(8)
-  @MaxLength(15)
-  @IsStrongPassword({
-    minUppercase: 1,
-    minLowercase: 1,
-    minNumbers: 1,
-  })
-  confirmPassword: string;
+  confirmPassword: string; // Validation logic will be in the service
 
   @ApiProperty({
     description: 'Dirección del usuario',
     example: 'Calle 123, Ciudad',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsString()
@@ -120,6 +108,7 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'Número de teléfono',
     example: 1234567890,
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsNumber()
@@ -128,21 +117,23 @@ export class CreateUserDto {
   @ApiProperty({
     description: 'País del usuario',
     example: 'Colombia',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsString()
-  @MinLength(5)
-  @MaxLength(20)
+  @MinLength(3)
+  @MaxLength(50)
   country: string;
 
   @ApiProperty({
     description: 'Ciudad del usuario',
     example: 'Bogotá',
+    required: true, // Marked as required for Swagger and validation
   })
   @IsNotEmpty()
   @IsString()
-  @MinLength(5)
-  @MaxLength(20)
+  @MinLength(3)
+  @MaxLength(50)
   city: string;
 
   @ApiProperty({
@@ -151,25 +142,47 @@ export class CreateUserDto {
     example: false,
     required: false,
   })
-  @IsOptional() // Se mantiene como opcional y se usará en el seeder
+  @IsOptional()
   @IsBoolean()
-  isAdmin?: boolean; // Propiedad para el seeder
+  is_admin_seeder?: boolean = false;
 
   @ApiProperty({
-    description: 'Si el usuario está bloqueado',
-    example: false,
-    default: false,
-  })
-  @IsBoolean()
-  isBlocked: boolean; // Revertido a isBlocked
-
-  @ApiProperty({
-    description: 'Fecha de eliminación (soft delete)',
-    example: null,
+    description: 'ID de Auth0 del usuario (opcional, si se usa Auth0)',
+    example: 'auth0|abcdef1234567890abcdef1234',
     required: false,
     nullable: true,
   })
-  @IsOptional() // Puede ser nulo o no proporcionado
+  @IsOptional()
+  @IsString()
+  auth0_id?: string | null;
+
+  @ApiProperty({
+    description: 'Rol del usuario. Por defecto, USER.',
+    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
+    default: 'USER',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'])
+  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA' = 'USER';
+
+  @ApiProperty({
+    description: 'Si el usuario está bloqueado. Por defecto, false.',
+    example: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isBlocked?: boolean = false;
+
+  @ApiProperty({
+    description: 'Fecha de eliminación lógica (soft delete).',
+    example: '2024-01-01T00:00:00.000Z',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Date)
   @IsDate()
-  deleted_at?: Date | null; // Revertido a deleted_at
+  deleted_at?: Date | null;
 }

@@ -7,6 +7,7 @@ import {
   IsString,
   IsIn,
   IsBoolean,
+  IsNumber, // Asegurarse de importar IsNumber para 'phone'
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -100,7 +101,56 @@ export class GetUsersQueryDto {
     type: Boolean,
   })
   @IsOptional()
-  @Type(() => Boolean) // Necesario para ParseBoolPipe si se usara directamente
+  @Type(() => Boolean)
   @IsBoolean()
   isBlocked?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por nombre de usuario.',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por nombre completo del usuario.',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  full_name?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por proveedor de OAuth.',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  oauth_provider?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por número de teléfono.',
+    type: Number,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  phone?: number;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por país del usuario.',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  country?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por ciudad del usuario.',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  city?: string;
 }

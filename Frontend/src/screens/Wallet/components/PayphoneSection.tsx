@@ -37,7 +37,7 @@ export const PayphoneSection: React.FC<PayphoneSectionProps> = ({
           style={{
             fontWeight: "bold",
             fontSize: 16,
-            color: "#6610f2",
+            color: "#F88D2A",
             marginBottom: 8,
             textAlign: "center",
           }}

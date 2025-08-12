@@ -124,7 +124,7 @@ export class UsersController {
       `🚧 [BACKEND] Ruta /users/by-email - Buscando por email: ${email}`,
     );
     try {
-      const user = await this.usersService.findByEmail(email);
+      const user = await this.usersService.findOneByEmail(email);
       return user;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -168,7 +168,7 @@ export class UsersController {
           'Usuario autenticado no encontrado en la solicitud.',
         );
       }
-      return this.usersService.findOne(user.id);
+      return this.usersService.findOneById(user.id);
     } catch (error) {
       this.handleError(error, 'getAuthenticatedUser');
     }
@@ -211,7 +211,7 @@ export class UsersController {
           'Usuario autenticado no encontrado en la solicitud.',
         );
       }
-      const updatedUser = await this.usersService.updateMe(
+      const updatedUser = await this.usersService.update(
         user.id,
         updateUserDto,
       );
@@ -269,56 +269,25 @@ export class UsersController {
         currentUser?.role_name === 'SUPERADMIN';
 
       // Los valores por defecto y la validación ya están en el DTO (query)
-      const {
-        page,
-        limit,
-        sortBy,
-        order,
-        includeDeleted,
-        id,
-        email,
-        roleName,
-        isBlocked,
-      } = query;
+      const { includeDeleted } = query;
 
       // Lógica para determinar si se deben incluir usuarios eliminados
       // Si el usuario es Admin/Superadmin, se respeta el valor de includeDeleted del query.
       // Si no es Admin/Superadmin, includeDeleted siempre será false (no se pueden ver desactivados).
       const bIncludeDeleted = isSuperAdminOrAdmin ? includeDeleted : false;
 
-      // Lógica para los filtros avanzados:
-      // Si el usuario es Admin/Superadmin, se usan los filtros del query.
-      // Si no es Admin/Superadmin, los filtros avanzados se ignoran (se establecen a undefined).
-      const filterId = isSuperAdminOrAdmin ? id : undefined;
-      const filterEmail = isSuperAdminOrAdmin ? email : undefined;
-      const filterRoleName = isSuperAdminOrAdmin ? roleName : undefined;
-      const filterIsBlocked = isSuperAdminOrAdmin ? isBlocked : undefined;
+      // Actualizar el DTO para el servicio
+      // Asegurarse de que el `includeDeleted` en el DTO para el servicio refleje `bIncludeDeleted`.
+      // Si el DTO de entrada es `query`, entonces `query.includeDeleted` debe ser `bIncludeDeleted`.
+      query.includeDeleted = bIncludeDeleted;
 
-      // NOTA: Si los guards están comentados, `req.user` será `undefined`.
-      // Esto significa que `isSuperAdminOrAdmin` será `false`.
-      // Por lo tanto, `bIncludeDeleted` siempre será `false` y los `filter*` serán `undefined`.
-      // La ruta funcionará, pero los usuarios no-admin (o no autenticados)
-      // solo verán usuarios activos y sin filtros avanzados.
-      // Si se desea que los usuarios no-admin puedan usar algunos filtros,
-      // esa lógica debería ser ajustada aquí (ej. permitir filtrar por email, pero no por isBlocked).
-      // Por ahora, se mantiene la restricción de que solo admins pueden usar filtros avanzados
-      // y ver desactivados, incluso sin guards.
-
-      const { users, total } = await this.usersService.findAll(
-        { page, limit },
-        { sortBy, order },
-        bIncludeDeleted,
-        filterId,
-        filterEmail,
-        filterRoleName,
-        filterIsBlocked,
-      );
+      const { users, total } = await this.usersService.findAll(query); // Pasar el DTO completo
 
       return {
         users: users,
         total,
-        page,
-        limit,
+        page: query.page, // Acceder directamente desde el DTO
+        limit: query.limit, // Acceder directamente desde el DTO
       };
     } catch (error) {
       // Aquí solo capturamos errores que puedan surgir del servicio o de la lógica de negocio.
@@ -425,7 +394,8 @@ export class UsersController {
         );
       }
 
-      const user = await this.usersService.findOne(id, bIncludeDeleted);
+      // CORRECCIÓN: Llamar a findOneById en el servicio
+      const user = await this.usersService.findOneById(id, bIncludeDeleted);
       return user;
     } catch (error) {
       if (

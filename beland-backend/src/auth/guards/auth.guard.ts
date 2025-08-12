@@ -3,6 +3,8 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
@@ -17,17 +19,26 @@ export class AuthenticationGuard implements CanActivate {
 
     const token = this.extractToken(request);
     if (!token) {
-      throw new UnauthorizedException('No autorizado. Token no proporcionado.');
+      throw new HttpException(
+        {
+          status: HttpStatus.UNAUTHORIZED,
+          error: 'No autorizado. Token no proporcionado.',
+        },
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     try {
       const payload = this.jwtService.verify<User>(token, {
         secret: process.env.JWT_SECRET,
       });
-      request.user = payload; // aquí se guarda el usuario
+      request.user = payload;
       return true;
-    } catch {
-      throw new UnauthorizedException('Token inválido.');
+    } catch (error) {
+      throw new HttpException(
+        { status: HttpStatus.UNAUTHORIZED, error: 'Token inválido.' },
+        HttpStatus.UNAUTHORIZED,
+      );
     }
   }
 
@@ -36,8 +47,6 @@ export class AuthenticationGuard implements CanActivate {
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.split(' ')[1];
     }
-    // Si quisieras soportar cookies HTTP-only
-    // return request.cookies?.['auth_token'] ?? null;
     return null;
   }
 }

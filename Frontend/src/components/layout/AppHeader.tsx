@@ -44,7 +44,8 @@ export const AppHeader = () => {
 
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}>
+            onPress={handleDemoLogin}
+          >
             <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>

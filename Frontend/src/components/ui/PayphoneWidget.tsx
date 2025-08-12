@@ -37,7 +37,7 @@ export const PayphoneWidget: React.FC<PayphoneBoxProps> = ({
   reference,
   currency = "USD",
   clientTransactionId,
-  backgroundColor = "#6610f2",
+  backgroundColor = "#F88D2A",
   onClose,
   urlMobile,
 }) => {

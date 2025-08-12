@@ -83,6 +83,7 @@ interface BeCoinsActions {
     description: string,
     relatedId?: string
   ) => void;
+  setBalance: (amount: number) => void;
 
   // Utilidades
   hasEnoughBeCoins: (amount: number) => boolean;
@@ -118,19 +119,10 @@ const generateTransactionId = () => {
 };
 
 const initialState: BeCoinsState = {
-  balance: INITIAL_BECOIN_BALANCE,
-  totalEarned: INITIAL_BECOIN_BALANCE,
+  balance: 0, // Iniciar con 0, el backend proporcionará el balance real
+  totalEarned: 0, // También iniciar con 0
   totalSpent: 0,
-  transactions: [
-    {
-      id: generateTransactionId(),
-      type: "earned",
-      amount: INITIAL_BECOIN_BALANCE,
-      description: "Balance inicial de BeCoins",
-      category: "initial",
-      timestamp: new Date(),
-    },
-  ],
+  transactions: [], // Sin transacciones iniciales, vendrán del backend
 };
 
 import { useState } from "react";
@@ -242,6 +234,21 @@ export const useBeCoinsStore = create<BeCoinsStore>((set, get) => ({
     });
   },
 
+  setBalance: (amount: number) => {
+    if (amount < 0) {
+      console.warn("El balance no puede ser negativo");
+      return;
+    }
+
+    set((state) => {
+      const newState = {
+        balance: amount,
+      };
+      saveState({ ...state, ...newState });
+      return newState;
+    });
+  },
+
   // Utilidades
   hasEnoughBeCoins: (amount: number) => {
     return get().balance >= amount;
@@ -249,7 +256,10 @@ export const useBeCoinsStore = create<BeCoinsStore>((set, get) => ({
 
   getBeCoinsInUSD: (amount?: number) => {
     const beCoins = amount ?? get().balance;
-    return beCoins * BECOIN_VALUE_USD;
+    // Asegurar que siempre sea un número válido
+    const validBeCoins =
+      typeof beCoins === "number" && !isNaN(beCoins) ? beCoins : 0;
+    return validBeCoins * BECOIN_VALUE_USD;
   },
 
   getUSDInBeCoins: (usdAmount: number) => {
@@ -262,19 +272,10 @@ export const useBeCoinsStore = create<BeCoinsStore>((set, get) => ({
 
   resetBalance: () => {
     const resetState: BeCoinsState = {
-      balance: INITIAL_BECOIN_BALANCE,
-      totalEarned: INITIAL_BECOIN_BALANCE,
+      balance: 0, // Reset a 0, no usar balance inicial hardcodeado
+      totalEarned: 0,
       totalSpent: 0,
-      transactions: [
-        {
-          id: generateTransactionId(),
-          type: "earned" as const,
-          amount: INITIAL_BECOIN_BALANCE,
-          description: "Balance reiniciado",
-          category: "initial",
-          timestamp: new Date(),
-        },
-      ],
+      transactions: [],
     };
     set({ ...resetState });
     saveState(resetState);

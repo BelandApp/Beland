@@ -91,7 +91,7 @@ export const PaymentPreferences: React.FC<PaymentPreferencesProps> = ({
             }}
             onPress={() => setShowModal(false)}
           >
-            <Text style={{ color: "#6610f2", fontWeight: "bold" }}>Cerrar</Text>
+            <Text style={{ color: "#F88D2A", fontWeight: "bold" }}>Cerrar</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -128,7 +128,7 @@ export const PaymentPreferences: React.FC<PaymentPreferencesProps> = ({
               styles.selectedAccountBox,
               {
                 borderColor:
-                  selectedAccount === "payphone" ? "#6610f2" : "#e0e0e0",
+                  selectedAccount === "payphone" ? "#F88D2A" : "#e0e0e0",
                 borderWidth: 1.5,
                 marginRight: 12,
                 minWidth: 180,
