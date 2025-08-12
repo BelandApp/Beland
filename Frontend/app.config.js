@@ -1,4 +1,5 @@
 import "dotenv/config";
+
 export default {
   expo: {
     name: "Beland",
@@ -9,7 +10,7 @@ export default {
     userInterfaceStyle: "light",
     newArchEnabled: true,
     scheme: "belandnative",
-    owner: "anonymous",
+    owner: "beland",
     plugins: ["expo-secure-store"],
     extra: {
       auth0Domain: process.env.EXPO_PUBLIC_AUTH0_DOMAIN,
