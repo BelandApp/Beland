@@ -19,6 +19,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const clearFilters = () => {
     onFiltersChange({
       categories: [],
+      brands: [],
       minPrice: "",
       maxPrice: "",
       sortBy: "name",
