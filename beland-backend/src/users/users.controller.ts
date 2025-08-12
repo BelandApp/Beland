@@ -42,6 +42,7 @@ import {
 import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PickType } from '@nestjs/swagger';
 import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
+import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Comentado temporalmente
 // import { RolesGuard } from '../auth/guards/roles.guard'; // Comentado temporalmente
@@ -62,6 +63,7 @@ type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
 @ApiTags('users')
 @Controller('users')
 // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
+@UseGuards(FlexibleAuthGuard)
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
 
@@ -138,7 +140,7 @@ export class UsersController {
   }
 
   @Get('me')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
@@ -175,7 +177,7 @@ export class UsersController {
   }
 
   @Patch('me')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard) // Comentado temporalmente
   // @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN')
@@ -232,7 +234,7 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener lista de usuarios con paginación, filtrado y ordenación',
@@ -303,7 +305,7 @@ export class UsersController {
   }
 
   @Get('deactivated')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
@@ -338,7 +340,7 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
     summary: 'Obtener un usuario por ID',
@@ -412,7 +414,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
@@ -470,7 +472,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.NO_CONTENT)
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
@@ -521,7 +523,7 @@ export class UsersController {
   }
 
   @Patch(':id/reactivate')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
@@ -572,7 +574,7 @@ export class UsersController {
   }
 
   @Patch(':id/block-status')
-  @UseGuards(AuthenticationGuard)
+  @UseGuards(FlexibleAuthGuard)
   @ApiBearerAuth('JWT-auth')
   // @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard) // Comentado temporalmente
   // @Roles('ADMIN', 'SUPERADMIN')
