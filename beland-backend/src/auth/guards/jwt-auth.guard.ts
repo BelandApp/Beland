@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -19,10 +20,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const baseActivation = await super.canActivate(context);
-    if (!baseActivation) return false;
+    if (!baseActivation) {
+      return false;
+    }
 
     const request = context.switchToHttp().getRequest();
-    const dbUser = request.user;
+    const dbUser: User = request.user;
 
     if (!dbUser || dbUser.deleted_at || dbUser.isBlocked) {
       throw new UnauthorizedException('User account status invalid.');
@@ -31,7 +34,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return true;
   }
 
-  handleRequest(err, user, info) {
+  handleRequest(err: any, user: any, info: any) {
     if (err || !user) {
       throw (
         err ||

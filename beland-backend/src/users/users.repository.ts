@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/users.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService)
 type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
@@ -47,6 +48,20 @@ export class UsersRepository {
       where: { id },
       relations: { wallets: true, cart: true, role_relation: true },
     });
+  }
+
+  /**
+   * Busca un usuario por su Auth0 ID.
+   * Es crucial para vincular las cuentas de Auth0 con las de tu base de datos.
+   * @param auth0Id El ID de Auth0 del usuario.
+   * @returns La entidad User o null si no se encuentra.
+   */
+  async findByAuth0Id(auth0Id: string): Promise<User | null> {
+    return this.createQueryBuilder('user')
+      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.admin', 'admin')
+      .where('user.auth0_id = :auth0Id', { auth0Id })
+      .getOne();
   }
 
   /**
@@ -111,35 +126,70 @@ export class UsersRepository {
    * @returns Un objeto con la lista de usuarios y el total.
    */
   async findAllPaginated(
-    paginationOptions: PaginationDto,
-    orderOptions: OrderDto,
-    includeDeleted: boolean = false,
-    filterId?: string,
-    filterEmail?: string,
-    filterRoleName?: ValidRoleNames,
-    filterIsBlocked?: boolean,
+    getUsersQueryDto: GetUsersQueryDto,
   ): Promise<{ users: User[]; total: number }> {
-    const { page, limit } = paginationOptions;
-    const { sortBy, order } = orderOptions;
+    // CORRECCIÓN: Asegurarse de desestructurar todas las propiedades del DTO
+    const {
+      page,
+      limit,
+      sortBy,
+      order,
+      includeDeleted,
+      id,
+      email,
+      roleName,
+      isBlocked,
+      username, // Añadido
+      full_name, // Añadido
+      oauth_provider, // Añadido
+      phone, // Añadido
+      country, // Añadido
+      city, // Añadido
+    } = getUsersQueryDto;
 
     const query = this.createQueryBuilder('user').leftJoinAndSelect(
       'user.role_relation',
       'role',
     );
 
-    if (filterId) {
-      query.andWhere('user.id = :filterId', { filterId });
+    // Aplicar filtros dinámicamente
+    if (id) {
+      query.andWhere('user.id = :id', { id });
     }
-    if (filterEmail) {
-      query.andWhere('user.email ILIKE :filterEmail', {
-        filterEmail: `%${filterEmail}%`,
+    if (email) {
+      query.andWhere('user.email ILIKE :email', { email: `%${email}%` });
+    }
+    if (username) {
+      query.andWhere('user.username ILIKE :username', {
+        username: `%${username}%`,
       });
     }
-    if (filterRoleName) {
-      query.andWhere('user.role_name = :filterRoleName', { filterRoleName });
+    if (full_name) {
+      query.andWhere('user.full_name ILIKE :full_name', {
+        full_name: `%${full_name}%`,
+      });
     }
-    if (filterIsBlocked !== undefined) {
-      query.andWhere('user.isBlocked = :filterIsBlocked', { filterIsBlocked });
+    if (oauth_provider) {
+      query.andWhere('user.oauth_provider ILIKE :oauth_provider', {
+        oauth_provider: `%${oauth_provider}%`,
+      });
+    }
+    if (phone) {
+      query.andWhere('user.phone = :phone', { phone });
+    }
+    if (country) {
+      query.andWhere('user.country ILIKE :country', {
+        country: `%${country}%`,
+      });
+    }
+    if (city) {
+      query.andWhere('user.city ILIKE :city', { city: `%${city}%` });
+    }
+    if (roleName) {
+      query.andWhere('role.name = :roleName', { roleName });
+    }
+    if (typeof isBlocked === 'boolean') {
+      query.andWhere('user.isBlocked = :isBlocked', { isBlocked });
     }
 
     if (!includeDeleted) {
@@ -152,7 +202,7 @@ export class UsersRepository {
       email: 'user.email',
       username: 'user.username',
       full_name: 'user.full_name',
-      role: 'user.role_name', // Asegúrate de que 'role' mapee a 'role_name'
+      role: 'user.role_name',
       isBlocked: 'user.isBlocked',
     };
 

@@ -1,38 +1,66 @@
+// src/auth/dto/register-auth.dto.ts
+import { PartialType, PickType } from '@nestjs/mapped-types';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
   IsEmail,
   IsNotEmpty,
   MinLength,
   MaxLength,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsDate,
+  IsIn,
+  IsStrongPassword,
+  Matches,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
-export class RegisterAuthDto {
-  @IsEmail()
-  @IsNotEmpty()
+// RegisterAuthDto define los campos necesarios para el registro directo (signup).
+// PickType hereda las propiedades Y SUS VALIDACIONES como REQUERIDAS por defecto.
+export class RegisterAuthDto extends PickType(CreateUserDto, [
+  'email',
+  'password',
+  'confirmPassword',
+  'address',
+  'phone',
+  'country',
+  'city',
+] as const) {
+  // Ahora, si quieres campos OPCIONALES para el registro, defínelos aquí.
+  // Estos campos NO deben estar en el array de PickType si son opcionales.
+
   @ApiProperty({
-    description: 'Dirección de correo electrónico del usuario.',
-    example: 'usuario@example.com',
+    description: 'Nombre de usuario (opcional)',
+    example: 'johndoe',
+    required: false, // Explicitly optional for Swagger
   })
-  email: string;
-
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres.' })
-  @MaxLength(128, {
-    message: 'La contraseña no puede exceder los 128 caracteres.',
-  })
+  username?: string; // Marked as optional here
+
   @ApiProperty({
-    description: 'Contraseña del usuario.',
-    example: 'ContrasenaSegura123!',
+    description: 'Nombre completo del usuario (opcional)',
+    example: 'John Doe',
+    required: false,
   })
-  password: string;
-
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'Nombre del usuario.', example: 'Juan Pérez' })
-  name: string;
+  full_name?: string;
 
-  // No necesitamos confirmPassword aquí, ya que Auth0 maneja la validación de la contraseña.
-  // Si tu frontend lo envía, puedes añadirlo y validarlo a nivel de frontend o en el DTO si lo deseas.
+  @ApiProperty({
+    description: 'URL de la imagen de perfil (opcional)',
+    example: 'https://example.com/photo.jpg',
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  profile_picture_url?: string | null;
+
+  // Los campos email, password, confirmPassword, address, phone, country, city
+  // son ahora requeridos porque están en el PickType array y en CreateUserDto
+  // no están marcados como opcionales. Sus validaciones se heredan.
 }

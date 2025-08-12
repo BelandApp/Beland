@@ -1,3 +1,4 @@
+// src/users/users.service.ts
 import {
   Injectable,
   ConflictException,
@@ -11,22 +12,24 @@ import { UsersRepository } from './users.repository';
 import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/users.entity'; // Importar la entidad User
+import { User } from './entities/users.entity';
 import { Role } from '../roles/entities/role.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { OrderDto } from 'src/common/dto/order.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto'; // Asegúrate de que esto exista si lo usas
+import { OrderDto } from 'src/common/dto/order.dto'; // Asegúrate de que esto exista si lo usas
 import { UserDto } from './dto/user.dto';
 import { DataSource, Not } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
-import { GetUsersQueryDto } from './dto/get-users-query.dto'; // ¡Importar el nuevo DTO!
+import { GetUsersQueryDto } from './dto/get-users-query.dto';
+import { Wallet } from 'src/wallets/entities/wallet.entity';
+import { Cart } from 'src/cart/entities/cart.entity';
 
-// Constantes para los nombres de roles - ¡ACTUALIZADAS PARA INCLUIR 'EMPRESA'!
+// Constantes para los nombres de roles
 const ROLE_USER = 'USER';
 const ROLE_LEADER = 'LEADER';
 const ROLE_ADMIN = 'ADMIN';
 const ROLE_SUPERADMIN = 'SUPERADMIN';
-const ROLE_EMPRESA = 'EMPRESA'; // ¡Nuevo rol!
+const ROLE_EMPRESA = 'EMPRESA';
 
 // Definición de tipo para todos los roles válidos
 type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
@@ -38,437 +41,363 @@ export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly rolesRepository: RolesRepository,
-    private readonly dataSource: DataSource,
+    private dataSource: DataSource,
   ) {}
 
+  // ==============================================
+  //           *** NUEVO MÉTODO PARA AUTH0 ***
+  // ==============================================
+
   /**
-   * Crea un nuevo usuario en el sistema.
-   * @param createUserDto Datos para la creación del usuario.
-   * @returns El usuario creado como UserDto.
-   * @throws ConflictException si el email ya está en uso.
-   * @throws BadRequestException si las contraseñas no coinciden o el rol no es válido.
-   * @throws InternalServerErrorException si el rol por defecto no se encuentra.
+   * Busca un usuario por su ID de Auth0 o lo crea si no existe.
+   * Este método es llamado por JwtStrategy para manejar el aprovisionamiento de usuarios de Auth0.
+   *
+   * @param createUserDto Contiene los datos del usuario de Auth0, incluyendo `auth0_id`.
+   * @returns La entidad `User` de la base de datos.
+   * @throws InternalServerErrorException si hay un error en la base de datos.
+   * @throws ConflictException si el email ya está en uso por un usuario no-Auth0.
    */
-  async create(createUserDto: CreateUserDto): Promise<UserDto> {
+  async findOrCreateAuth0User(createUserDto: CreateUserDto): Promise<User> {
     this.logger.debug(
-      `create(): Intentando crear usuario con email: ${createUserDto.email}`,
+      `findOrCreateAuth0User(): Procesando usuario con Auth0 ID: ${createUserDto.auth0_id}`,
     );
-
-    const existingUser = await this.usersRepository.findByEmail(
-      createUserDto.email,
-    );
-    if (existingUser) {
-      throw new ConflictException(
-        `El email "${createUserDto.email}" ya está en uso.`,
-      );
-    }
-
-    if (createUserDto.password !== createUserDto.confirmPassword) {
-      throw new BadRequestException('Las contraseñas no coinciden.');
-    }
-
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-
-    // Usar el tipo ValidRoleNames
-    let assignedRoleName: ValidRoleNames = ROLE_USER;
-    if (createUserDto.role) {
-      // Lista de roles válidos - ¡ACTUALIZADA PARA INCLUIR 'EMPRESA'!
-      const validRoles: ValidRoleNames[] = [
-        ROLE_USER,
-        ROLE_LEADER,
-        ROLE_ADMIN,
-        ROLE_SUPERADMIN,
-        ROLE_EMPRESA, // ¡Añadido!
-      ];
-      if (!validRoles.includes(createUserDto.role)) {
-        throw new BadRequestException(
-          `El rol "${createUserDto.role}" no es válido.`,
-        );
-      }
-      assignedRoleName = createUserDto.role;
-    }
-
-    const roleEntity = await this.rolesRepository.findByName(assignedRoleName);
-    if (!roleEntity) {
-      throw new InternalServerErrorException(
-        `El rol "${assignedRoleName}" no fue encontrado en la base de datos.`,
-      );
-    }
-
-    const newUser = await this.usersRepository.create({
-      oauth_provider: createUserDto.oauth_provider || null,
-      email: createUserDto.email,
-      username: createUserDto.username || null,
-      full_name: createUserDto.full_name || null,
-      profile_picture_url: createUserDto.profile_picture_url || null,
-      current_balance: 0,
-      role_name: assignedRoleName,
-      role_id: roleEntity.role_id,
-      address: createUserDto.address || null,
-      phone: createUserDto.phone || null,
-      country: createUserDto.country || null,
-      city: createUserDto.city || null,
-      isBlocked: createUserDto.isBlocked || false,
-      deleted_at: createUserDto.deleted_at || null,
-      password: hashedPassword,
-      auth0_id: null,
-    });
-
-    const savedUser = await this.usersRepository.save(newUser);
-
-    this.logger.log(
-      `create(): Usuario con email "${savedUser.email}" y ID "${savedUser.id}" creado exitosamente.`,
-    );
-    return plainToInstance(UserDto, savedUser);
-  }
-
-  /**
-   * Crea un usuario inicial (por ejemplo, SUPERADMIN) desde un seeder.
-   * Este método devuelve la entidad User directamente.
-   * @param createUserDto Datos para la creación del usuario.
-   * @returns La entidad User creada o existente.
-   */
-  async createInitialUser(createUserDto: CreateUserDto): Promise<User> {
-    this.logger.debug(
-      `createInitialUser(): Procesando usuario inicial con email: ${createUserDto.email}.`,
-    );
-
-    const existingUser = await this.usersRepository.findByEmail(
-      createUserDto.email,
-    );
-    if (existingUser) {
-      this.logger.log(
-        `createInitialUser(): Usuario "${createUserDto.email}" ya existe. Retornando usuario existente.`,
-      );
-      return existingUser; // Retornar la entidad User existente
-    }
-
-    const hashedPassword = createUserDto.password;
-
-    // Usar el tipo ValidRoleNames
-    let assignedRoleName: ValidRoleNames = ROLE_USER;
-    if (createUserDto.role) {
-      // Lista de roles válidos - ¡ACTUALIZADA PARA INCLUIR 'EMPRESA'!
-      const validRoles: ValidRoleNames[] = [
-        ROLE_USER,
-        ROLE_LEADER,
-        ROLE_ADMIN,
-        ROLE_SUPERADMIN,
-        ROLE_EMPRESA, // ¡Añadido!
-      ];
-      if (!validRoles.includes(createUserDto.role)) {
-        throw new BadRequestException(
-          `El rol "${createUserDto.role}" no es válido.`,
-        );
-      }
-      assignedRoleName = createUserDto.role;
-    }
-
-    const roleEntity = await this.rolesRepository.findByName(assignedRoleName);
-    if (!roleEntity) {
-      throw new InternalServerErrorException(
-        `El rol "${assignedRoleName}" no fue encontrado en la base de datos.`,
-      );
-    }
-
-    const newUser = await this.usersRepository.create({
-      oauth_provider: createUserDto.oauth_provider || null,
-      email: createUserDto.email,
-      username: createUserDto.username || null,
-      full_name: createUserDto.full_name || null,
-      profile_picture_url: createUserDto.profile_picture_url || null,
-      current_balance: 0,
-      role_name: assignedRoleName,
-      role_id: roleEntity.role_id,
-      address: createUserDto.address || null,
-      phone: createUserDto.phone || null,
-      country: createUserDto.country || null,
-      city: createUserDto.city || null,
-      isBlocked: createUserDto.isBlocked || false,
-      deleted_at: createUserDto.deleted_at || null,
-      password: hashedPassword,
-      auth0_id: null,
-    });
-
-    const savedUser = await this.usersRepository.save(newUser);
-    this.logger.log(
-      `createInitialUser(): Nuevo usuario "${savedUser.email}" (ID: ${savedUser.id}) con rol "${assignedRoleName}" creado exitosamente.`,
-    );
-    return savedUser; // Retornar la entidad User creada
-  }
-
-  /**
-   * Busca un usuario por su email. Devuelve la entidad User.
-   * @param email El email del usuario.
-   * @returns La entidad User o null.
-   */
-  async findByEmail(email: string): Promise<User | null> {
-    this.logger.debug(`findByEmail(): Buscando usuario con email: ${email}.`);
-    const user = await this.usersRepository.findByEmail(email);
-    return user; // Devuelve la entidad User directamente
-  }
-
-  /**
-   * Busca un usuario por su nombre de usuario. Devuelve la entidad User.
-   * @param username El nombre de usuario.
-   * @returns La entidad User o null.
-   */
-  async findByUsername(username: string): Promise<User | null> {
-    this.logger.debug(
-      `findByUsername(): Buscando usuario con username: ${username}.`,
-    );
-    const user = await this.usersRepository.findByUsername(username);
-    return user; // Devuelve la entidad User directamente
-  }
-
-  /**
-   * Busca un usuario por su número de teléfono.
-   * @param phone El número de teléfono del usuario.
-   * @returns La entidad User o null si no se encuentra.
-   */
-  async findByPhone(phone: number): Promise<User | null> {
-    this.logger.debug(`findByPhone(): Buscando usuario con teléfono: ${phone}`);
-    return this.usersRepository.findByPhone(phone);
-  }
-
-  /**
-   * Busca todos los usuarios con paginación, ordenación y filtros. Devuelve UserDto[].
-   * @param paginationOptions Opciones de paginación.
-   * @param orderOptions Opciones de ordenación.
-   * @param includeDeleted Si se deben incluir usuarios eliminados.
-   * @param filterId ID para filtrar.
-   * @param filterEmail Email para filtrar.
-   * @param filterRoleName Nombre del rol para filtrar.
-   * @param filterIsBlocked Estado de bloqueo para filtrar.
-   * @returns Un objeto con la lista de UserDto y el total.
-   */
-  async findAll(
-    paginationOptions: PaginationDto,
-    orderOptions: OrderDto,
-    includeDeleted: boolean = false,
-    filterId?: string,
-    filterEmail?: string,
-    filterRoleName?: ValidRoleNames,
-    filterIsBlocked?: boolean,
-  ): Promise<{ users: UserDto[]; total: number }> {
-    this.logger.debug(`findAll(): Buscando todos los usuarios.`);
-    const { users, total } = await this.usersRepository.findAllPaginated(
-      paginationOptions,
-      orderOptions,
-      includeDeleted,
-      filterId,
-      filterEmail,
-      filterRoleName,
-      filterIsBlocked,
-    );
-    this.logger.log(`findAll(): Encontrados ${total} usuarios.`);
-    return { users: plainToInstance(UserDto, users), total };
-  }
-
-  /**
-   * Busca usuarios que han sido desactivados (soft-deleted). Devuelve UserDto[].
-   * @returns Una lista de UserDto desactivados.
-   */
-  async findDeactivatedUsers(): Promise<UserDto[]> {
-    this.logger.debug(
-      `findDeactivatedUsers(): Buscando usuarios desactivados.`,
-    );
-    const users = await this.usersRepository.findDeactivatedUsers();
-    this.logger.log(
-      `findDeactivatedUsers(): Encontrados ${users.length} usuarios desactivados.`,
-    );
-    return plainToInstance(UserDto, users);
-  }
-
-  /**
-   * Busca un usuario por su ID. Devuelve la entidad User.
-   * Este método es para uso interno de otros servicios que necesitan la entidad completa.
-   * @param id El ID del usuario.
-   * @param includeDeleted Si se deben incluir usuarios marcados como eliminados.
-   * @returns La entidad User o null si no se encuentra.
-   */
-  async findOne(
-    id: string,
-    includeDeleted: boolean = false,
-  ): Promise<User | null> {
-    this.logger.debug(`findOne(): Buscando usuario con ID: ${id}.`);
-    const user = await this.usersRepository.findOne(id, includeDeleted);
-    return user; // Devuelve la entidad User directamente
-  }
-
-  /**
-   * Actualiza el perfil del usuario autenticado. Devuelve UserDto.
-   * @param id El ID del usuario.
-   * @param updateUserDto Datos a actualizar.
-   * @returns El UserDto actualizado.
-   * @throws NotFoundException si el usuario no se encuentra.
-   * @throws ForbiddenException si se intenta modificar campos no permitidos.
-   */
-  async updateMe(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
-    this.logger.debug(`updateMe(): Actualizando perfil del usuario ${id}.`);
-
-    const existingUser = await this.usersRepository.findOne(id);
-    if (!existingUser) {
-      throw new NotFoundException(
-        `Perfil de usuario con ID "${id}" no encontrado.`,
-      );
-    }
-
-    const updateData: Partial<User> = {};
-    if (updateUserDto.full_name !== undefined) {
-      updateData.full_name = updateUserDto.full_name;
-    }
-    if (updateUserDto.profile_picture_url !== undefined) {
-      updateData.profile_picture_url = updateUserDto.profile_picture_url;
-    }
-    if (updateUserDto.username !== undefined)
-      updateData.username = updateUserDto.username;
-    if (updateUserDto.address !== undefined)
-      updateData.address = updateUserDto.address;
-    if (updateUserDto.phone !== undefined)
-      updateData.phone = updateUserDto.phone;
-    if (updateUserDto.country !== undefined)
-      updateData.country = updateUserDto.country;
-    if (updateUserDto.city !== undefined) updateData.city = updateUserDto.city;
-
-    if (
-      updateUserDto.role !== undefined ||
-      updateUserDto.isBlocked !== undefined ||
-      updateUserDto.deleted_at !== undefined ||
-      updateUserDto.email !== undefined ||
-      updateUserDto.password !== undefined ||
-      updateUserDto.confirmPassword !== undefined ||
-      updateUserDto.oauth_provider !== undefined
-    ) {
-      throw new ForbiddenException(
-        'No tienes permiso para modificar estos campos del perfil. Solo puedes actualizar tu nombre completo, foto de perfil, username, dirección, teléfono, país y ciudad.',
-      );
-    }
-
-    const updateResult = await this.usersRepository.update(id, updateData);
-    if (updateResult.affected === 0) {
-      this.logger.warn(
-        `updateMe(): No se pudo actualizar el perfil del usuario ${id} (posiblemente ningún cambio o usuario no encontrado).`,
-      );
-    }
-
-    this.logger.log(`updateMe(): Perfil del usuario ${id} actualizado.`);
-    const updatedUser = await this.usersRepository.findOne(id);
-    return plainToInstance(UserDto, updatedUser);
-  }
-
-  /**
-   * Actualiza un usuario por su ID (para uso administrativo). Devuelve UserDto.
-   * @param id El ID del usuario a actualizar.
-   * @param updateUserDto Datos a actualizar.
-   * @returns El UserDto actualizado.
-   * @throws NotFoundException si el usuario no se encuentra.
-   * @throws ConflictException si el email ya está en uso.
-   * @throws BadRequestException si el rol no es válido.
-   * @throws InternalServerErrorException para errores internos.
-   */
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
-    this.logger.debug(`update(): Actualizando usuario con ID: ${id}.`);
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const existingUser = await queryRunner.manager.findOne(User, {
-        where: { id: id },
-        relations: ['role_relation'],
-        withDeleted: true,
-      });
+      // 1. Intentar encontrar el usuario por su auth0_id
+      let user = await this.usersRepository.findByAuth0Id(
+        createUserDto.auth0_id,
+      );
 
-      if (!existingUser) {
-        this.logger.warn(
-          `update(): Usuario con ID "${id}" no encontrado para actualización transaccional.`,
+      if (user) {
+        this.logger.debug(
+          `findOrCreateAuth0User(): Usuario existente encontrado para Auth0 ID: ${user.auth0_id}.`,
         );
-        throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
+        // Opcional: Actualizar los datos del usuario si hay cambios en Auth0 (ej. foto de perfil, nombre)
+        // Solo actualiza si los valores entrantes no son nulos/vacíos para evitar sobrescribir con null
+        user.email = createUserDto.email || user.email;
+        user.full_name = createUserDto.full_name || user.full_name;
+        user.profile_picture_url =
+          createUserDto.profile_picture_url || user.profile_picture_url;
+        // isBlocked y deleted_at se manejan por tu backend, no desde Auth0 directamente.
+
+        await queryRunner.manager.save(User, user); // Guardar cualquier actualización
+
+        // Asegurarse de que las relaciones necesarias (ej. rol) estén cargadas para los guards.
+        user = await this.usersRepository.findOne(user.id); // Re-fetch para cargar relaciones (findOne en repo ya carga eager)
+        return user;
       }
 
-      if (
-        updateUserDto.email !== undefined &&
-        updateUserDto.email !== existingUser.email
-      ) {
-        const existingUserWithEmail = await queryRunner.manager.findOne(User, {
-          where: { email: updateUserDto.email, id: Not(id) },
-        });
-        if (existingUserWithEmail) {
+      // 2. Si no existe un usuario con ese auth0_id, intentar por email para evitar duplicados.
+      // Esto es CRUCIAL si un usuario pudo haberse registrado localmente con el mismo email antes de Auth0.
+      const existingUserByEmail = await this.usersRepository.findByEmail(
+        createUserDto.email,
+      );
+      if (existingUserByEmail) {
+        // Si el usuario ya existe con ese email pero no tiene auth0_id, vincularlo.
+        if (!existingUserByEmail.auth0_id) {
+          existingUserByEmail.auth0_id = createUserDto.auth0_id;
+          existingUserByEmail.oauth_provider = createUserDto.oauth_provider;
+          await queryRunner.manager.save(User, existingUserByEmail);
+          this.logger.log(
+            `findOrCreateAuth0User(): Usuario existente por email (${existingUserByEmail.email}) vinculado a Auth0 ID: ${createUserDto.auth0_id}.`,
+          );
+          user = existingUserByEmail;
+        } else {
+          // Si ya existe y tiene un auth0_id diferente, es un conflicto grave.
           this.logger.warn(
-            `update(): Conflicto: El email "${updateUserDto.email}" ya está en uso por otro usuario.`,
+            `findOrCreateAuth0User(): Conflicto de email: "${createUserDto.email}" ya está registrado con otro Auth0 ID.`,
           );
           throw new ConflictException(
-            `El email "${updateUserDto.email}" ya está en uso por otro usuario.`,
+            `El email "${createUserDto.email}" ya está registrado y vinculado a otra cuenta de Auth0.`,
           );
         }
-        existingUser.email = updateUserDto.email;
       }
 
-      if (
-        updateUserDto.role !== undefined &&
-        updateUserDto.role !== existingUser.role_name
-      ) {
-        // Asegúrate de que findByName acepte el nuevo tipo
-        const newRoleEntity = await this.rolesRepository.findByName(
-          updateUserDto.role as ValidRoleNames, // ¡CASTING AQUI!
+      if (!user) {
+        // Si no se encontró por Auth0 ID ni por email (o se vinculó), se crea uno nuevo
+        this.logger.debug(
+          `findOrCreateAuth0User(): Creando nuevo usuario para Auth0 ID: ${createUserDto.auth0_id}`,
         );
-        if (!newRoleEntity) {
-          throw new BadRequestException(
-            `El rol "${updateUserDto.role}" no es válido.`,
+
+        // Buscar el rol por defecto 'USER'. Asumimos que siempre existe.
+        let defaultRole = await this.rolesRepository.findByName(ROLE_USER);
+        if (!defaultRole) {
+          defaultRole = await queryRunner.manager.save(Role, {
+            name: ROLE_USER,
+            description: 'Usuario básico del sistema',
+            is_active: true,
+          });
+          this.logger.warn(
+            `findOrCreateAuth0User(): El rol '${ROLE_USER}' no existía, fue creado.`,
           );
         }
-        existingUser.role_name = newRoleEntity.name;
-        existingUser.role_id = newRoleEntity.role_id;
+
+        // Hashear la contraseña temporal (aunque no se usará para login de Auth0)
+        // Se requiere para que la entidad User sea válida si tiene un campo password not nullable.
+        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+        const newUser = queryRunner.manager.create(User, {
+          ...createUserDto,
+          auth0_id: createUserDto.auth0_id, // Asegurarse de que el auth0_id esté en la entidad
+          role_name: defaultRole.name,
+          role_id: defaultRole.role_id,
+          password: hashedPassword, // Guarda la contraseña hasheada
+          isBlocked: createUserDto.isBlocked, // <-- Usar el valor del DTO
+          deleted_at: createUserDto.deleted_at, // <-- Usar el valor del DTO
+        });
+
+        const savedUser = await queryRunner.manager.save(User, newUser);
+
+        // Crear cartera y carrito por defecto para el nuevo usuario
+        const newWallet = queryRunner.manager.create(Wallet, {
+          user: savedUser,
+          balance: 0,
+        });
+        await queryRunner.manager.save(Wallet, newWallet);
+
+        const newCart = queryRunner.manager.create(Cart, { user: savedUser });
+        await queryRunner.manager.save(Cart, newCart);
+
+        await queryRunner.commitTransaction(); // Confirmar todas las operaciones
+
+        // Retornar el usuario recién creado, asegurando que las relaciones estén cargadas
+        return await this.usersRepository.findOne(savedUser.id);
       }
 
-      if (updateUserDto.oauth_provider !== undefined)
-        existingUser.oauth_provider = updateUserDto.oauth_provider;
-      if (updateUserDto.username !== undefined)
-        existingUser.username = updateUserDto.username;
-      if (updateUserDto.full_name !== undefined)
-        existingUser.full_name = updateUserDto.full_name;
-      if (updateUserDto.profile_picture_url !== undefined)
-        existingUser.profile_picture_url = updateUserDto.profile_picture_url;
-      if (updateUserDto.address !== undefined)
-        existingUser.address = updateUserDto.address;
-      if (updateUserDto.phone !== undefined)
-        existingUser.phone = updateUserDto.phone;
-      if (updateUserDto.country !== undefined)
-        existingUser.country = updateUserDto.country;
-      if (updateUserDto.city !== undefined)
-        existingUser.city = updateUserDto.city;
-      if (updateUserDto.isBlocked !== undefined)
-        existingUser.isBlocked = updateUserDto.isBlocked;
-      if (updateUserDto.deleted_at !== undefined)
-        existingUser.deleted_at = updateUserDto.deleted_at;
-
-      await queryRunner.manager.save(existingUser);
-
-      await queryRunner.commitTransaction();
-      this.logger.log(
-        `update(): Transacción de actualización de usuario ${id} completada exitosamente.`,
-      );
-
-      const finalUser = await this.usersRepository.findOne(id, true);
-      return plainToInstance(UserDto, finalUser);
-    } catch (error: any) {
-      await queryRunner.rollbackTransaction();
+      return user; // Retorna el usuario encontrado o vinculado
+    } catch (error) {
+      await queryRunner.rollbackTransaction(); // Revertir si algo falla
       this.logger.error(
-        `update(): Error durante la transacción de actualización de usuario ${id}: ${error.message}`,
-        error.stack,
+        `findOrCreateAuth0User(): Error al crear/recuperar usuario para Auth0 ID ${createUserDto.auth0_id}: ${(error as Error).message}`,
+        (error as Error).stack,
       );
+      // Relanza excepciones específicas o una genérica
       if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
         error instanceof ConflictException ||
-        error instanceof ForbiddenException
+        error instanceof BadRequestException
       ) {
         throw error;
       }
       throw new InternalServerErrorException(
-        'Failed to update user due to an internal error.',
+        'Failed to provision or retrieve user during Auth0 login.',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // ==============================================
+  //           *** MÉTODOS EXISTENTES ***
+  // ==============================================
+
+  // MÉTODOS DE BÚSQUEDA
+
+  /**
+   * Busca todos los usuarios paginados, filtrados y ordenados.
+   * @param getUsersQueryDto Objeto DTO con parámetros de paginación, filtro y ordenación.
+   * @returns Una promesa que resuelve a un objeto con la lista de UserDto y el total.
+   */
+  async findAll(
+    getUsersQueryDto: GetUsersQueryDto,
+  ): Promise<{ users: UserDto[]; total: number }> {
+    this.logger.debug(
+      `findAll(): Buscando usuarios con filtros: ${JSON.stringify(
+        getUsersQueryDto,
+      )}`,
+    );
+
+    // CORRECCIÓN: Se pasa el DTO completo al repositorio, el repositorio se encarga de la desestructuración y filtros.
+    const { users, total } = await this.usersRepository.findAllPaginated(
+      getUsersQueryDto, // <-- Se pasa el DTO completo
+    );
+
+    // Mapear las entidades User a UserDto para la respuesta
+    const usersDto = plainToInstance(UserDto, users);
+    return { users: usersDto, total };
+  }
+
+  /**
+   * Busca un usuario por su ID.
+   * @param id El ID del usuario.
+   * @param includeDeleted Si se deben incluir usuarios desactivados.
+   * @returns Una promesa que resuelve al UserDto o lanza NotFoundException.
+   * @throws NotFoundException Si el usuario no se encuentra.
+   */
+  async findOneById(
+    id: string,
+    includeDeleted: boolean = false,
+  ): Promise<UserDto> {
+    this.logger.debug(`findOneById(): Buscando usuario con ID: ${id}`);
+    const user = await this.usersRepository.findOne(id, includeDeleted);
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
+    }
+    return plainToInstance(UserDto, user);
+  }
+
+  /**
+   * Busca un usuario por su email.
+   * @param email El email del usuario.
+   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   */
+  async findOneByEmail(email: string): Promise<User | null> {
+    this.logger.debug(`findOneByEmail(): Buscando usuario con email: ${email}`);
+    return this.usersRepository.findByEmail(email);
+  }
+
+  /**
+   * Busca un usuario por su nombre de usuario.
+   * @param username El nombre de usuario.
+   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   */
+  async findOneByUsername(username: string): Promise<User | null> {
+    this.logger.debug(
+      `findOneByUsername(): Buscando usuario con username: ${username}`,
+    );
+    return this.usersRepository.findByUsername(username);
+  }
+
+  /**
+   * Busca un usuario por su número de teléfono.
+   * @param phone El número de teléfono.
+   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   */
+  async findOneByPhone(phone: number): Promise<User | null> {
+    this.logger.debug(
+      `findOneByPhone(): Buscando usuario con teléfono: ${phone}`,
+    );
+    return this.usersRepository.findByPhone(phone);
+  }
+
+  /**
+   * Busca un usuario por su ID y devuelve la entidad User.
+   * Este método es para uso interno cuando se necesita la entidad completa,
+   * por ejemplo, para realizar comprobaciones de roles/estados.
+   * @param id El ID del usuario.
+   * @returns Una promesa que resuelve a la entidad User o lanza NotFoundException.
+   * @throws NotFoundException Si el usuario no se encuentra.
+   */
+  async findUserEntityById(id: string): Promise<User> {
+    this.logger.debug(
+      `findUserEntityById(): Buscando entidad usuario con ID: ${id}`,
+    );
+    const user = await this.usersRepository.findOne(id); // Usa findOne del repo que carga relaciones
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
+    }
+    return user;
+  }
+
+  /**
+   * Busca usuarios desactivados lógicamente (soft-deleted).
+   * @returns Una lista de entidades User desactivadas.
+   */
+  async findDeactivatedUsers(): Promise<UserDto[]> {
+    this.logger.debug(
+      'findDeactivatedUsers(): Buscando usuarios desactivados.',
+    );
+    const users = await this.usersRepository.findDeactivatedUsers();
+    return plainToInstance(UserDto, users);
+  }
+
+  // MÉTODOS DE CREACIÓN/ACTUALIZACIÓN/ELIMINACIÓN
+
+  /**
+   * Crea un nuevo usuario.
+   * Este método DEBE tener validaciones adicionales para la unicidad de email/username.
+   * @param createUserDto Datos para crear el usuario.
+   * @returns Una promesa que resuelve al UserDto del usuario creado.
+   * @throws ConflictException si el email o username ya existen.
+   */
+  async create(createUserDto: CreateUserDto): Promise<UserDto> {
+    this.logger.debug(
+      `create(): Intentando crear nuevo usuario: ${createUserDto.email}`,
+    );
+
+    // Comprobar si el email ya existe
+    const existingUserByEmail = await this.usersRepository.findByEmail(
+      createUserDto.email,
+    );
+    if (existingUserByEmail) {
+      throw new ConflictException(
+        `El email "${createUserDto.email}" ya está registrado.`,
+      );
+    }
+
+    // Comprobar si el username ya existe (si se proporciona)
+    if (createUserDto.username) {
+      const existingUserByUsername = await this.usersRepository.findByUsername(
+        createUserDto.username,
+      );
+      if (existingUserByUsername) {
+        throw new ConflictException(
+          `El nombre de usuario "${createUserDto.username}" ya está en uso.`,
+        );
+      }
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Buscar el rol 'USER' por defecto
+      let userRole = await this.rolesRepository.findByName(ROLE_USER);
+
+      if (!userRole) {
+        userRole = await queryRunner.manager.save(Role, {
+          name: ROLE_USER,
+          description: 'Usuario básico del sistema',
+          is_active: true,
+        });
+        this.logger.warn(`El rol 'USER' no existía, fue creado.`);
+      }
+
+      // Hashear la contraseña antes de guardar
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+      const newUser = queryRunner.manager.create(User, {
+        ...createUserDto,
+        password: hashedPassword,
+        role_name: userRole.name as ValidRoleNames,
+        role_id: userRole.role_id,
+      });
+
+      const savedUser = await queryRunner.manager.save(User, newUser);
+
+      // Crear cartera por defecto para el nuevo usuario
+      const newWallet = queryRunner.manager.create(Wallet, {
+        user: savedUser,
+        balance: 0,
+      });
+      await queryRunner.manager.save(Wallet, newWallet);
+
+      // Crear carrito por defecto para el nuevo usuario
+      const newCart = queryRunner.manager.create(Cart, { user: savedUser });
+      await queryRunner.manager.save(Cart, newCart);
+
+      await queryRunner.commitTransaction(); // Confirma la transacción
+
+      this.logger.log(
+        `create(): Usuario ${savedUser.email} creado exitosamente.`,
+      );
+      return plainToInstance(UserDto, savedUser);
+    } catch (error) {
+      await queryRunner.rollbackTransaction(); // Reversión total si algo falla
+      this.logger.error(
+        `create(): Error al crear usuario: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+      // Mantener ConflictException si es por email/username, de lo contrario lanzar error interno.
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'No se pudo registrar el usuario.',
       );
     } finally {
       await queryRunner.release();
@@ -476,57 +405,125 @@ export class UsersService {
   }
 
   /**
-   * Actualiza el estado de bloqueo de un usuario. Devuelve UserDto.
+   * Actualiza un usuario existente por su ID.
+   * @param id El ID del usuario a actualizar.
+   * @param updateUserDto Objeto DTO con las propiedades a actualizar.
+   * @returns Una promesa que resuelve al UserDto del usuario actualizado.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws ConflictException si el nuevo email o username ya existen.
+   * @throws BadRequestException si se intenta actualizar el rol de un superadmin o si el rol no es válido.
+   */
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserDto> {
+    this.logger.debug(`update(): Actualizando usuario con ID: ${id}`);
+    const userToUpdate = await this.usersRepository.findOne(id);
+    if (!userToUpdate) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
+    }
+
+    // Comprobaciones de unicidad para email y username si se están actualizando
+    if (updateUserDto.email && updateUserDto.email !== userToUpdate.email) {
+      const existingUser = await this.usersRepository.findByEmail(
+        updateUserDto.email,
+      );
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException(
+          `El email "${updateUserDto.email}" ya está en uso por otro usuario.`,
+        );
+      }
+    }
+
+    if (
+      updateUserDto.username &&
+      updateUserDto.username !== userToUpdate.username
+    ) {
+      const existingUser = await this.usersRepository.findByUsername(
+        updateUserDto.username,
+      );
+      if (existingUser && existingUser.id !== id) {
+        throw new ConflictException(
+          `El nombre de usuario "${updateUserDto.username}" ya está en uso por otro usuario.`,
+        );
+      }
+    }
+
+    // Manejar la actualización de la contraseña si se proporciona
+    if (updateUserDto.password) {
+      if (updateUserDto.password !== updateUserDto.confirmPassword) {
+        throw new BadRequestException('Las contraseñas no coinciden.');
+      }
+      userToUpdate.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+
+    // Manejar la actualización del rol
+    if (updateUserDto.role) {
+      // No permitir cambiar el rol de un SUPERADMIN a otra cosa
+      if (
+        userToUpdate.role_name === ROLE_SUPERADMIN &&
+        updateUserDto.role !== ROLE_SUPERADMIN
+      ) {
+        throw new BadRequestException(
+          'No se puede cambiar el rol de un SUPERADMIN.',
+        );
+      }
+
+      const newRole = await this.rolesRepository.findByName(updateUserDto.role);
+      if (!newRole) {
+        throw new BadRequestException(
+          `El rol "${updateUserDto.role}" no es un rol válido.`,
+        );
+      }
+      userToUpdate.role_name = newRole.name as ValidRoleNames;
+      userToUpdate.role_id = newRole.role_id;
+    }
+
+    // Aplicar otras propiedades actualizables
+    Object.assign(userToUpdate, updateUserDto); // Esto sobreescribe propiedades si están en updateUserDto
+
+    const updatedUser = await this.usersRepository.save(userToUpdate);
+    this.logger.log(`update(): Usuario ${id} actualizado exitosamente.`);
+    return plainToInstance(UserDto, updatedUser);
+  }
+
+  /**
+   * Actualiza el estado de bloqueo de un usuario.
    * @param id El ID del usuario.
    * @param isBlocked El nuevo estado de bloqueo.
-   * @returns El UserDto actualizado.
+   * @returns Una promesa que resuelve al UserDto del usuario actualizado.
    * @throws NotFoundException si el usuario no se encuentra.
-   * @throws BadRequestException si el usuario ya tiene el estado deseado.
-   * @throws InternalServerErrorException para errores internos.
+   * @throws BadRequestException si se intenta bloquear a un SUPERADMIN.
    */
   async updateBlockStatus(id: string, isBlocked: boolean): Promise<UserDto> {
     this.logger.debug(
-      `updateBlockStatus(): Actualizando estado de bloqueo para usuario con ID: ${id} a ${isBlocked}.`,
+      `updateBlockStatus(): Actualizando estado de bloqueo para ID: ${id} a ${isBlocked}`,
     );
-
-    const user = await this.usersRepository.findOne(id, false);
+    const user = await this.usersRepository.findOne(id);
     if (!user) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
     }
 
-    if (user.isBlocked === isBlocked) {
+    if (user.role_name === ROLE_SUPERADMIN) {
       throw new BadRequestException(
-        `El usuario con ID "${id}" ya tiene el estado isBlocked en "${isBlocked}".`,
+        'No se puede bloquear o desbloquear a un SUPERADMIN.',
       );
     }
 
-    await this.usersRepository.update(id, { isBlocked: isBlocked });
-
-    const updatedUser = await this.usersRepository.findOne(id, false);
-    if (!updatedUser) {
-      this.logger.error(
-        `updateBlockStatus(): No se pudo recuperar el usuario ${id} después de actualizar el estado de bloqueo.`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to retrieve user after block status update.',
-      );
-    }
-
+    user.isBlocked = isBlocked;
+    const updatedUser = await this.usersRepository.save(user);
     this.logger.log(
-      `updateBlockStatus(): Usuario ${id} ${isBlocked ? 'bloqueado' : 'desbloqueado'} exitosamente.`,
+      `updateBlockStatus(): Usuario ${id} estado de bloqueo actualizado a ${isBlocked}.`,
     );
     return plainToInstance(UserDto, updatedUser);
   }
 
   /**
-   * Realiza un "soft delete" en un usuario.
+   * Desactiva lógicamente un usuario (soft delete).
    * @param id El ID del usuario a desactivar.
    * @throws NotFoundException si el usuario no se encuentra.
-   * @throws BadRequestException si el usuario ya está desactivado.
+   * @throws BadRequestException si el usuario ya está desactivado o es un SUPERADMIN.
    */
   async softDeleteUser(id: string): Promise<void> {
     this.logger.debug(`softDeleteUser(): Desactivando usuario con ID: ${id}.`);
-    const user = await this.usersRepository.findOne(id);
+    const user = await this.usersRepository.findOne(id); // Eliminar 'true' si findOne ya maneja la inclusión de eliminados por defecto o si es un método separado.
     if (!user) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
     }
@@ -534,6 +531,9 @@ export class UsersService {
       throw new BadRequestException(
         `El usuario con ID "${id}" ya está desactivado.`,
       );
+    }
+    if (user.role_name === ROLE_SUPERADMIN) {
+      throw new BadRequestException('No se puede desactivar a un SUPERADMIN.');
     }
 
     await this.usersRepository.softDelete(id);
@@ -551,6 +551,7 @@ export class UsersService {
    */
   async reactivateUser(id: string): Promise<UserDto> {
     this.logger.debug(`reactivateUser(): Reactivando usuario con ID: ${id}.`);
+    // Buscar incluyendo eliminados para poder reactivarlo
     const user = await this.usersRepository.findOne(id, true);
     if (!user) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
@@ -563,7 +564,31 @@ export class UsersService {
 
     await this.usersRepository.reactivate(id);
     this.logger.log(`reactivateUser(): Usuario ${id} reactivado exitosamente.`);
-    const reactivatedUser = await this.usersRepository.findOne(id, false);
+    // Vuelve a buscar para obtener la entidad actualizada y sus relaciones.
+    const reactivatedUser = await this.usersRepository.findOne(id);
     return plainToInstance(UserDto, reactivatedUser);
+  }
+
+  /**
+   * Elimina permanentemente un usuario de la base de datos (hard delete).
+   * @param id El ID del usuario a eliminar.
+   * @throws NotFoundException si el usuario no se encuentra.
+   * @throws BadRequestException si se intenta eliminar un SUPERADMIN.
+   * @returns void
+   */
+  async deleteUser(id: string): Promise<void> {
+    this.logger.debug(`deleteUser(): Eliminando usuario con ID: ${id}.`);
+    const user = await this.usersRepository.findOne(id, true); // Incluir eliminados lógicamente
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
+    }
+    if (user.role_name === ROLE_SUPERADMIN) {
+      throw new BadRequestException(
+        'No se puede eliminar a un SUPERADMIN permanentemente.',
+      );
+    }
+
+    await this.usersRepository.softDelete(id); // <-- Se asume que este es el soft delete en el repositorio
+    this.logger.log(`deleteUser(): Usuario ${id} eliminado permanentemente.`);
   }
 }

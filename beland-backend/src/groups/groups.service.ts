@@ -362,7 +362,7 @@ export class GroupsService {
     this.logger.debug(
       `getUserMemberships(): Fetching memberships for user ID: ${userId}`,
     );
-    const user = await this.usersService.findOne(userId); // Assuming findOne method exists and works in UsersService
+    const user = await this.usersService.findUserEntityById(userId);
     if (!user) {
       throw new NotFoundException(`User with ID "${userId}" not found.`);
     }
