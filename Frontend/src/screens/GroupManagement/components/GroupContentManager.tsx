@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Group, Participant, Product } from "../../../types";
+import { useGroupAdminStore } from "../../../stores/groupStores";
 import { useGroupManagement } from "../hooks/useGroupManagement";
 import { generateId } from "../../../utils/validation";
 import { colors } from "../../../styles/colors";
@@ -23,6 +24,7 @@ import {
 import { useCustomAlert } from "../../../hooks/useCustomAlert";
 import { formatUSDPrice, CURRENCY_CONFIG } from "../../../constants";
 import { InstagramUser } from "../../../services/instagramService";
+import { GroupProductAdder } from "./GroupProductAdder";
 
 interface GroupContentManagerProps {
   group: Group;
@@ -46,6 +48,16 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
     loading,
     error,
   } = useGroupManagement();
+
+  // Productos reactivos desde Zustand
+  const productsByGroup = useGroupAdminStore((state) => state.productsByGroup);
+  const groupProducts = productsByGroup[group.id] || [];
+  const increaseGroupProductQuantity = useGroupAdminStore(
+    (state) => state.increaseGroupProductQuantity
+  );
+  const setGroupProducts = useGroupAdminStore(
+    (state) => state.setGroupProducts
+  );
 
   const { showCustomAlert } = useCustomAlert();
 
@@ -131,35 +143,6 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
     });
   };
 
-  const handleConfirmDelete = async (confirmed: boolean) => {
-    if (!confirmed) {
-      setConfirmDelete((prev) => ({ ...prev, show: false }));
-      return;
-    }
-
-    const { type, id } = confirmDelete;
-    let updatedGroup;
-
-    if (type === "participant") {
-      updatedGroup = await removeParticipant(group.id, id);
-    } else {
-      updatedGroup = await removeProduct(group.id, id);
-    }
-
-    if (updatedGroup) {
-      onGroupUpdated(updatedGroup);
-      showCustomAlert(
-        "¡Eliminado!",
-        `${
-          type === "participant" ? "Participante" : "Producto"
-        } eliminado correctamente`,
-        "success"
-      );
-    }
-
-    setConfirmDelete((prev) => ({ ...prev, show: false }));
-  };
-
   // Funciones para productos
   const handleAddProduct = async () => {
     if (!newProductName.trim()) {
@@ -212,10 +195,8 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
     }
   };
 
-  const handleRemoveProduct = async (
-    productId: string,
-    productName: string
-  ) => {
+  // Eliminar producto del grupo en Zustand
+  const handleRemoveProduct = (productId: string, productName: string) => {
     setConfirmDelete({
       show: true,
       type: "product",
@@ -224,22 +205,34 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
     });
   };
 
-  const handleUpdateQuantity = async (
-    productId: string,
-    newQuantity: number
-  ) => {
-    if (newQuantity < 1) {
-      Alert.alert("Error", "La cantidad debe ser al menos 1");
+  // Confirmar eliminación
+  const handleConfirmDelete = (confirmed: boolean) => {
+    if (!confirmed) {
+      setConfirmDelete((prev) => ({ ...prev, show: false }));
       return;
     }
+    const { type, id } = confirmDelete;
+    if (type === "product") {
+      // Eliminar producto de Zustand
+      const updated = groupProducts.filter((p) => p.id !== id);
+      setGroupProducts(group.id, updated);
+    }
+    setConfirmDelete((prev) => ({ ...prev, show: false }));
+  };
 
-    const updatedGroup = await updateProductQuantity(
-      group.id,
-      productId,
-      newQuantity
-    );
-    if (updatedGroup) {
-      onGroupUpdated(updatedGroup);
+  // Cambiar cantidad
+  const handleUpdateQuantity = (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    const product = groupProducts.find((p) => p.id === productId);
+    if (!product) return;
+    if (newQuantity > product.quantity) {
+      increaseGroupProductQuantity(group.id, product.name);
+    } else {
+      // Disminuir cantidad
+      const updated = groupProducts.map((p) =>
+        p.id === productId ? { ...p, quantity: p.quantity - 1 } : p
+      );
+      setGroupProducts(group.id, updated);
     }
   };
 
@@ -457,35 +450,29 @@ export const GroupContentManager: React.FC<GroupContentManagerProps> = ({
       </EnhancedCard>
 
       {/* Sección de Productos */}
+
       <EnhancedCard
-        title="Productos del Pedido"
-        subtitle={`${group.products.length} productos • Total: ${
-          CURRENCY_CONFIG.CURRENCY_DISPLAY_SYMBOL
-        }${formatUSDPrice(group.totalAmount)}`}
+        title="Productos del Grupo"
+        subtitle={`${groupProducts.length} productos`}
         icon="🛒"
         style={{ marginBottom: 16 }}
       >
-        <FlatList
-          data={group.products}
-          renderItem={renderProductItem}
-          keyExtractor={(item) => `${group.id}-product-${item.id}`}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-        />
-
-        {!isReadOnly && (
-          <EnhancedButton
-            title="Agregar Producto"
-            onPress={() => {
-              if (navigation) {
-                navigation.navigate("Catalog", { groupId: group.id });
-              }
-            }}
-            variant="primary"
-            icon="+"
-            style={{ marginTop: 16 }}
+        {groupProducts.length === 0 ? (
+          <Text
+            style={{ textAlign: "center", color: "#888", marginVertical: 16 }}
+          >
+            No hay productos en el pedido.
+          </Text>
+        ) : (
+          <FlatList
+            data={groupProducts}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => `${group.id}-product-${item.id}`}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
           />
         )}
+        {!isReadOnly && <GroupProductAdder groupId={group.id} />}
       </EnhancedCard>
 
       {/* Alert de confirmación para eliminar */}

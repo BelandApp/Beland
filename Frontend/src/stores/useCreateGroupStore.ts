@@ -1,6 +1,5 @@
 import { create } from "zustand";
 // Eliminada la persistencia del formulario de creación de grupo
-import { useEffect, useState } from "react";
 import { Product, Participant } from "../types";
 
 interface CreateGroupState {
@@ -13,7 +12,6 @@ interface CreateGroupState {
   location: string;
   deliveryTime: string;
   participants: Participant[];
-  products: Product[];
 
   // Estados auxiliares
   isCreatingGroup: boolean;
@@ -30,11 +28,6 @@ interface CreateGroupState {
   removeParticipant: (id: string) => void;
   updateParticipant: (id: string, participant: Partial<Participant>) => void;
 
-  // Acciones para productos
-  addProduct: (product: Product) => void;
-  removeProduct: (id: string) => void;
-  updateProductQuantity: (id: string, quantity: number) => void;
-
   // Acciones de control
   setIsCreatingGroup: (isCreating: boolean) => void;
   clearGroup: () => void;
@@ -48,7 +41,6 @@ const initialState = {
   location: "",
   deliveryTime: "",
   participants: [],
-  products: [],
   isCreatingGroup: false,
   consumo: "normal" as "mucho" | "poco" | "normal",
 };
@@ -80,46 +72,6 @@ export const useCreateGroupStore = create<CreateGroupState>((set, get) => ({
         p.id === id ? { ...p, ...participantUpdate } : p
       ),
     })),
-
-  // Acciones para productos
-  addProduct: (product: Product) =>
-    set((state) => {
-      const existingProductIndex = state.products.findIndex(
-        (p) => p.id === product.id
-      );
-      let updatedProducts;
-      if (existingProductIndex >= 0) {
-        updatedProducts = [...state.products];
-        updatedProducts[existingProductIndex] = {
-          ...updatedProducts[existingProductIndex],
-          quantity:
-            updatedProducts[existingProductIndex].quantity + product.quantity,
-          totalPrice:
-            (updatedProducts[existingProductIndex].quantity +
-              product.quantity) *
-            (updatedProducts[existingProductIndex].estimatedPrice || 0),
-        };
-      } else {
-        updatedProducts = [...state.products, product];
-      }
-      return { products: updatedProducts };
-    }),
-  removeProduct: (id: string) =>
-    set((state) => ({ products: state.products.filter((p) => p.id !== id) })),
-  updateProductQuantity: (id: string, quantity: number) =>
-    set((state) => {
-      let updatedProducts;
-      if (quantity <= 0) {
-        updatedProducts = state.products.filter((p) => p.id !== id);
-      } else {
-        updatedProducts = state.products.map((p) =>
-          p.id === id
-            ? { ...p, quantity, totalPrice: quantity * (p.estimatedPrice || 0) }
-            : p
-        );
-      }
-      return { products: updatedProducts };
-    }),
 
   // Acciones de control
   setIsCreatingGroup: (isCreating: boolean) =>

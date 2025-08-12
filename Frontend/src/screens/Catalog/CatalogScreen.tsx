@@ -33,7 +33,17 @@ import {
 import { containerStyles } from "./styles";
 
 // Types
-import { AvailableProduct } from "../../data/products";
+
+import { AvailableProduct, AVAILABLE_PRODUCTS } from "../../data/products";
+import { Group } from "../../types";
+
+import { useCartStore } from "../../stores/useCartStore";
+import { CartBottomSheet } from "./components/CartBottomSheet";
+import { GroupSelectModal } from "./components/GroupSelectModal";
+import { useGroupAdminStore } from "../../stores/groupStores";
+import { GroupService } from "../../services/groupService";
+import { StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const CatalogScreen = () => {
   const navigation = useNavigation();
@@ -43,29 +53,16 @@ export const CatalogScreen = () => {
       ?.routes?.find?.((r: any) => r.name === "Catalog") || {};
   // Si se navega desde la gestión de grupo, se espera groupId en params
   const groupId = route?.params?.groupId;
-  const { addProduct, setIsCreatingGroup, isCreatingGroup, products } =
-    useCreateGroupStore();
-  const { addProductToGroup } =
-    require("../../stores/groupStores").useExistingGroupStore();
-
-  // Verificar si realmente hay productos en el grupo al montar el componente
-  useEffect(() => {
-    // Si no hay productos pero el estado dice que estamos creando grupo, resetear
-    if (isCreatingGroup && products.length === 0) {
-      setIsCreatingGroup(false);
-    }
-  }, [isCreatingGroup, products.length, setIsCreatingGroup]);
-
-  // Limpiar el estado inconsistente cuando se enfoca la pantalla
-  useFocusEffect(
-    React.useCallback(() => {
-      // Verificar si el estado de creación de grupo es consistente
-      if (isCreatingGroup && products.length === 0) {
-        console.log("Limpiando estado inconsistente de creación de grupo");
-        setIsCreatingGroup(false);
-      }
-    }, [isCreatingGroup, products.length, setIsCreatingGroup])
-  );
+  const {
+    addProduct: addProductToCart,
+    products: cartProducts,
+    clearCart,
+  } = useCartStore();
+  const { addProductToGroup } = useGroupAdminStore();
+  // Modal de selección de grupo
+  const [showGroupSelect, setShowGroupSelect] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const { setIsCreatingGroup, isCreatingGroup } = useCreateGroupStore();
 
   // Hooks para manejo de estado
   const {
@@ -92,6 +89,10 @@ export const CatalogScreen = () => {
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   const [showRouteInfo, setShowRouteInfo] = useState(false);
+  // Estado para el carrito
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckoutOptions, setShowCheckoutOptions] = useState(false);
+  const { products } = useCartStore();
 
   const { categories, brands, filteredProducts } = useProductFiltering(
     searchText,
@@ -100,47 +101,16 @@ export const CatalogScreen = () => {
 
   // Función para agregar producto
   const handleAddProduct = (product: AvailableProduct) => {
-    if (groupId) {
-      // Lógica para agregar producto a grupo existente
-      const newProduct = {
-        id: product.id,
-        name: product.name,
-        quantity: 1,
-        estimatedPrice: product.basePrice,
-        totalPrice: product.basePrice,
-        category: product.category,
-        basePrice: product.basePrice,
-        image: product.image,
-      };
-      addProductToGroup(groupId, newProduct);
-      // Sincronizar con el modelo principal
-      const { GroupService } = require("../../services/groupService");
-      GroupService.addProductToGroup(groupId, newProduct);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      // Navegar de vuelta a gestión de grupo (stack anidado)
-      (navigation as any).navigate("Groups", {
-        screen: "GroupManagement",
-        params: { groupId },
-      });
-    } else if (isCreatingGroup) {
-      // Lógica para crear grupo nuevo
-      const newProduct = {
-        id: product.id,
-        name: product.name,
-        quantity: 1,
-        estimatedPrice: product.basePrice,
-        totalPrice: product.basePrice,
-        category: product.category,
-        basePrice: product.basePrice,
-        image: product.image,
-      };
-      addProduct(newProduct);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      openProductAddedModal(product);
-    } else {
-      // Comportamiento normal: mostrar modal de opciones
-      openDeliveryModal(product);
-    }
+    // Siempre agregar al carrito, sin lógica de grupo ni modal de opciones
+    addProductToCart({
+      id: product.id,
+      name: product.name,
+      price: product.basePrice,
+      quantity: 1,
+      image: product.image,
+    });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Aquí podrías mostrar un modal de "producto agregado" si lo deseas
   };
 
   // Funciones para modales
@@ -157,31 +127,34 @@ export const CatalogScreen = () => {
 
   const handleCreateCircularGroup = () => {
     closeDeliveryModal();
+    // Mostrar modal de selección de grupo existente
+    const activeGroups = GroupService.getActiveGroups();
+    setGroups(activeGroups);
+    setShowGroupSelect(true);
+  };
 
-    if (selectedProduct) {
-      // Marcar que estamos creando un grupo
-      setIsCreatingGroup(true);
-
-      // Agregar el producto al store
-      const newProduct = {
-        id: selectedProduct.id,
-        name: selectedProduct.name,
-        quantity: 1,
-        estimatedPrice: selectedProduct.basePrice,
-        totalPrice: selectedProduct.basePrice,
-        category: selectedProduct.category,
-        basePrice: selectedProduct.basePrice,
-        image: selectedProduct.image,
-      };
-      console.log("[Grupo] Creando grupo con producto:", newProduct);
-      addProduct(newProduct);
-    } else {
-      console.log("[Grupo] No hay producto seleccionado al crear grupo");
+  // Al seleccionar un grupo, mover productos del carrito a ese grupo
+  const handleSelectGroup = (group: Group) => {
+    if (cartProducts && cartProducts.length > 0) {
+      cartProducts.forEach((prod) => {
+        addProductToGroup(group.id, {
+          id: prod.id,
+          name: prod.name,
+          quantity: prod.quantity,
+          estimatedPrice: prod.price,
+          totalPrice: prod.price * prod.quantity,
+          category: "",
+          basePrice: prod.price,
+          image: prod.image || "",
+        });
+      });
+      clearCart();
     }
-
-    // Navegar a la pantalla de crear grupo
+    setShowGroupSelect(false);
+    // Navegar a la administración del grupo dentro del stack correcto
     (navigation as any).navigate("Groups", {
-      screen: "CreateGroup",
+      screen: "GroupManagement",
+      params: { groupId: group.id },
     });
   };
 
@@ -213,7 +186,7 @@ export const CatalogScreen = () => {
 
   const confirmCancelGroup = () => {
     setIsCreatingGroup(false);
-    // También limpiar los productos del store
+    // Limpiar solo el estado de grupo (sin productos)
     useCreateGroupStore.getState().clearGroup();
     setShowCancelConfirmation(false);
     (navigation as any).goBack();
@@ -244,11 +217,32 @@ export const CatalogScreen = () => {
             </View>
           </View>
           {!isCreatingGroup ? (
-            <BeCoinsBalance
-              size="medium"
-              variant="header"
-              style={containerStyles.coinsContainer}
-            />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <BeCoinsBalance
+                size="medium"
+                variant="header"
+                style={containerStyles.coinsContainer}
+              />
+              <TouchableOpacity
+                style={styles.headerCartBtn}
+                onPress={() => setShowCart(true)}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons
+                  name="cart-variant"
+                  size={32}
+                  color="#FF6B35"
+                  style={styles.headerCartIcon}
+                />
+                {products.length > 0 && (
+                  <View style={styles.headerBadge}>
+                    <Text style={styles.headerBadgeText}>
+                      {products.length}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           ) : (
             <View style={containerStyles.groupActions}>
               <TouchableOpacity
@@ -307,6 +301,21 @@ export const CatalogScreen = () => {
         />
       </ScrollView>
 
+      {/* Bottom Sheet del carrito */}
+      <CartBottomSheet
+        visible={showCart}
+        onClose={() => setShowCart(false)}
+        onCheckout={() => {
+          setShowCart(false);
+          if (products.length > 0) {
+            const original = AVAILABLE_PRODUCTS.find(
+              (p) => p.id === products[0].id
+            );
+            if (original) openDeliveryModal(original);
+          }
+        }}
+      />
+
       {/* Delivery Modal */}
       <DeliveryModal
         visible={showDeliveryModal}
@@ -360,6 +369,95 @@ export const CatalogScreen = () => {
         onConfirm={() => setShowRouteInfo(false)}
         onCancel={() => setShowRouteInfo(false)}
       />
+      {/* Modal para elegir grupo existente */}
+      <GroupSelectModal
+        visible={showGroupSelect}
+        groups={groups}
+        onSelect={handleSelectGroup}
+        onClose={() => setShowGroupSelect(false)}
+      />
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  headerCartBtn: {
+    marginLeft: 12,
+    padding: 6,
+    position: "relative",
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+    elevation: 2,
+    shadowColor: "#FF6B35",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  headerCartIcon: {
+    // El icono ahora es un componente, así que solo ajusta el tamaño si es necesario
+  },
+  headerBadge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "#FF6B35",
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+    zIndex: 2,
+  },
+  headerBadgeText: { color: "#fff", fontWeight: "bold", fontSize: 11 },
+  checkoutOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 100,
+  },
+  checkoutModal: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+    elevation: 8,
+  },
+  checkoutTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 18,
+    color: "#222",
+  },
+  checkoutOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF3ED",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    width: "100%",
+  },
+  checkoutOptionText: {
+    fontSize: 16,
+    color: "#FF6B35",
+    fontWeight: "600",
+  },
+  checkoutCancel: {
+    marginTop: 8,
+    padding: 8,
+  },
+  checkoutCancelText: {
+    color: "#888",
+    fontSize: 15,
+  },
+});
