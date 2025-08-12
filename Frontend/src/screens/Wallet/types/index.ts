@@ -11,6 +11,17 @@ export interface WalletAction {
   onPress?: () => void;
 }
 
+export interface Transaction {
+  id: string;
+  type: "transfer" | "receive" | "recharge" | "exchange";
+  amount: number;
+  description: string;
+  date: string;
+  status: "completed" | "pending" | "failed";
+  from?: string;
+  to?: string;
+}
+
 export interface FRSData {
   title: string;
   rating: string;

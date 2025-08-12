@@ -1,7 +1,7 @@
 // src/group-members/group-members.repository.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, FindManyOptions } from 'typeorm';
 import { GroupMember } from './entities/group-member.entity';
 
 @Injectable()
@@ -39,28 +39,54 @@ export class GroupMembersRepository extends Repository<GroupMember> {
   /**
    * Finds a single group membership by its primary ID.
    * Includes the associated user and group details.
-   * Renamed from `findOne` to `findOneById` to avoid conflicts with TypeORM's base Repository `findOne` method.
    * @param id The primary ID of the group membership.
    * @returns The GroupMember entity or null if not found.
    */
   async findOneById(id: string): Promise<GroupMember | null> {
-    // Renamed from findOne
     return this.groupMemberORMRepository.findOne({
       where: { id: id },
-      relations: ['user', 'group'],
+      relations: ['user', 'group'], // Load related user and group data
     });
   }
 
   /**
-   * Finds all members of a specific group, including their user details.
+   * Finds all group members for a specific group ID.
+   * Includes the associated user details for each member.
    * This is useful for listing all participants in a meeting.
    * @param groupId The ID of the group.
    * @returns A list of GroupMember entities.
    */
-  async findMembersByGroupId(groupId: string): Promise<GroupMember[]> {
+  async findGroupMembersByGroupId(groupId: string): Promise<GroupMember[]> {
+    // Correct method name as called by GroupsService
     return this.groupMemberORMRepository.find({
       where: { group: { id: groupId } },
-      relations: ['user'], // Load user details for each member
+      relations: ['user', 'group'], // Load user details and group details for each member
+    });
+  }
+
+  /**
+   * Finds all group memberships for a specific user ID.
+   * @param userId The ID of the user.
+   * @returns A list of GroupMember entities.
+   */
+  async findByUserId(userId: string): Promise<GroupMember[]> {
+    return this.groupMemberORMRepository.find({
+      where: { user: { id: userId } },
+      relations: ['group', 'user'], // Load related group and user data
+    });
+  }
+
+  /**
+   * Finds all group memberships for a specific group ID.
+   * (This method is kept for clarity if `findGroupMembersByGroupId` is only for direct members,
+   * but typically `findGroupMembersByGroupId` is sufficient).
+   * @param groupId The ID of the group.
+   * @returns A list of GroupMember entities.
+   */
+  async findByGroupId(groupId: string): Promise<GroupMember[]> {
+    return this.groupMemberORMRepository.find({
+      where: { group: { id: groupId } },
+      relations: ['group', 'user'], // Load related group and user data
     });
   }
 

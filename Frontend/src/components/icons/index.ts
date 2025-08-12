@@ -20,3 +20,4 @@ export { ReceiveIcon } from "./ReceiveIcon";
 export { GroupIcon } from "./GroupIcon";
 export { RecyclingMarker } from "./RecyclingMarker";
 export { PhoneMapSVG } from "./PhoneMapSVG";
+export { RechargeIcon, SettingsIcon } from "./WalletIcons";

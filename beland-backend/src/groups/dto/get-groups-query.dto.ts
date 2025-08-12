@@ -1,14 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsIn } from 'class-validator';
-import { Type } from 'class-transformer'; // Necesario para @Type(() => Number)
+import { IsOptional, IsString, IsIn, IsBoolean, IsUUID } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { OrderDto } from '../../common/dto/order.dto';
 
-// Define el tipo de los nombres de roles válidos para el enum, si no lo tienes ya en otro lugar
+// Define the type of valid group statuses for the enum
 type ValidGroupStatus = 'ACTIVE' | 'PENDING' | 'INACTIVE' | 'DELETE';
 
 export class GetGroupsQueryDto extends PaginationDto implements OrderDto {
-  // Las propiedades 'page' y 'limit' se heredan de PaginationDto
+  // 'page' and 'limit' properties are inherited from PaginationDto
 
   @ApiPropertyOptional({
     description: 'Columna por la que ordenar los resultados.',
@@ -48,4 +48,24 @@ export class GetGroupsQueryDto extends PaginationDto implements OrderDto {
   @IsOptional()
   @IsIn(['ACTIVE', 'PENDING', 'INACTIVE', 'DELETE'])
   status?: ValidGroupStatus;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por ID del líder del grupo.',
+    type: String,
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  leaderId?: string; // Added leaderId filter
+
+  @ApiPropertyOptional({
+    description:
+      'Si se deben incluir grupos eliminados lógicamente (soft-deleted).',
+    default: false,
+    type: Boolean,
+  })
+  @IsOptional()
+  @Type(() => Boolean) // Needed for boolean transformation from query string
+  @IsBoolean()
+  includeDeleted?: boolean = false; // Added includeDeleted filter
 }

@@ -16,6 +16,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { User } from 'src/users/entities/users.entity';
+// Import CreateUserDto and RegisterAuthDto as they define the schemas
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
@@ -53,13 +54,85 @@ export class AuthController {
     return userReturn;
   }
 
-  // provisorio para las pruebas
-
   @Post('signup')
   @ApiOperation({ summary: 'Registra usuarios nuevos' })
   @ApiBody({
-    description: 'Ingrese todos los datos requeridos',
-    type: RegisterAuthDto,
+    description:
+      'Ingrese todos los datos requeridos para el registro de usuario',
+    // --- START: Explicitly define schema for Swagger UI example ---
+    schema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          format: 'email',
+          example: 'usuario@example.com',
+          description: 'Correo electrónico del usuario',
+        },
+        password: {
+          type: 'string',
+          example: 'StrongPass123!',
+          description:
+            'Contraseña del usuario (mínimo 8 caracteres, mayúscula, minúscula, número, símbolo)',
+        },
+        confirmPassword: {
+          type: 'string',
+          example: 'StrongPass123!',
+          description:
+            'Confirmación de la contraseña (debe coincidir con la contraseña)',
+        },
+        address: {
+          type: 'string',
+          example: 'Calle Falsa 123',
+          description: 'Dirección física del usuario',
+        },
+        phone: {
+          type: 'number',
+          example: 1234567890,
+          description: 'Número de teléfono del usuario',
+        },
+        country: {
+          type: 'string',
+          example: 'Colombia',
+          description: 'País del usuario',
+        },
+        city: {
+          type: 'string',
+          example: 'Bogotá',
+          description: 'Ciudad del usuario',
+        },
+        username: {
+          type: 'string',
+          example: 'johndoe',
+          description: 'Nombre de usuario (opcional)',
+          nullable: true,
+        },
+        full_name: {
+          type: 'string',
+          example: 'John Doe',
+          description: 'Nombre completo del usuario (opcional)',
+          nullable: true,
+        },
+        profile_picture_url: {
+          type: 'string',
+          format: 'url',
+          example: 'https://example.com/photo.jpg',
+          description: 'URL de la imagen de perfil (opcional)',
+          nullable: true,
+        },
+      },
+      // --- IMPORTANT: List all REQUIRED fields here ---
+      required: [
+        'email',
+        'password',
+        'confirmPassword',
+        'address',
+        'phone',
+        'country',
+        'city',
+      ],
+    },
+    // --- END: Explicitly define schema ---
   })
   async signup(@Body() user: RegisterAuthDto): Promise<{ token: string }> {
     return await this.authService.signup(user);

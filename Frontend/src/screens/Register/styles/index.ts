@@ -70,6 +70,15 @@ export const styles = StyleSheet.create({
     elevation: 4,
     shadowOpacity: 0.1,
   },
+  passwordHint: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: -15,
+    marginBottom: 15,
+    lineHeight: 16,
+    textAlign: "center",
+    paddingHorizontal: 10,
+  },
   button: {
     width: "100%",
     backgroundColor: "#FF7C1F",

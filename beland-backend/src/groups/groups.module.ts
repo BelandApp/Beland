@@ -11,6 +11,7 @@ import { UsersModule } from 'src/users/users.module'; // Import UsersModule for 
 import { User } from 'src/users/entities/users.entity'; // Import User entity for TypeOrmModule.forFeature
 import { AuthModule } from 'src/auth/auth.module'; // Import AuthModule for authentication/authorization guards
 import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
+import { GroupMembersModule } from 'src/group-members/group-members.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
     // Use forwardRef to resolve circular dependencies if UsersModule or AuthModule also import GroupsModule.
     forwardRef(() => UsersModule),
     forwardRef(() => AuthModule),
-    forwardRef(() => AdminsModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
+    forwardRef(() => AdminsModule),
+    forwardRef(() => GroupMembersModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
   ],
   controllers: [GroupsController], // Register controllers handled by this module
   providers: [GroupsService, GroupsRepository, GroupMembersRepository], // Register services and repositories as providers

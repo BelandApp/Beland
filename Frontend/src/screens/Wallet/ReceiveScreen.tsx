@@ -3,22 +3,38 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   Alert,
   Share,
+  ScrollView,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { WalletBalanceCard } from "../Wallet/components/WalletBalanceCard";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../../hooks/AuthContext";
 import { useWalletData } from "../Wallet/hooks/useWalletData";
 
 const ReceiveScreen = () => {
+  const navigation = useNavigation();
   const { walletData } = useWalletData();
-  const alias = "usuario.alias";
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${alias}`;
-
+  const { user } = useAuth();
   const [showToast, setShowToast] = useState(false);
+
+  // Generar alias basado en datos del usuario
+  const generateUserAlias = () => {
+    if (user?.email) {
+      // Usar email como base para el alias
+      const emailPrefix = user.email.split("@")[0];
+      return `${emailPrefix}.beland`;
+    } else if (user?.name) {
+      // Si no hay email, usar nombre
+      const cleanName = user.name.toLowerCase().replace(/\s+/g, ".");
+      return `${cleanName}.beland`;
+    }
+    return "usuario.beland";
+  };
+
+  const alias = generateUserAlias();
 
   const handleCopy = async () => {
     await Clipboard.setStringAsync(alias);
@@ -28,130 +44,224 @@ const ReceiveScreen = () => {
 
   const handleShare = async () => {
     try {
+      const userName = user?.name || "Usuario";
       await Share.share({
-        message: `Este es mi alias para recibir pagos en Beland: ${alias}`,
-        url: qrUrl,
-        title: "Recibe pagos en Beland",
+        message: `¡Hola! Soy ${userName} y este es mi alias para recibir pagos en Beland: ${alias}`,
       });
     } catch (error) {
-      Alert.alert("Error", "No se pudo compartir el alias.");
+      Alert.alert("Error", "No se pudo compartir el alias");
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Toast visual */}
-      {showToast && (
-        <View style={styles.toast}>
-          <Ionicons
-            name="checkmark-circle"
-            size={22}
-            color="#fff"
-            style={{ marginRight: 6 }}
-          />
-          <Text style={styles.toastText}>Alias copiado al portapapeles</Text>
-        </View>
-      )}
-      {/* Header y saldo */}
-      <WalletBalanceCard
-        walletData={walletData}
-        backgroundColor="#7DA244"
-        accentColor="#fff"
-      />
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Recibir BeCoins</Text>
+      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Tu alias:</Text>
-        <View style={styles.aliasRow}>
-          <Text style={styles.alias}>{alias}</Text>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleCopy}>
-            <Ionicons name="copy-outline" size={22} color="#7DA244" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
+      {/* QR Code */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Código QR</Text>
+        <View style={styles.qrContainer}>
+          <View style={styles.qrCodeWrapper}>
+            <MaterialCommunityIcons name="qrcode" size={120} color="#7DA244" />
+          </View>
+          <Text style={styles.qrDescription}>
+            Comparte este código QR para recibir pagos
+          </Text>
+        </View>
+      </View>
+
+      {/* Alias */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tu alias</Text>
+        <View style={styles.aliasContainer}>
+          <Text style={styles.aliasText}>{alias}</Text>
+          <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
             <MaterialCommunityIcons
-              name="share-variant"
-              size={22}
+              name="content-copy"
+              size={20}
               color="#7DA244"
             />
           </TouchableOpacity>
         </View>
-        <Text style={styles.infoText}>
-          Comparte tu alias o el QR para recibir pagos de otros usuarios.
-        </Text>
-        <View style={styles.qrContainer}>
-          <Image source={{ uri: qrUrl }} style={styles.qr} />
-        </View>
       </View>
-    </View>
+
+      {/* Información del saldo */}
+      <View style={styles.balanceInfo}>
+        <Text style={styles.balanceLabel}>Saldo actual:</Text>
+        <Text style={styles.balanceAmount}>{walletData.balance} BECOINS</Text>
+      </View>
+
+      {/* Botones de acción */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+          <MaterialCommunityIcons name="share-variant" size={20} color="#fff" />
+          <Text style={styles.shareButtonText}>Compartir</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Toast de copiado */}
+      {showToast && (
+        <View style={styles.toast}>
+          <MaterialCommunityIcons name="check" size={20} color="#fff" />
+          <Text style={styles.toastText}>¡Alias copiado!</Text>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  toast: {
-    position: "absolute",
-    top: 38,
-    left: 0,
-    right: 0,
-    marginHorizontal: 32,
-    backgroundColor: "#222",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 22,
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "center",
-    zIndex: 999,
-    elevation: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingTop: 50,
+    backgroundColor: "#7DA244",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  backButton: {
+    marginRight: 16,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  section: {
+    margin: 16,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 12,
+  },
+  qrContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  qrCodeWrapper: {
+    padding: 20,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  qrDescription: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+  },
+  aliasContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  aliasText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  copyButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#f0f9f0",
+  },
+  balanceInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  balanceAmount: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#7DA244",
+  },
+  actionButtons: {
+    margin: 16,
+  },
+  shareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#7DA244",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#7DA244",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
+    elevation: 5,
+  },
+  shareButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  toast: {
+    position: "absolute",
+    bottom: 100,
+    left: "50%",
+    transform: [{ translateX: -60 }],
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#333",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   toastText: {
     color: "#fff",
-    fontSize: 15,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 8,
   },
-  container: { flex: 1, backgroundColor: "#eaf1f8", padding: 16 },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 18,
-    color: "#222",
-    textAlign: "center",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 22,
-    marginTop: 18,
-    marginHorizontal: 2,
-    elevation: 4,
-    shadowColor: "#7DA244",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    alignItems: "center",
-  },
-  label: { fontSize: 16, color: "#555", marginBottom: 2 },
-  aliasRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  alias: { fontSize: 19, fontWeight: "bold", color: "#222", marginRight: 8 },
-  iconBtn: {
-    marginHorizontal: 2,
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: "#eaf1f8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  infoText: {
-    fontSize: 13,
-    color: "#888",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  qrContainer: { alignItems: "center", marginBottom: 0, marginTop: 8 },
-  qr: { width: 180, height: 180, borderRadius: 12 },
 });
 
 export default ReceiveScreen;

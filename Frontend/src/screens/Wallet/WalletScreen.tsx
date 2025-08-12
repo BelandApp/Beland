@@ -1,12 +1,19 @@
 import React, { useState } from "react";
 import { View, ScrollView, Dimensions } from "react-native";
 import { WaveBottomGray } from "../../components/icons";
-import { WalletHeader, WalletBalanceCard, WalletActions } from "./components";
-import { BankAccountsSection } from "./components/BankAccountsSection";
-import { PayphoneSection } from "./components/PayphoneSection";
-import { PaymentPreferences } from "./components/PaymentPreferences";
+import {
+  WalletHeader,
+  WalletBalanceCard,
+  WalletActions,
+  RecentTransactions,
+} from "./components";
+import { useAuth } from "../../hooks/AuthContext";
 
-import { useWalletData, useWalletActions } from "./hooks";
+import {
+  useWalletData,
+  useWalletActions,
+  useWalletTransactions,
+} from "./hooks";
 import { containerStyles } from "./styles";
 import { PayphoneWidget } from "../../components/ui/PayphoneWidget";
 import { StyleSheet } from "react-native";
@@ -14,46 +21,16 @@ import { StyleSheet } from "react-native";
 const payphoneLogo = require("../../../assets/payphone-logo.png");
 
 export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [bankAccounts, setBankAccounts] = useState<
-    {
-      holder: string;
-      idNumber: string;
-      bank: string;
-      accountNumber: string;
-    }[]
-  >([]);
-  // const [showBuyModal, setShowBuyModal] = useState(false);
-  const handleAddBankAccount = () => {
-    if (
-      bankData.holder &&
-      bankData.idNumber &&
-      bankData.bank &&
-      bankData.accountNumber
-    ) {
-      setBankAccounts([...bankAccounts, bankData]);
-      setBankData({ holder: "", idNumber: "", bank: "", accountNumber: "" });
-    }
-  };
-
-  const handleRemoveBankAccount = (idx: number) => {
-    setBankAccounts(bankAccounts.filter((_, i) => i !== idx));
-  };
+  const { user } = useAuth();
 
   type PaymentAccountType = "payphone" | "bank" | null;
   const { walletData } = useWalletData();
-  const { walletActions } = useWalletActions();
+  const { mainWalletActions } = useWalletActions();
+  const { transactions, isLoading: transactionsLoading } =
+    useWalletTransactions();
   const [showPayphone, setShowPayphone] = useState(false);
-  const [showAccountModal, setShowAccountModal] = useState(false);
   const [selectedAccount, setSelectedAccount] =
     useState<PaymentAccountType>(null);
-  const [editAccount, setEditAccount] = useState(false);
-  const [bankData, setBankData] = useState({
-    holder: "",
-    idNumber: "",
-    bank: "",
-    accountNumber: "",
-  });
-  const [payphoneData, setPayphoneData] = useState({ phone: "" });
 
   // Obtener variables de entorno
   const payphoneToken = process.env.EXPO_PUBLIC_PAYPHONE_TOKEN || "";
@@ -71,11 +48,9 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     reference: "Motivo de Pago",
     currency: "USD",
     clientTransactionId: "ID-UNICO-X-TRANSACCION",
-    backgroundColor: "#6610f2",
+    backgroundColor: "#F88D2A",
     urlMobile: payphoneUrl,
   };
-  // Necesita acceso a navigation
-  // @ts-ignore
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Widget Payphone solo si está seleccionado y showPayphone */}
@@ -93,78 +68,17 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           >
             <View style={containerStyles.content}>
               <WalletHeader />
-              <WalletBalanceCard walletData={walletData} />
-              <WalletActions
-                actions={walletActions.map((action) =>
-                  action.id === "send"
-                    ? {
-                        ...action,
-                        onPress: () => {
-                          navigation.navigate("SendScreen");
-                        },
-                      }
-                    : action.id === "exchange"
-                    ? {
-                        ...action,
-                        onPress: () => {
-                          navigation.navigate("CanjearScreen");
-                        },
-                      }
-                    : action.id === "receive"
-                    ? {
-                        ...action,
-                        onPress: () => {
-                          navigation.navigate("ReceiveScreen");
-                        },
-                      }
-                    : action.id === "history"
-                    ? {
-                        ...action,
-                        onPress: () => {
-                          navigation.navigate("HistoryScreen");
-                        },
-                      }
-                    : action
-                )}
+              <WalletBalanceCard
+                walletData={walletData}
+                avatarUrl={user?.picture}
               />
+              <WalletActions actions={mainWalletActions} />
 
-              {/* Preferencias de pago con edición directa */}
-              <PaymentPreferences
-                selectedAccount={selectedAccount}
-                setSelectedAccount={setSelectedAccount}
-                payphoneLogo={payphoneLogo}
-                styles={styles}
-                payphoneData={payphoneData}
-                setPayphoneData={setPayphoneData}
-                bankData={bankData}
-                setBankData={setBankData}
+              {/* Transacciones recientes */}
+              <RecentTransactions
+                transactions={transactions}
+                isLoading={transactionsLoading}
               />
-
-              {selectedAccount && (
-                <View style={{ marginTop: 12, marginBottom: 8 }}>
-                  {editAccount && selectedAccount === "bank" && (
-                    <BankAccountsSection
-                      bankAccounts={bankAccounts}
-                      bankData={bankData}
-                      editAccount={editAccount}
-                      onChangeBankData={(data) =>
-                        setBankData(data as typeof bankData)
-                      }
-                      onAddBankAccount={handleAddBankAccount}
-                      onRemoveBankAccount={handleRemoveBankAccount}
-                    />
-                  )}
-                  {editAccount && selectedAccount === "payphone" && (
-                    <PayphoneSection
-                      payphoneData={payphoneData}
-                      editAccount={editAccount}
-                      onChangePayphoneData={(data) =>
-                        setPayphoneData(data as typeof payphoneData)
-                      }
-                    />
-                  )}
-                </View>
-              )}
             </View>
             <View style={containerStyles.waveContainer}>
               <WaveBottomGray
@@ -178,113 +92,3 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  paymentPrefCard: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 20,
-    marginTop: 24,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  paymentPrefHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  paymentPrefTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#222",
-  },
-  addBtn: {
-    backgroundColor: "#e6f0ff",
-    borderRadius: 50,
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addBtnText: {
-    color: "#6610f2",
-    fontSize: 22,
-    fontWeight: "bold",
-    marginTop: -2,
-  },
-  noAccountText: {
-    color: "#888",
-    fontSize: 15,
-    textAlign: "center",
-    marginVertical: 18,
-  },
-  selectedAccountBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderColor: "#6610f2",
-    borderWidth: 1.5,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 8,
-  },
-  accountLogo: {
-    width: 32,
-    height: 32,
-    marginRight: 10,
-    resizeMode: "contain",
-    borderRadius: 8,
-  },
-  accountText: {
-    fontSize: 16,
-    color: "#222",
-    fontWeight: "500",
-  },
-  bankIcon: {
-    fontSize: 28,
-    marginRight: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.18)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 24,
-    width: 320,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 18,
-    color: "#222",
-  },
-  accountOption: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f6f6f6",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 12,
-    width: 240,
-  },
-  closeModalBtn: {
-    marginTop: 10,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#f3f3f3",
-  },
-});

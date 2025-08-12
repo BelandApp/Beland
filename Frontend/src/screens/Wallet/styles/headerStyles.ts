@@ -17,6 +17,9 @@ export const headerStyles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   sectionTitle: {
     fontSize: 24,

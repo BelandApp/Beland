@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Platform } from "react-native";
 import { Modal, Pressable, FlatList } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Alert, Image } from "react-native";
 // Si tienes lottie-react-native instalado, descomenta la siguiente línea:
 // import LottieView from 'lottie-react-native';
@@ -11,11 +11,15 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
+  ScrollView,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { useAuth } from "../../hooks/AuthContext";
 import { useBeCoinsStore } from "../../stores/useBeCoinsStore";
 import { convertBeCoinsToUSD, formatUSDPrice } from "../../constants/currency";
 import { WalletBalanceCard } from "./components/WalletBalanceCard";
+import { beCoinsService } from "../../services/becoinsService";
+import { transactionService } from "../../services/transactionService";
 
 // Solo permitir canje de BECOINS a USD o ARS
 const digitalCurrencies = [
@@ -29,10 +33,12 @@ const CanjearScreen: React.FC<{
   route?: any;
   balance?: number;
 }> = ({ navigation, route, balance: propBalance }) => {
+  const { user } = useAuth();
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState(digitalCurrencies[1].value); // USD por defecto
   const [fromCurrency, setFromCurrency] = useState("becoin");
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const balance =
     useBeCoinsStore((state: { balance: number }) => state.balance) ?? 0;
   const spendBeCoins = useBeCoinsStore((state: any) => state.spendBeCoins);
@@ -50,7 +56,7 @@ const CanjearScreen: React.FC<{
   const parsedAmount = parseFloat(amount) || 0;
   const isAmountValid = parsedAmount > 0 && parsedAmount <= balance;
 
-  const handleBuy = () => {
+  const handleBuy = async () => {
     if (!isAmountValid) {
       Alert.alert(
         "Monto inválido",
@@ -58,13 +64,85 @@ const CanjearScreen: React.FC<{
       );
       return;
     }
-    // Descontar saldo usando la store
-    const ok = spendBeCoins(
-      parsedAmount,
-      `Canje de BECOINS a ${currency === "usd" ? "USD" : "ARS"}`,
-      "catalog"
-    );
-    if (ok) {
+
+    if (!user?.id) {
+      Alert.alert("Error", "Usuario no autenticado");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Determinar si usar modo demo o producción
+      const isDemoMode = process.env.EXPO_PUBLIC_USE_DEMO_MODE === "true";
+
+      console.log("🔧 CanjearScreen configuración:");
+      console.log(
+        "- process.env.EXPO_PUBLIC_USE_DEMO_MODE:",
+        process.env.EXPO_PUBLIC_USE_DEMO_MODE
+      );
+      console.log(
+        "- process.env.EXPO_PUBLIC_API_URL:",
+        process.env.EXPO_PUBLIC_API_URL
+      );
+      console.log("- isDemoMode:", isDemoMode);
+      console.log("- user.email:", user.email);
+      console.log("- beCoinsService:", !!beCoinsService);
+
+      if (!isDemoMode) {
+        try {
+          // Modo producción: intentar usar API real
+          await beCoinsService.spendBeCoins({
+            userId: user.email!,
+            amount: parsedAmount,
+            description: `Conversión de BECOINS a ${currency.toUpperCase()}`,
+            category: "conversion",
+            metadata: {
+              targetCurrency: currency.toUpperCase(),
+              conversionRate: convertBeCoinsToUSD(1),
+              targetAmount: convertBeCoinsToUSD(parsedAmount),
+            },
+          }); // Actualizar store local también
+          spendBeCoins(
+            parsedAmount,
+            `Canje de BECOINS a ${currency === "usd" ? "USD" : "ARS"}`,
+            "conversion"
+          );
+        } catch (apiError: any) {
+          console.warn("API no disponible, usando modo demo:", apiError);
+
+          // Si hay error de red, usar modo demo como fallback
+          const ok = spendBeCoins(
+            parsedAmount,
+            `Canje de BECOINS a ${currency === "usd" ? "USD" : "ARS"}`,
+            "conversion"
+          );
+
+          if (!ok) {
+            Alert.alert(
+              "Error",
+              "No se pudo realizar el canje. Verifica tu saldo."
+            );
+            return;
+          }
+        }
+      } else {
+        // Modo demo: usar store local
+        const ok = spendBeCoins(
+          parsedAmount,
+          `Canje de BECOINS a ${currency === "usd" ? "USD" : "ARS"}`,
+          "conversion"
+        );
+
+        if (!ok) {
+          Alert.alert(
+            "Error",
+            "No se pudo realizar el canje. Verifica tu saldo."
+          );
+          return;
+        }
+      }
+
       // Mostrar modal de éxito visual
       const now = new Date();
       setSuccessData({
@@ -90,638 +168,805 @@ const CanjearScreen: React.FC<{
       });
       setShowSuccess(true);
       setAmount("");
-    } else {
-      Alert.alert("Error", "No se pudo realizar el canje. Verifica tu saldo.");
+    } catch (error: any) {
+      console.error("Error en canje:", error);
+      Alert.alert(
+        "Error",
+        error.message || "No se pudo completar el canje. Intenta nuevamente."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <View style={[styles.screen, { padding: 16 }]}>
-      {/* Modal de éxito visual */}
-      {showSuccess && successData && (
-        <View
-          style={{
-            position: "absolute",
-            zIndex: 100,
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.18)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+    <View style={styles.container}>
+      {/* Header profesional */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
         >
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 24,
-              padding: 28,
-              width: 320,
-              alignItems: "center",
-              elevation: 8,
-            }}
-          >
-            {/* Animación de confeti */}
-            {/* Si tienes lottie-react-native, reemplaza el emoji por LottieView */}
-            <Text style={{ fontSize: 54, marginBottom: 8 }}>🎉</Text>
-            {/* <LottieView source={require('../../../assets/confetti.json')} autoPlay loop={false} style={{ width: 90, height: 90, marginBottom: 8 }} /> */}
-            <Text
-              style={{
-                fontSize: 24,
-                fontWeight: "bold",
-                color: "#4ecdc4",
-                marginBottom: 6,
-                textAlign: "center",
-              }}
-            >
-              ¡Ya tenés tus {successData.currency}!
-            </Text>
-            <Text
-              style={{
-                fontSize: 18,
-                color: "#4caf50",
-                fontWeight: "bold",
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
-              Transacción aprobada
-            </Text>
-            <Text
-              style={{
-                fontSize: 16,
-                color: "#222",
-                marginBottom: 2,
-                textAlign: "center",
-              }}
-            >
-              Cambiaste{" "}
-              <Text style={{ fontWeight: "bold" }}>
-                {successData.amount} Becoins
-              </Text>{" "}
-              por{" "}
-              <Text style={{ color: "#43a047", fontWeight: "bold" }}>
-                + {successData.usdValue}
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Canjear BeCoins</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Balance Card */}
+        <View style={styles.balanceSection}>
+          <View style={styles.balanceCard}>
+            <View style={styles.balanceContent}>
+              <Text style={styles.balanceLabel}>Tu saldo disponible</Text>
+              <Text style={styles.balanceAmount}>
+                {balance.toLocaleString()} BeCoins
               </Text>
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#888",
-                marginBottom: 2,
-                marginTop: 6,
-                textAlign: "center",
-              }}
-            >
-              Realizada el {successData.date}
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#4ecdc4",
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
-              Número de operación{" "}
-              <Text style={{ fontWeight: "bold", color: "#43a047" }}>
-                {successData.opNumber}
+              <Text style={styles.balanceEstimate}>
+                ≈ ${formatUSDPrice(convertBeCoinsToUSD(balance))} USD
               </Text>
-            </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                color: "#888",
-                marginBottom: 12,
-                textAlign: "center",
-              }}
-            >
-              Los {successData.currency} estarán disponibles en tu cuenta para
-              que puedas realizar transacciones con ellos.
-            </Text>
+            </View>
+            <View style={styles.balanceIcon}>
+              <MaterialCommunityIcons name="wallet" size={32} color="#F88D2A" />
+            </View>
+          </View>
+        </View>
+
+        {/* Formulario de canje */}
+        <View style={styles.formSection}>
+          <View style={styles.formCard}>
+            <Text style={styles.sectionTitle}>¿Cuánto quieres canjear?</Text>
+
+            {/* Input de monto */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Monto en BeCoins</Text>
+              <View style={styles.amountInputContainer}>
+                <TextInput
+                  style={[
+                    styles.amountInput,
+                    !isAmountValid && amount ? styles.inputError : {},
+                  ]}
+                  value={amount}
+                  onChangeText={setAmount}
+                  placeholder="0"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                  maxLength={8}
+                />
+                <View style={styles.currencyBadge}>
+                  <Text style={styles.currencyBadgeText}>BeCoins</Text>
+                </View>
+              </View>
+
+              {!isAmountValid && amount !== "" && (
+                <View style={styles.errorContainer}>
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={16}
+                    color="#EF4444"
+                  />
+                  <Text style={styles.errorText}>
+                    Monto inválido o insuficiente
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Conversión */}
+            <View style={styles.conversionSection}>
+              <View style={styles.conversionHeader}>
+                <Text style={styles.inputLabel}>Recibirás</Text>
+                <TouchableOpacity
+                  style={styles.currencySelector}
+                  onPress={() => setShowCurrencyModal(true)}
+                >
+                  <Text style={styles.currencySelectorText}>
+                    {currency === "usd" ? "USD" : "ARS"}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#F88D2A" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.conversionResult}>
+                <Text style={styles.conversionAmount}>
+                  {amount && isAmountValid
+                    ? `${formatUSDPrice(convertBeCoinsToUSD(Number(amount)))}`
+                    : "0.00"}
+                </Text>
+                <Text style={styles.conversionCurrency}>
+                  {currency === "usd" ? "USD" : "ARS"}
+                </Text>
+              </View>
+
+              <Text style={styles.conversionNote}>
+                Conversión aproximada • Tasa: 1 BeCoin = $
+                {convertBeCoinsToUSD(1)} USD
+              </Text>
+            </View>
+
+            {/* Botón de canje */}
             <TouchableOpacity
-              style={{
-                backgroundColor: "#4ecdc4",
-                borderRadius: 16,
-                paddingVertical: 10,
-                paddingHorizontal: 32,
-                marginTop: 6,
-                shadowColor: "#4ecdc4",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.12,
-                shadowRadius: 8,
-                elevation: 2,
-              }}
-              onPress={() => {
-                setShowSuccess(false);
-                setSuccessData(null);
-                navigation.goBack();
-              }}
+              style={[
+                styles.exchangeButton,
+                (!isAmountValid || isLoading) && styles.exchangeButtonDisabled,
+              ]}
+              onPress={handleBuy}
+              disabled={!isAmountValid || isLoading}
             >
-              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 17 }}>
-                Cerrar
-              </Text>
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <MaterialCommunityIcons
+                    name="loading"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.exchangeButtonText}>Procesando...</Text>
+                </View>
+              ) : (
+                <Text style={styles.exchangeButtonText}>Canjear BeCoins</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
-      )}
-      {/* Card amarilla con balance y avatar */}
-      <WalletBalanceCard
-        walletData={{
-          balance: balance,
-          estimatedValue: formatUSDPrice(convertBeCoinsToUSD(balance)),
-        }}
-        backgroundColor="#ffe066"
-        accentColor="#f9a825"
-        hideEstimated={false}
-      />
-      {/* Formulario de cambio */}
-      <View
-        style={[
-          styles.formCard,
-          {
-            paddingVertical: 28,
-            paddingHorizontal: 20,
-            borderRadius: 22,
-            marginTop: 10,
-          },
-        ]}
-      >
-        {/* Campo monto */}
-        <Text style={[styles.formTitle, { fontSize: 19, marginBottom: 18 }]}>
-          ¿Cuánto quieres canjear?
-        </Text>
-        <View style={[styles.inputRow, { marginBottom: 10 }]}>
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.inputLabel,
-                {
-                  color: "#888",
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  marginBottom: 8,
-                },
-              ]}
-            >
-              Monto (BECOINS)
-            </Text>
-            <View style={styles.inputSelectRow}>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    flex: 1,
-                    marginRight: 8,
-                    backgroundColor: "#f9fafb",
-                    borderColor:
-                      isAmountValid || !amount ? "#e0e4ea" : "#ff7675",
-                    fontWeight: "bold",
-                    fontSize: 20,
-                    paddingVertical: 12,
-                  },
-                ]}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="Ej: 100"
-                placeholderTextColor="#bbb"
-                keyboardType="numeric"
-                maxLength={8}
-              />
-              <View style={{ flex: 1, justifyContent: "center" }}>
-                <Text
-                  style={{
-                    fontSize: 18,
-                    color: "#f9a825",
-                    fontWeight: "bold",
-                    paddingVertical: 12,
 
-                    backgroundColor: "#fffbe6",
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: "#ffe066",
-                    textAlign: "center",
-                  }}
-                >
-                  BECOINS
-                </Text>
-              </View>
+        {/* Información adicional */}
+        <View style={styles.infoSection}>
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <MaterialCommunityIcons
+                name="information"
+                size={20}
+                color="#6B7280"
+              />
+              <Text style={styles.infoTitle}>Información del canje</Text>
             </View>
-            {/* Mensaje de error si el monto es inválido */}
-            {!isAmountValid && amount !== "" && (
-              <Text style={{ color: "#ff7675", fontSize: 13, marginTop: 2 }}>
-                Monto inválido o insuficiente.
-              </Text>
-            )}
-          </View>
-        </View>
-        {/* Campo moneda destino */}
-        <View style={[styles.inputRow, { marginBottom: 10 }]}>
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.inputLabel,
-                {
-                  color: "#888",
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  marginBottom: 8,
-                },
-              ]}
-            >
-              Recibirás
+            <Text style={styles.infoText}>
+              • El canje se realiza al tipo de cambio actual{"\n"}• Los fondos
+              estarán disponibles inmediatamente{"\n"}• No se aplican comisiones
+              adicionales{"\n"}• Monto mínimo: 1 BeCoin
             </Text>
-            <View style={[styles.inputSelectRow, { alignItems: "flex-end" }]}>
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 22,
-                    fontWeight: "bold",
-                    color: "#f9a825",
-                    marginBottom: 2,
-                    textAlign: "left",
-                  }}
-                >
-                  {amount && isAmountValid
-                    ? `${formatUSDPrice(convertBeCoinsToUSD(Number(amount)))} ${
-                        currency === "usd" ? "USD" : "ARS"
-                      }`
-                    : `0.00 ${currency === "usd" ? "USD" : "ARS"}`}
-                </Text>
-                <Text style={{ color: "#888", fontSize: 13, marginTop: 0 }}>
-                  Al canjear {amount && isAmountValid ? amount : 0} BECOINS
-                </Text>
-              </View>
-              <View style={{ flex: 1, justifyContent: "center" }}>
-                <Pressable
-                  onPress={() => setShowCurrencyModal(true)}
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? "#fffde7" : "#fffbe6",
-                    borderRadius: 12,
-                    borderWidth: 2,
-                    borderColor: pressed ? "#ffe066" : "#f9a825",
-                    paddingVertical: 8,
-                    paddingHorizontal: 14,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: 38,
-                    minWidth: 120,
-                    shadowColor: "#ffe066",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 6,
-                    elevation: pressed ? 4 : 2,
-                  })}
-                >
-                  <Text
-                    style={{
-                      fontSize: 16,
-                      color: "#f9a825",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      flexShrink: 1,
-                      flexGrow: 1,
-                      letterSpacing: 1,
-                    }}
-                    numberOfLines={1}
-                  >
-                    {currency === "usd"
-                      ? "USD"
-                      : currency === "ars"
-                      ? "ARS"
-                      : "Moneda"}
-                  </Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={18}
-                    color="#f9a825"
-                    style={{ marginLeft: 4 }}
-                  />
-                </Pressable>
-                {/* Modal de selección de moneda */}
-                <Modal
-                  visible={showCurrencyModal}
-                  transparent
-                  animationType="fade"
-                  onRequestClose={() => setShowCurrencyModal(false)}
-                >
-                  <Pressable
-                    style={{
-                      flex: 1,
-                      backgroundColor: "rgba(0,0,0,0.18)",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    onPress={() => setShowCurrencyModal(false)}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: "#fff",
-                        borderRadius: 18,
-                        paddingVertical: 12,
-                        width: 300,
-                        elevation: 8,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontWeight: "bold",
-                          fontSize: 18,
-                          color: "#222",
-                          textAlign: "center",
-                          marginBottom: 10,
-                        }}
-                      >
-                        Selecciona moneda
-                      </Text>
-                      <FlatList
-                        data={digitalCurrencies.slice(1)}
-                        keyExtractor={(item) => item.value}
-                        renderItem={({ item }) => (
-                          <Pressable
-                            onPress={() => {
-                              setCurrency(item.value);
-                              setShowCurrencyModal(false);
-                            }}
-                            style={({ pressed }) => ({
-                              paddingVertical: 16,
-                              paddingHorizontal: 18,
-                              backgroundColor:
-                                currency === item.value
-                                  ? "#ffe066"
-                                  : pressed
-                                  ? "#f6f6f6"
-                                  : "#fff",
-                              borderRadius: 12,
-                              marginBottom: 6,
-                            })}
-                          >
-                            <Text
-                              style={{
-                                fontSize: 17,
-                                color: "#222",
-                                fontWeight:
-                                  currency === item.value ? "bold" : "normal",
-                              }}
-                            >
-                              {item.label}
-                            </Text>
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#888",
-                                marginTop: 2,
-                              }}
-                            >
-                              {item.value.toUpperCase()}
-                            </Text>
-                          </Pressable>
-                        )}
-                        ItemSeparatorComponent={() => (
-                          <View style={{ height: 2 }} />
-                        )}
-                      />
-                    </View>
-                  </Pressable>
-                </Modal>
-              </View>
-            </View>
           </View>
         </View>
-        {/* Botón canjear */}
-        <TouchableOpacity
-          style={[
-            styles.buyBtn,
-            {
-              backgroundColor: isAmountValid ? "#ffe066" : "#f6e9b2",
-              borderRadius: 16,
-              marginTop: 18,
-              shadowColor: "#ffe066",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.18,
-              shadowRadius: 12,
-              elevation: 4,
-            },
-          ]}
-          onPress={handleBuy}
-          disabled={!isAmountValid}
-        >
-          <Text
-            style={[
-              styles.buyBtnText,
-              {
-                color: isAmountValid ? "#222" : "#bbb",
-                fontSize: 19,
-                letterSpacing: 1,
-              },
-            ]}
-          >
-            CANJEAR
-          </Text>
-        </TouchableOpacity>
-      </View>
-      {/* Wave decorativo */}
-      <View style={styles.waveContainer}>
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 70,
-            backgroundColor: "#eaf1f8",
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            zIndex: -1,
-          }}
-        />
-        <Image
-          source={require("../../../assets/splash-icon.png")}
-          style={{
-            width: 120,
-            height: 60,
-            alignSelf: "center",
-            opacity: 0.18,
-            marginBottom: 8,
-          }}
-        />
-      </View>
+      </ScrollView>
+
+      {/* Modal de selección de moneda */}
+      <Modal
+        visible={showCurrencyModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleccionar moneda</Text>
+              <TouchableOpacity
+                onPress={() => setShowCurrencyModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {digitalCurrencies.slice(1).map((item) => (
+              <TouchableOpacity
+                key={item.value}
+                style={[
+                  styles.currencyOption,
+                  currency === item.value && styles.currencyOptionSelected,
+                ]}
+                onPress={() => {
+                  setCurrency(item.value);
+                  setShowCurrencyModal(false);
+                }}
+              >
+                <View style={styles.currencyOptionContent}>
+                  <Text
+                    style={[
+                      styles.currencyOptionText,
+                      currency === item.value &&
+                        styles.currencyOptionTextSelected,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                  <Text style={styles.currencyOptionCode}>
+                    {item.value.toUpperCase()}
+                  </Text>
+                </View>
+                {currency === item.value && (
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={20}
+                    color="#F88D2A"
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de éxito */}
+      {showSuccess && successData && (
+        <Modal visible={showSuccess} transparent animationType="fade">
+          <View style={styles.successModalOverlay}>
+            <View style={styles.successModalContent}>
+              <View style={styles.successIcon}>
+                <MaterialCommunityIcons
+                  name="check-circle"
+                  size={60}
+                  color="#6BA43A"
+                />
+              </View>
+
+              <Text style={styles.successTitle}>¡Canje exitoso!</Text>
+              <Text style={styles.successDescription}>
+                Has canjeado {successData.amount} BeCoins por{" "}
+                <Text style={styles.successAmount}>{successData.usdValue}</Text>
+              </Text>
+
+              <View style={styles.successDetails}>
+                <View style={styles.successDetailRow}>
+                  <Text style={styles.successDetailLabel}>Operación:</Text>
+                  <Text style={styles.successDetailValue}>
+                    {successData.opNumber}
+                  </Text>
+                </View>
+                <View style={styles.successDetailRow}>
+                  <Text style={styles.successDetailLabel}>Fecha:</Text>
+                  <Text style={styles.successDetailValue}>
+                    {successData.date}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.successButton}
+                onPress={() => {
+                  setShowSuccess(false);
+                  setSuccessData(null);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.successButtonText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screen: {
+  // Contenedor principal
+  container: {
     flex: 1,
-    backgroundColor: "#f6f8fa",
-    position: "relative",
+    backgroundColor: "#F8F9FA",
   },
-  headerDecor: {
+
+  // Header
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: Platform.OS === "android" ? 8 : 38, // Reducido para Android porque la barra de estado está oculta
-    paddingHorizontal: 18,
-    marginBottom: 2,
-    backgroundColor: "#fffbe6",
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#ffe066",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? 16 : 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: "#F88D2A",
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    shadowColor: "#F88D2A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
-  backBtn: {
-    marginRight: 8,
-    padding: 4,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#222",
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 40,
+  },
+
+  // Scroll container
+  scrollContainer: {
+    flex: 1,
+  },
+
+  // Balance section
+  balanceSection: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
   },
   balanceCard: {
-    backgroundColor: "#ffe066",
-    borderRadius: 18,
-    padding: 18,
-    marginHorizontal: 18,
-    marginBottom: 18,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    marginRight: 8,
+  balanceContent: {
+    flex: 1,
   },
   balanceLabel: {
-    fontSize: 16,
-    color: "#222",
+    fontSize: 14,
+    color: "#64748B",
     fontWeight: "500",
+    marginBottom: 4,
   },
   balanceAmount: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#f9a825",
-    marginTop: 2,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 2,
   },
-  balanceSub: {
-    fontSize: 13,
-    color: "#888",
-    marginTop: 2,
+  balanceEstimate: {
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  balanceIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FFF7ED",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Form section
+  formSection: {
+    paddingHorizontal: 20,
   },
   formCard: {
-    backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 18,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+
+  // Input group
+  inputGroup: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  amountInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  amountInput: {
+    flex: 1,
+    height: 56,
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 18,
+    fontWeight: "600",
+    backgroundColor: "#FAFAFA",
+    color: "#1E293B",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+  },
+  currencyBadge: {
+    height: 56,
+    paddingHorizontal: 16,
+    backgroundColor: "#FFF7ED",
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#F88D2A",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 100,
+  },
+  currencyBadgeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#F88D2A",
+  },
+
+  // Error container
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 6,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#EF4444",
+    fontWeight: "500",
+  },
+
+  // Conversion section
+  conversionSection: {
+    marginBottom: 24,
+  },
+  conversionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  currencySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#FFF7ED",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F88D2A",
+    gap: 4,
+  },
+  currencySelectorText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#F88D2A",
+  },
+  conversionResult: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 8,
+    gap: 8,
+  },
+  conversionAmount: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#F88D2A",
+  },
+  conversionCurrency: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  conversionNote: {
+    fontSize: 12,
+    color: "#64748B",
+    fontStyle: "italic",
+  },
+
+  // Exchange button
+  exchangeButton: {
+    height: 56,
+    backgroundColor: "#F88D2A",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F88D2A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
+  },
+  exchangeButtonDisabled: {
+    backgroundColor: "#D1D5DB",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  exchangeButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  // Info section
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+  infoCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  infoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#64748B",
+    lineHeight: 20,
+  },
+
+  // Modal overlay and content
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 34,
+    maxHeight: "50%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F8F9FA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Currency options
+  currencyOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F8F9FA",
+  },
+  currencyOptionSelected: {
+    backgroundColor: "#FFF7ED",
+  },
+  currencyOptionContent: {
+    flex: 1,
+  },
+  currencyOptionText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1E293B",
+    marginBottom: 2,
+  },
+  currencyOptionTextSelected: {
+    color: "#F88D2A",
+  },
+  currencyOptionCode: {
+    fontSize: 14,
+    color: "#64748B",
+  },
+
+  // Success modal
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  successModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 32,
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  successIcon: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  successDescription: {
+    fontSize: 16,
+    color: "#64748B",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  successAmount: {
+    color: "#6BA43A",
+    fontWeight: "700",
+  },
+  successDetails: {
+    width: "100%",
+    marginBottom: 24,
+  },
+  successDetailRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  successDetailLabel: {
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  successDetailValue: {
+    fontSize: 14,
+    color: "#1E293B",
+    fontWeight: "600",
+  },
+  successButton: {
+    width: "100%",
+    height: 48,
+    backgroundColor: "#F88D2A",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#F88D2A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+
+  // Legacy styles (mantener por compatibilidad)
+  screen: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  balanceCardContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
   formTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#222",
-    marginBottom: 18,
+    color: "#1F2937",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputSection: {
+    marginBottom: 20,
   },
   inputRow: {
     flexDirection: "row",
-    marginBottom: 14,
-  },
-  inputGroup: {
-    flex: 1,
-  },
-  inputLabel: {
-    fontSize: 15,
-    color: "#222",
-    fontWeight: "500",
-    marginBottom: 6,
-  },
-  inputSelectRow: {
-    flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: "#fafafa",
     flex: 1,
-    marginRight: 8,
-  },
-  selectBox: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
-    borderRadius: 8,
-    backgroundColor: "#f6f6f6",
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    minWidth: 110,
-    justifyContent: "center",
-  },
-  picker: {
-    height: 36,
-    width: 110,
-  },
-  inputResult: {
-    fontSize: 15,
-    color: "#222",
-    fontWeight: "500",
-    marginRight: 8,
-  },
-  buyBtn: {
-    backgroundColor: "#ffe066",
-    borderRadius: 8,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  buyBtnText: {
-    color: "#222",
-    fontWeight: "bold",
-    fontSize: 17,
-  },
-  qrContainer: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  qrPlaceholder: {
-    width: 60,
-    height: 60,
-    backgroundColor: "#eee",
+    borderWidth: 2,
     borderRadius: 12,
-    marginBottom: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontWeight: "600",
+    backgroundColor: "#F9FAFB",
+    color: "#1F2937",
   },
-  qrText: {
+  currencyLabel: {
+    backgroundColor: "#FED7AA",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 2,
+    borderColor: "#F88D2A",
+    minWidth: 120,
+  },
+  currencyLabelText: {
+    fontSize: 16,
+    color: "#F88D2A",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 12,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  resultAmount: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#F88D2A",
+    marginBottom: 4,
+  },
+  resultDescription: {
+    color: "#6B7280",
     fontSize: 14,
-    color: "#888",
-    marginTop: 6,
   },
-  waveContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: -1,
+  modalOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  modalOptionText: {
+    fontSize: 17,
+    color: "#1F2937",
+  },
+  modalOptionSubtext: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
   },
 });
 export default CanjearScreen;
