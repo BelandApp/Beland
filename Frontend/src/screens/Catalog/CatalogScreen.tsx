@@ -14,11 +14,11 @@ import { BeCoinsBalance } from "../../components/ui/BeCoinsBalance";
 import * as Haptics from "expo-haptics";
 
 // Hooks
-import {
-  useCatalogFilters,
-  useCatalogModals,
-  useProductFiltering,
-} from "./hooks";
+import { useCatalogFilters, useCatalogModals } from "./hooks";
+import { useProducts } from "../../hooks/useProducts";
+import { productsService } from "../../services/productsService";
+import { Product } from "../../services/productsService";
+import { ProductCardType } from "./components/ProductCard";
 
 // Components
 import {
@@ -34,7 +34,7 @@ import { containerStyles } from "./styles";
 
 // Types
 
-import { AvailableProduct, AVAILABLE_PRODUCTS } from "../../data/products";
+// import { AvailableProduct, AVAILABLE_PRODUCTS } from "../../data/products";
 import { Group } from "../../types";
 
 import { useCartStore } from "../../stores/useCartStore";
@@ -92,25 +92,80 @@ export const CatalogScreen = () => {
   // Estado para el carrito
   const [showCart, setShowCart] = useState(false);
   const [showCheckoutOptions, setShowCheckoutOptions] = useState(false);
-  const { products } = useCartStore();
+  // Eliminado: const { products } = useCartStore();
 
-  const { categories, brands, filteredProducts } = useProductFiltering(
-    searchText,
-    filters
-  );
+  // Hook para productos desde el backend
+  const {
+    products,
+    total,
+    page,
+    limit,
+    loading,
+    error,
+    setQuery,
+    fetchProducts,
+  } = useProducts({
+    page: 1,
+    limit: 12,
+    name: searchText,
+    category: filters.categories[0]?.toLowerCase() || undefined,
+    sortBy: filters.sortBy || undefined,
+    order: filters.order || undefined,
+  });
+
+  // Efecto para actualizar productos al cambiar filtros
+  useEffect(() => {
+    const query = {
+      page: 1,
+      limit: 12,
+      name: searchText,
+      category: filters.categories[0]?.toLowerCase() || undefined,
+      sortBy: filters.sortBy || undefined,
+      order: filters.order || undefined,
+    };
+    setQuery(query);
+  }, [filters, searchText, setQuery]);
+
+  // Obtener todas las categorías posibles al inicio (sin filtro)
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+  useEffect(() => {
+    // Solo obtener una vez al montar
+    (async () => {
+      try {
+        const data = await productsService.getProducts({ limit: 100 });
+        console.log("[CATEGORIAS] Respuesta productos:", data);
+        const cats = Array.from(
+          new Set(
+            (data.products || []).map((p: any) => p.category).filter(Boolean)
+          )
+        );
+        console.log("[CATEGORIAS] Categorías encontradas:", cats);
+        setAllCategories(cats as string[]);
+      } catch (e: any) {
+        console.error(
+          "[CATEGORIAS] Error al cargar productos:",
+          e,
+          e?.body || e?.message
+        );
+        setAllCategories([]);
+      }
+    })();
+  }, []);
+  const brands: string[] = [];
 
   // Función para agregar producto
-  const handleAddProduct = (product: AvailableProduct) => {
-    // Siempre agregar al carrito, sin lógica de grupo ni modal de opciones
-    addProductToCart({
-      id: product.id,
-      name: product.name,
-      price: product.basePrice,
-      quantity: 1,
-      image: product.image,
-    });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // Aquí podrías mostrar un modal de "producto agregado" si lo deseas
+  const handleAddProduct = (product: ProductCardType) => {
+    // Solo permite agregar productos del backend (Product), no del carrito
+    if ("image_url" in product) {
+      addProductToCart({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        quantity: 1,
+        image: product.image_url,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
   };
 
   // Funciones para modales
@@ -234,10 +289,10 @@ export const CatalogScreen = () => {
                   color="#FF6B35"
                   style={styles.headerCartIcon}
                 />
-                {products.length > 0 && (
+                {cartProducts.length > 0 && (
                   <View style={styles.headerBadge}>
                     <Text style={styles.headerBadgeText}>
-                      {products.length}
+                      {cartProducts.length}
                     </Text>
                   </View>
                 )}
@@ -279,7 +334,7 @@ export const CatalogScreen = () => {
           <FilterPanel
             filters={filters}
             onFiltersChange={setFilters}
-            categories={categories}
+            categories={allCategories}
             brands={brands}
           />
         )}
@@ -295,10 +350,17 @@ export const CatalogScreen = () => {
         </TouchableOpacity>
 
         {/* Product Grid */}
-        <ProductGrid
-          products={filteredProducts}
-          onAddToCart={handleAddProduct}
-        />
+        {loading ? (
+          <Text style={{ textAlign: "center", marginTop: 32 }}>
+            Cargando productos...
+          </Text>
+        ) : error ? (
+          <Text style={{ color: "red", textAlign: "center", marginTop: 32 }}>
+            {error}
+          </Text>
+        ) : (
+          <ProductGrid products={products} onAddToCart={handleAddProduct} />
+        )}
       </ScrollView>
 
       {/* Bottom Sheet del carrito */}
@@ -307,11 +369,18 @@ export const CatalogScreen = () => {
         onClose={() => setShowCart(false)}
         onCheckout={() => {
           setShowCart(false);
-          if (products.length > 0) {
-            const original = AVAILABLE_PRODUCTS.find(
-              (p) => p.id === products[0].id
-            );
-            if (original) openDeliveryModal(original);
+          if (cartProducts.length > 0) {
+            const cartProd = cartProducts[0];
+            const fullProduct = products.find((p) => p.id === cartProd.id);
+            if (fullProduct) {
+              openDeliveryModal(fullProduct);
+            } else {
+              Alert.alert(
+                "Producto no disponible",
+                "El producto seleccionado ya no está disponible en el catálogo. Por favor, actualiza la lista de productos.",
+                [{ text: "OK" }]
+              );
+            }
           }
         }}
       />

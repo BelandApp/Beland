@@ -9,7 +9,11 @@ import { Platform, Alert } from "react-native";
 import { authService } from "../services/authService";
 import { apiRequest } from "../services/api";
 import { useAuthTokenStore } from "../stores/useAuthTokenStore";
-import { useBeCoinsStore } from "../stores/useBeCoinsStore";
+import {
+  useBeCoinsStore,
+  useBeCoinsStoreHydration,
+} from "../stores/useBeCoinsStore";
+import { walletService } from "../services/walletService";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -45,12 +49,6 @@ const redirectUri = makeRedirectUri({
   scheme,
   useProxy: !isWeb,
 } as any);
-
-console.log("🔁 redirectUri:", redirectUri);
-console.log("Domain:", auth0Domain);
-console.log("Client Web ID:", clientWebId);
-console.log("Audience:", auth0Audience);
-console.log("Redirect URI:", redirectUri);
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -91,9 +89,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // === PROVIDER ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Hidratar el store de BeCoins al iniciar la app
+  useBeCoinsStoreHydration();
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
+
+  // Helper para actualizar el balance real desde el backend
+  const updateBeCoinsBalance = async (userEmail: string) => {
+    try {
+      const wallet = await walletService.getWalletByUserId(userEmail);
+      if (wallet && wallet.becoin_balance !== undefined) {
+        // Convertir a número por si viene como string
+        const balanceNum = Number(wallet.becoin_balance);
+        useBeCoinsStore
+          .getState()
+          .setBalance(isNaN(balanceNum) ? 0 : balanceNum);
+      }
+    } catch (e) {
+      console.error("No se pudo actualizar el balance de BeCoins:", e);
+    }
+  };
+
+  // Efecto para actualizar el balance de BeCoins desde el backend si ya hay usuario autenticado
+  useEffect(() => {
+    if (user && user.email) {
+      updateBeCoinsBalance(user.email);
+    }
+  }, [user]);
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -108,8 +132,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     discovery
   );
-  console.log(response);
-  console.log(request);
 
   const saveToken = async (token: string) => {
     if (Platform.OS === "web") {
@@ -194,6 +216,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // 4. Establecer el usuario en el estado del contexto
           setUser(authUser);
           setIsDemo(false);
+
+          // 5. Actualizar el balance de BeCoins desde el backend
+          if (authUser?.email) {
+            await updateBeCoinsBalance(authUser.email);
+          }
         } catch (err) {
           console.error(
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
@@ -231,6 +258,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         setUser(authUser);
         setIsDemo(false);
+
+        // Actualizar el balance de BeCoins desde el backend
+        if (authUser?.email) {
+          await updateBeCoinsBalance(authUser.email);
+        }
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
         await deleteToken(); // Limpiar token si falla la restauración
