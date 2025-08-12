@@ -26,6 +26,7 @@ const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
 const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
 const scheme = Constants.expoConfig?.scheme as string; // Usar el scheme definido en app.json/app.config.js
 const apiBaseUrl = Constants.expoConfig?.extra?.apiUrl as string || "http://localhost:8081";
+const auth0Audience = "https://beland.onrender.com/api";
 
 // Validar que las variables de entorno estén definidas
 if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
@@ -36,13 +37,18 @@ if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
   // throw new Error("Auth0 or API environment variables are missing.");
 }
 
+const isWeb = Platform.OS === "web";
 // Redirección con soporte a proxy y esquema nativo
 const redirectUri = makeRedirectUri({
   scheme,
-  useProxy: true,
+  useProxy: !isWeb,
 } as any);
 
 console.log("🔁 redirectUri:", redirectUri);
+console.log("Domain:", auth0Domain);
+console.log("Client Web ID:", clientWebId);
+console.log("Audience:", auth0Audience);
+console.log("Redirect URI:", redirectUri);
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -89,9 +95,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       scopes: ["openid", "profile", "email"],
       responseType: "code", // Usamos Authorization Code Flow con PKCE
       usePKCE: true,
+      extraParams: {
+        audience: auth0Audience,
+      },
     },
     discovery
   );
+console.log(response)
+console.log(request)
 
   const saveToken = async (token: string) => {
     if (Platform.OS === "web") {
@@ -121,7 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserProfileFromBackend = async (
     token: string
   ): Promise<AuthUser> => {
-    const res = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    const res = await fetch(`${apiBaseUrl}auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -160,6 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           );
 
           const accessToken = tokenResult.accessToken;
+          console.log(accessToken, "✅ Access Token obtenido")
           if (!accessToken) {
             console.error("❌ No se obtuvo accessToken de Auth0.");
             throw new Error("No access token from Auth0.");
@@ -300,7 +312,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loginWithAuth0 = () => {
     // `promptAsync` inicia el flujo de autenticación
-    promptAsync({ useProxy: true } as any);
+    promptAsync();
   };
 
   const loginAsDemo = () => {
