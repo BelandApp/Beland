@@ -38,7 +38,7 @@ export class Cart {
   @Column({ type: 'uuid' , nullable:true })
   payment_type_id: string;
 
-  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
   total_amount: number;
 
   @Column({ type: 'int', default: 0 })

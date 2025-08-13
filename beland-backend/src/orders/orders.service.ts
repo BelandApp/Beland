@@ -7,10 +7,12 @@ import {
 } from '@nestjs/common';
 import { OrdersRepository } from './orders.repository';
 import { Order } from './entities/order.entity';
-import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { CartsRepository } from 'src/cart/cart.repository';
 import { OrderItemsRepository } from 'src/order-items/order-items.repository';
 import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
+import { PaymentTypesRepository } from 'src/payment-types/payment-types.repository';
+import { WalletsService } from 'src/wallets/wallets.service';
+import { PaymentsRepository } from 'src/payments/payments.repository';
 
 @Injectable()
 export class OrdersService {
@@ -19,8 +21,10 @@ export class OrdersService {
   constructor(
     private readonly repository: OrdersRepository,
     private readonly orderItemRepo: OrderItemsRepository,
-    private readonly walletRepo: WalletsRepository,
-    private readonly cartRepo: CartsRepository,
+    private readonly walletService: WalletsService,
+    private readonly cartRepo: CartsRepository, 
+    private readonly payTypeRepo: PaymentTypesRepository, 
+    private readonly payRepo: PaymentsRepository, 
 
   ) {}
 
@@ -66,7 +70,7 @@ export class OrdersService {
   }
 
   async createOrderByCart(order_create: CreateOrderByCartDto): Promise<Order> {
-    const wallet = await this.walletRepo.findOne(order_create.wallet_id);
+    const wallet = await this.walletService.findOne(order_create.wallet_id);
     const cart = await this.cartRepo.findOne(order_create.cart_id);
     if (!wallet) throw new NotFoundException('Wallet no encontrada');
     if (!cart) throw new NotFoundException('Carrito no encontrado');
@@ -75,6 +79,9 @@ export class OrdersService {
       throw new NotAcceptableException('Saldo insuficiente');
     }
 
+    const paymentType = await this.payTypeRepo.findOne(cart.payment_type_id)
+    if (!paymentType) throw new ConflictException('Forma de pago no disponible. Pruebe otra o intente luego.');
+    
     // Crear la orden
     const { id, user_id, created_at, updated_at, items, ...createOrder } = cart;
     const order = await this.repository.create({
@@ -96,8 +103,18 @@ export class OrdersService {
     if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
 
     
-    
-    return 
+    if (paymentType.code == 'FULL') {
+      await this.walletService.purchaseBeland(wallet.id, cart.total_amount, `PURCHASEBELAND-${order.id}`);
+      await this.payRepo.create({
+        amount_paid:order.total_amount,
+        order_id: order.id,
+        payment_type_id: order.payment_type_id,
+        user_id: order.leader_id,
+      })
+    } else { 
+       // SPLIT.... implementar que se divida el pago excluyendo a alguno del consumo.
+    }
+    return savedOrder;
   }
 
   async update(id: string, body: Partial<Order>) {

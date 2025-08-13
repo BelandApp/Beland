@@ -9,6 +9,7 @@ import { GroupsModule } from 'src/groups/groups.module'; // Import GroupsModule 
 import { User } from 'src/users/entities/users.entity';
 import { UsersModule } from 'src/users/users.module';
 import { AdminsModule } from 'src/admins/admins.module';
+import { GroupInvitationsModule } from 'src/group-invitations/group-invitations.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminsModule } from 'src/admins/admins.module';
     forwardRef(() => GroupsModule), // Allows GroupMembersService to inject GroupsService
     forwardRef(() => UsersModule), // Allows GroupMembersService to inject UsersService
     forwardRef(() => AdminsModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
+    forwardRef(() => GroupInvitationsModule),
   ],
   controllers: [GroupMembersController], // Register controllers
   providers: [GroupMembersService, GroupMembersRepository], // Register services and repositories

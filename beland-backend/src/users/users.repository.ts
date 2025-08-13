@@ -46,7 +46,7 @@ export class UsersRepository {
   async findById(id: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { id },
-      relations: { wallets: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role_relation: true },
     });
   }
 
@@ -72,7 +72,7 @@ export class UsersRepository {
   async findByEmail(email: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { email },
-      relations: { wallets: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role_relation: true },
     });
     /*return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')

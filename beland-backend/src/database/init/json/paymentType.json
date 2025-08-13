@@ -1,0 +1,17 @@
+[
+  {
+    "code": "FULL",
+    "description": "Pago único por un solo usuario",
+    "is_active": true
+  },
+  {
+    "code": "SPLIT",
+    "description": "Cada uno divide lo que consume",
+    "is_active": true
+  },
+  {
+    "code": "EQUAL_SPLIT",
+    "description": "Pago dividido entre todos por igual",
+    "is_active": true
+  }
+]
