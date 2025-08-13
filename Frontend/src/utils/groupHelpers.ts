@@ -1,3 +1,8 @@
+import { CURRENT_USER_ID } from "../data/user";
+import { Group } from "../types";
+export function isUserAdminOfGroup(group: Group): boolean {
+  return group.createdBy === CURRENT_USER_ID;
+}
 import { GroupStatus } from "../types";
 import { colors } from "../styles/colors";
 

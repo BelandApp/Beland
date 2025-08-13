@@ -9,6 +9,11 @@ import { Platform, Alert } from "react-native";
 import { authService } from "../services/authService";
 import { apiRequest } from "../services/api";
 import { useAuthTokenStore } from "../stores/useAuthTokenStore";
+import {
+  useBeCoinsStore,
+  useBeCoinsStoreHydration,
+} from "../stores/useBeCoinsStore";
+import { walletService } from "../services/walletService";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -25,7 +30,8 @@ WebBrowser.maybeCompleteAuthSession();
 const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
 const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
 const scheme = Constants.expoConfig?.scheme as string; // Usar el scheme definido en app.json/app.config.js
-const apiBaseUrl = Constants.expoConfig?.extra?.apiUrl as string || "http://localhost:8081";
+const apiBaseUrl =
+  (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:8081";
 const auth0Audience = "https://beland.onrender.com/api";
 
 // Validar que las variables de entorno estén definidas
@@ -43,12 +49,6 @@ const redirectUri = makeRedirectUri({
   scheme,
   useProxy: !isWeb,
 } as any);
-
-console.log("🔁 redirectUri:", redirectUri);
-console.log("Domain:", auth0Domain);
-console.log("Client Web ID:", clientWebId);
-console.log("Audience:", auth0Audience);
-console.log("Redirect URI:", redirectUri);
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -75,7 +75,12 @@ interface AuthContextType {
   registerWithEmailPassword: (
     name: string,
     email: string,
-    password: string
+    password: string,
+    confirmPassword: string,
+    address: string,
+    phone: string,
+    country: string,
+    city: string
   ) => Promise<true | string>;
 }
 
@@ -84,9 +89,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // === PROVIDER ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Hidratar el store de BeCoins al iniciar la app
+  useBeCoinsStoreHydration();
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
+
+  // Helper para actualizar el balance real desde el backend
+  const updateBeCoinsBalance = async (userEmail: string) => {
+    try {
+      const wallet = await walletService.getWalletByUserId(userEmail);
+      if (wallet && wallet.becoin_balance !== undefined) {
+        // Convertir a número por si viene como string
+        const balanceNum = Number(wallet.becoin_balance);
+        useBeCoinsStore
+          .getState()
+          .setBalance(isNaN(balanceNum) ? 0 : balanceNum);
+      }
+    } catch (e) {
+      console.error("No se pudo actualizar el balance de BeCoins:", e);
+    }
+  };
+
+  // Efecto para actualizar el balance de BeCoins desde el backend si ya hay usuario autenticado
+  useEffect(() => {
+    if (user && user.email) {
+      updateBeCoinsBalance(user.email);
+    }
+  }, [user]);
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -101,8 +132,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     discovery
   );
-console.log(response)
-console.log(request)
 
   const saveToken = async (token: string) => {
     if (Platform.OS === "web") {
@@ -171,7 +200,7 @@ console.log(request)
           );
 
           const accessToken = tokenResult.accessToken;
-          console.log(accessToken, "✅ Access Token obtenido")
+          console.log(accessToken, "✅ Access Token obtenido");
           if (!accessToken) {
             console.error("❌ No se obtuvo accessToken de Auth0.");
             throw new Error("No access token from Auth0.");
@@ -187,6 +216,11 @@ console.log(request)
           // 4. Establecer el usuario en el estado del contexto
           setUser(authUser);
           setIsDemo(false);
+
+          // 5. Actualizar el balance de BeCoins desde el backend
+          if (authUser?.email) {
+            await updateBeCoinsBalance(authUser.email);
+          }
         } catch (err) {
           console.error(
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
@@ -208,6 +242,9 @@ console.log(request)
   // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
+      // Limpiar wallet al iniciar la app para evitar persistencia entre usuarios
+      useBeCoinsStore.getState().resetBalance();
+
       const token = await getToken();
       if (!token) {
         setIsLoading(false);
@@ -221,6 +258,11 @@ console.log(request)
 
         setUser(authUser);
         setIsDemo(false);
+
+        // Actualizar el balance de BeCoins desde el backend
+        if (authUser?.email) {
+          await updateBeCoinsBalance(authUser.email);
+        }
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
         await deleteToken(); // Limpiar token si falla la restauración
@@ -236,22 +278,21 @@ console.log(request)
   const loginWithEmailPassword = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       setIsLoading(true);
+      // Limpiar wallet al iniciar sesión para evitar persistencia entre usuarios
+      useBeCoinsStore.getState().resetBalance();
       const setToken = useAuthTokenStore.getState().setToken;
       try {
         const loginResp = await authService.loginWithEmail({ email, password });
         const token = loginResp.token;
-        console.log("[LOGIN] Token recibido:", token);
         if (!token) throw new Error("No se recibió token del backend");
         setToken(token);
         // Obtener datos del usuario con /auth/me
         const headers = { Authorization: `Bearer ${token}` };
-        console.log("[LOGIN] Headers para /auth/me:", headers);
         try {
           const userResp = await apiRequest("/auth/me", {
             method: "GET",
             headers,
           });
-          console.log("[LOGIN] Respuesta de /auth/me:", userResp);
           setUser({
             id: userResp.id,
             email: userResp.email,
@@ -279,16 +320,29 @@ console.log(request)
     async (
       name: string,
       email: string,
-      password: string
+      password: string,
+      confirmPassword: string,
+      address: string,
+      phone: string,
+      country: string,
+      city: string
     ): Promise<true | string> => {
       setIsLoading(true);
       const setToken = useAuthTokenStore.getState().setToken;
       try {
-        const registerResp = await authService.registerWithEmail({
-          name,
+        const body = {
+          full_name: name,
           email,
           password,
-        });
+          confirmPassword,
+          address,
+          phone: Number(phone),
+          country,
+          city,
+          username: email.split("@")[0],
+          profile_picture_url: undefined,
+        };
+        const registerResp = await authService.registerWithEmail(body);
         const token = registerResp.token;
         if (!token) throw new Error("No se recibió token del backend");
         setToken(token);
@@ -296,11 +350,21 @@ console.log(request)
         setIsDemo(false);
         return true;
       } catch (error: any) {
+        // Log detallado del error
+        // ...existing code...
         if (error?.status === 409 || error?.status === 401) {
           return "EMAIL_ALREADY_EXISTS";
         }
         if (!error.status || error.status >= 500) {
           return "NETWORK_ERROR";
+        }
+        // Mostrar el mensaje de error si existe
+        if (error?.message) {
+          alert(
+            "Error: " +
+              error.message +
+              (error?.body ? "\n" + JSON.stringify(error.body) : "")
+          );
         }
         return "REGISTRATION_ERROR";
       } finally {
@@ -330,6 +394,8 @@ console.log(request)
     setUser(null);
     setIsDemo(false);
     await deleteToken();
+    // Limpiar el store de BeCoins (wallet) para evitar persistencia entre usuarios
+    useBeCoinsStore.getState().resetBalance();
     // Opcional: Redirigir a Auth0 para cerrar sesión completamente (logout de Auth0)
     // WebBrowser.openAuthSessionAsync(`https://${auth0Domain}/v2/logout?client_id=${clientWebId}&returnTo=${encodeURIComponent(redirectUri)}`);
   };

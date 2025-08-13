@@ -1,3 +1,5 @@
+import { useCartStore } from "../../stores/useCartStore";
+import { useGroupAdminStore } from "../../stores/groupStores";
 import React, { useState } from "react";
 import { View, ScrollView, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,16 +13,8 @@ import { useCreateGroupStore } from "../../stores/useCreateGroupStore";
 import * as Haptics from "expo-haptics";
 
 // Validación y utilidades
-import {
-  validateGroupForm,
-  validateParticipantName,
-  validateParticipantInstagram,
-} from "../../business/validation/groupValidation";
-import {
-  formatTimeInput,
-  formatPersonName,
-  formatEmail,
-} from "./business/textUtils";
+import { validateGroupForm } from "../../business/validation/groupValidation";
+import { formatTimeInput, formatPersonName } from "./business/textUtils";
 
 // Hooks personalizados
 import { useCreateGroupForm, useTimeModal, useLocationModal } from "./hooks";
@@ -30,16 +24,19 @@ import {
   CreateGroupHeader,
   BasicGroupInfo,
   ParticipantsSection,
-  ProductsSection,
   TimeModal,
   LocationModal,
   CreateGroupButton,
 } from "./components";
+// import ProductsSection from './components/ProductsSection';
 
 // Estilos
 import { createGroupStyles } from "./styles";
 
 export const CreateGroupScreen = ({ navigation, route }: any) => {
+  // Hooks de Zustand para carrito y productos de grupo (deben ir dentro del componente)
+  const { products: cartProducts, clearCart } = useCartStore();
+  const { addProductToGroup } = useGroupAdminStore();
   // Store de Zustand
   const {
     groupName,
@@ -48,8 +45,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     location,
     deliveryTime,
     participants,
-    products,
-    isCreatingGroup,
     setGroupName,
     setGroupType,
     setDescription,
@@ -57,8 +52,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     setDeliveryTime,
     addParticipant,
     removeParticipant,
-    updateProductQuantity,
-    removeProduct,
     setIsCreatingGroup,
     clearGroup,
   } = useCreateGroupStore();
@@ -106,20 +99,24 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
-  const [showRemoveProductConfirmation, setShowRemoveProductConfirmation] =
-    useState(false);
+
   const [
     showRemoveParticipantConfirmation,
     setShowRemoveParticipantConfirmation,
   ] = useState(false);
-  const [productToRemove, setProductToRemove] = useState<string | null>(null);
   const [participantToRemove, setParticipantToRemove] = useState<string | null>(
     null
   );
-  const [alertConfig, setAlertConfig] = useState({
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+    groupId?: string;
+  }>({
     title: "",
     message: "",
-    type: "info" as "success" | "error" | "info",
+    type: "info",
+    groupId: undefined,
   });
 
   // Función para mostrar alertas
@@ -140,9 +137,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
       location,
       deliveryTime,
       participants,
-      products,
     });
-
     // Actualizar errors usando setError
     Object.keys(validationErrors).forEach((key) => {
       setError(
@@ -150,7 +145,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
         validationErrors[key as keyof typeof validationErrors]!
       );
     });
-
     return Object.keys(validationErrors).length === 0;
   };
 
@@ -173,21 +167,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     setDescription(text);
     if (errors.description && text.trim().length >= 10) {
       clearError("description");
-    }
-  };
-
-  const handleLocationChange = (text: string) => {
-    setLocation(text);
-    if (errors.location && text.trim()) {
-      clearError("location");
-    }
-  };
-
-  const handleTimeChange = (text: string) => {
-    const formattedText = formatTimeInput(text);
-    setDeliveryTime(formattedText);
-    if (errors.deliveryTime && formattedText.length === 5) {
-      clearError("deliveryTime");
     }
   };
 
@@ -297,32 +276,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     setSelectedInstagramUser(null);
   };
 
-  // Productos con feedback háptico
-  const handleUpdateProductQuantity = (id: string, quantity: number) => {
-    updateProductQuantity(id, quantity);
-    if (quantity <= 0) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  };
-
-  const handleRemoveProduct = (id: string) => {
-    // Buscar el producto para obtener su nombre
-    const product = products.find((p) => p.id === id);
-    setProductToRemove(id);
-    setShowRemoveProductConfirmation(true);
-  };
-
-  const confirmRemoveProduct = () => {
-    if (productToRemove) {
-      removeProduct(productToRemove);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }
-    setShowRemoveProductConfirmation(false);
-    setProductToRemove(null);
-  };
-
   const handleRemoveParticipant = (id: string) => {
     // Buscar el participante para obtener su nombre
     const participant = participants.find((p) => p.id === id);
@@ -349,8 +302,7 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
       description.trim() !== "" ||
       location !== null ||
       deliveryTime.trim() !== "" ||
-      participants.length > 0 ||
-      products.length > 0;
+      participants.length > 0;
 
     if (hasFormData) {
       // Mostrar confirmación si hay datos
@@ -368,11 +320,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     navigation.navigate("Groups", { screen: "GroupsList" });
   };
 
-  const handleNavigateToCatalog = () => {
-    setIsCreatingGroup(true);
-    navigation.navigate("Catalog");
-  };
-
   // Crear grupo
   const handleCreateGroup = async () => {
     if (!validateForm()) {
@@ -387,23 +334,24 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
     setIsLoading(true);
 
     try {
-      await GroupService.createGroup({
+      const newGroup = await GroupService.createGroup({
         name: groupName,
         type: groupType,
         description: description,
         location: location,
         deliveryTime: deliveryTime,
         participants: participants,
-        products: products,
       });
 
-      showCustomAlert(
-        "¡Grupo Creado Exitosamente!",
-        `El grupo "${groupName}" ha sido creado correctamente.`,
-        "success"
-      );
-
-      // Limpiar el store automáticamente después de crear el grupo
+      setAlertConfig({
+        title: "¡Grupo creado!",
+        message:
+          "Ahora puedes agregar productos y asignar consumos a los participantes desde la administración del grupo.",
+        type: "success",
+        // Guardar el id del grupo para usarlo en el handler
+        groupId: newGroup.id,
+      });
+      setShowAlert(true);
       clearGroup();
     } catch (error) {
       showCustomAlert(
@@ -420,11 +368,35 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
   // Función que se ejecuta cuando se cierra el alert
   const handleAlertClose = () => {
     setShowAlert(false);
+  };
 
-    // Si el alert fue de éxito (grupo creado), navegar de vuelta a los grupos
-    if (alertConfig.type === "success") {
-      navigation.navigate("Groups", { screen: "GroupsList" });
+  const handleGoToGroupAdmin = () => {
+    setShowAlert(false);
+    const groupId = alertConfig.groupId;
+    if (typeof groupId === "string" && groupId.length > 0) {
+      // Mover productos del carrito al grupo
+      if (cartProducts && cartProducts.length > 0) {
+        cartProducts.forEach((prod) => {
+          addProductToGroup(groupId, {
+            id: prod.id,
+            name: prod.name,
+            quantity: prod.quantity,
+            estimatedPrice: prod.price,
+            totalPrice: prod.price * prod.quantity,
+            category: "",
+            basePrice: prod.price,
+            image: prod.image || "",
+          });
+        });
+        clearCart();
+      }
+      navigation.navigate("GroupManagement", { groupId });
     }
+  };
+
+  const handleGoToGroupsList = () => {
+    setShowAlert(false);
+    navigation.navigate("Groups", { screen: "GroupsList" });
   };
 
   return (
@@ -462,22 +434,10 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
             onRemoveParticipant={handleRemoveParticipant}
           />
 
-          {/* Productos */}
-          <ProductsSection
-            products={products}
-            participants={participants}
-            errors={errors}
-            location={location}
-            onUpdateProductQuantity={handleUpdateProductQuantity}
-            onRemoveProduct={handleRemoveProduct}
-            onNavigateToCatalog={handleNavigateToCatalog}
-          />
-
           {/* Botón crear grupo */}
           <CreateGroupButton
             isLoading={isLoading}
             groupName={groupName}
-            hasProducts={products.length > 0}
             onPress={handleCreateGroup}
           />
         </View>
@@ -496,8 +456,12 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
         type={alertConfig.type}
         onClose={handleAlertClose}
         primaryButton={{
-          text: "Entendido",
-          onPress: handleAlertClose,
+          text: "Ir a administrar grupo",
+          onPress: handleGoToGroupAdmin,
+        }}
+        secondaryButton={{
+          text: "Volver a grupos",
+          onPress: handleGoToGroupsList,
         }}
       />
 
@@ -512,27 +476,6 @@ export const CreateGroupScreen = ({ navigation, route }: any) => {
         icon="⚠️"
         onConfirm={confirmBackToGroups}
         onCancel={() => setShowCancelConfirmation(false)}
-      />
-
-      {/* Alerta de confirmación para eliminar producto */}
-      <ConfirmationAlert
-        visible={showRemoveProductConfirmation}
-        title="¿Eliminar producto?"
-        message={`¿Estás seguro de que quieres eliminar ${
-          productToRemove
-            ? products.find((p) => p.id === productToRemove)?.name ||
-              "este producto"
-            : "este producto"
-        } del grupo?`}
-        confirmText="Sí, eliminar"
-        cancelText="Cancelar"
-        type="danger"
-        icon="🗑️"
-        onConfirm={confirmRemoveProduct}
-        onCancel={() => {
-          setShowRemoveProductConfirmation(false);
-          setProductToRemove(null);
-        }}
       />
 
       {/* Alerta de confirmación para eliminar participante */}

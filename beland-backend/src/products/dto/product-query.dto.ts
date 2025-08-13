@@ -1,6 +1,6 @@
 // src/products/dto/product-query.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Min, Max, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsIn, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Product } from '../entities/product.entity';
 
@@ -31,7 +31,7 @@ export class ProductQueryDto {
   @ApiPropertyOptional({
     description: 'Columna para ordenar resultados.',
     default: 'created_at',
-    enum: ['name', 'description', 'price', 'category', 'created_at', 'updated_at']
+    enum: ['name', 'description', 'price', 'cost', 'category_id', 'created_at', 'updated_at']
   })
   @IsOptional()
   @IsString()
@@ -46,10 +46,10 @@ export class ProductQueryDto {
   @IsIn(['ASC', 'DESC'])
   order?: 'ASC' | 'DESC' = 'DESC';
 
-  @ApiPropertyOptional({ description: 'Filtrar por categoría' })
+  @ApiPropertyOptional({ description: 'Filtrar por UUID de categoría' })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsUUID()
+  category_id?: string;
 
   @ApiPropertyOptional({ description: 'Filtrar por nombre' })
   @IsOptional()

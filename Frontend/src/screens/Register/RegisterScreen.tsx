@@ -20,6 +20,10 @@ export default function RegisterScreen({ navigation }: any) {
     email: "",
     password: "",
     confirmPassword: "",
+    address: "",
+    phone: "",
+    country: "",
+    city: "",
   });
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +49,10 @@ export default function RegisterScreen({ navigation }: any) {
           email: "",
           password: "",
           confirmPassword: "",
+          address: "",
+          phone: "",
+          country: "",
+          city: "",
         });
         // Navegar al login
         navigation.navigate("Login");
@@ -129,6 +137,46 @@ export default function RegisterScreen({ navigation }: any) {
       });
       return false;
     }
+    if (!formData.address.trim()) {
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "La dirección es obligatoria",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
+      return false;
+    }
+    if (!formData.phone.trim() || isNaN(Number(formData.phone))) {
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "El teléfono es obligatorio y debe ser numérico",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
+      return false;
+    }
+    if (!formData.country.trim()) {
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "El país es obligatorio",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
+      return false;
+    }
+    if (!formData.city.trim()) {
+      setAlert({
+        visible: true,
+        title: "Error",
+        message: "La ciudad es obligatoria",
+        type: "error",
+        onClose: () => setAlert((a) => ({ ...a, visible: false })),
+      });
+      return false;
+    }
     return true;
   };
 
@@ -138,7 +186,12 @@ export default function RegisterScreen({ navigation }: any) {
     const result = await registerWithEmailPassword(
       formData.name,
       formData.email,
-      formData.password
+      formData.password,
+      formData.confirmPassword,
+      formData.address,
+      formData.phone,
+      formData.country,
+      formData.city
     );
 
     if (result === true) {
@@ -223,6 +276,35 @@ export default function RegisterScreen({ navigation }: any) {
             autoCapitalize="none"
             value={formData.email}
             onChangeText={(value) => handleInputChange("email", value)}
+          />
+
+          <TextInput
+            placeholder="Dirección"
+            style={styles.input}
+            value={formData.address}
+            onChangeText={(value) => handleInputChange("address", value)}
+          />
+
+          <TextInput
+            placeholder="Teléfono"
+            style={styles.input}
+            keyboardType="phone-pad"
+            value={formData.phone}
+            onChangeText={(value) => handleInputChange("phone", value)}
+          />
+
+          <TextInput
+            placeholder="País"
+            style={styles.input}
+            value={formData.country}
+            onChangeText={(value) => handleInputChange("country", value)}
+          />
+
+          <TextInput
+            placeholder="Ciudad"
+            style={styles.input}
+            value={formData.city}
+            onChangeText={(value) => handleInputChange("city", value)}
           />
 
           <TextInput

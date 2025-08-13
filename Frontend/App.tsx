@@ -19,7 +19,7 @@ import { AuthProvider, useAuth } from "src/hooks/AuthContext";
 
 // Componente interno que tiene acceso al contexto de autenticación
 const AppContent = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const isBeCoinsLoaded = useBeCoinsStoreHydration();
 
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
@@ -87,7 +87,7 @@ const AppContent = () => {
     currentRoute !== "RecyclingMap" &&
     !walletActionScreens.includes(currentRoute ?? "");
 
-  if (!isBeCoinsLoaded) {
+  if (isLoading || !isBeCoinsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
         <StatusBar style="light" />
@@ -113,18 +113,21 @@ const AppContent = () => {
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <StatusBar style="light" />
-
       <NavigationContainer
         ref={navigationRef}
         onStateChange={onNavigationStateChange}
       >
         <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {user ? (
             <>
               <RootStackNavigator />
               {shouldShowQRButton && (
                 <FloatingQRButton onPress={handleQRPress} />
               )}
             </>
+          ) : (
+            <AuthStackNavigator />
+          )}
         </View>
       </NavigationContainer>
     </View>
