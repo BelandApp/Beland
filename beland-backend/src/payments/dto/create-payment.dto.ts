@@ -26,7 +26,7 @@ export class CreatePaymentDto {
     enum: ['FULL', 'SPLIT', 'EQUAL_SPLIT'],
   })
   @IsEnum(['FULL', 'SPLIT', 'EQUAL_SPLIT'])
-  payment_type: 'FULL' | 'SPLIT' | 'EQUAL_SPLIT';
+  payment_type_id: string;
 
   @ApiProperty({
     description: 'Hash de la transacción (en caso de blockchain)',
