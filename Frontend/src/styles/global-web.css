@@ -1,0 +1,210 @@
+.menuIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+.menuText {
+  font-size: 17px;
+  font-weight: 500;
+  color: #222;
+}
+/* Estilos globales para asegurar que el layout ocupe toda la pantalla en web */
+html,
+body,
+#root,
+.app-root {
+  height: 100%;
+  min-height: 100vh;
+  width: 100vw;
+  padding: 32px 0 64px 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* El contenedor principal de React Navigation debe ocupar todo el alto */
+[data-testid="NavigationContainer"] {
+  height: 100%;
+  min-height: 100vh;
+  width: 100vw;
+  min-width: 100vw;
+}
+
+/* El layout del sidebar y el contenido debe ocupar todo el alto */
+.sidebar-layout-web {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+}
+
+/* El sidebar debe ocupar todo el alto */
+.sidebar {
+  height: 100vh;
+  min-height: 100vh;
+  width: 220px;
+  background: #fff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0 0 32px 0;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 10;
+  font-family: "Inter", "Segoe UI", "Arial", sans-serif;
+}
+
+.sidebar .menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.sidebar .userSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32px;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1976d2;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+}
+.menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 0 0;
+}
+.menuItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  margin: 2px 0;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #222;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: none;
+  box-shadow: none;
+}
+.menuItem:hover {
+  background: #f5f5f5;
+}
+.menuItemActive {
+  background: #e6f7e6;
+  color: #ff8800;
+}
+.menuIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+.menuText {
+  font-size: 17px;
+  font-weight: 500;
+  color: #222;
+}
+.userSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+.userName {
+  font-size: 15px;
+  color: #1976d2 !important;
+  background: #e3f2fd;
+  padding: 8px 18px;
+  border-radius: 16px;
+  border: 1px solid #90caf9;
+  font-weight: 600;
+  box-shadow: 0 2px 8px #90caf966;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+}
+.userName:hover {
+  background: #bbdefb;
+  box-shadow: 0 4px 16px #90caf999;
+}
+
+.sidebar .logoContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32px;
+}
+.sidebar .logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: #ff8800;
+  letter-spacing: 1px;
+}
+.sidebar .menu {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar .menuItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 14px 24px;
+  border-radius: 8px;
+  margin: 2px 0;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #222;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.sidebar .menuItemActive {
+  background: #e6f7e6;
+}
+.sidebar .userSection {
+  display: flex;
+  align-items: center;
+  margin-top: 32px;
+}
+
+/* El contenido principal debe ocupar todo el alto y permitir scroll */
+.sidebar-content {
+  flex: 1;
+  height: 100vh;
+  min-height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
