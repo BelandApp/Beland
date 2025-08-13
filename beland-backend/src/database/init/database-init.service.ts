@@ -6,6 +6,7 @@ import { SuperAdminUserSeeder } from './seeders/superadmin-user.seeder';
 import preloadTT from './json/transactionsType.json';
 import preloadTS from './json/transactionState.json';
 import preloadProduct from './json/products.json';
+import preloadPaymentType from './json/paymentType.json'
 
 // Entidades
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
@@ -13,6 +14,8 @@ import { TransactionState } from 'src/transaction-state/entities/transaction-sta
 import { Product } from 'src/products/entities/product.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
+import { Category } from 'src/category/entities/category.entity';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
@@ -27,14 +30,19 @@ export class DatabaseInitService implements OnModuleInit {
     private readonly transStateRepo: Repository<TransactionState>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    @InjectRepository(PaymentType)
+    private readonly payTypeRepo: Repository<PaymentType>,
+    @InjectRepository(Category)
+    private readonly CatRepo: Repository<Category>,
   ) {}
 
   async preload<T>(
     dataArray: Partial<T>[],
     repository: Repository<T>,
     compareKey: keyof T,
-    logLabel: string
+    logLabel: string,
   ): Promise<void> {
+    try {
     let count = 0;
 
     for (const item of dataArray) {
@@ -47,6 +55,34 @@ export class DatabaseInitService implements OnModuleInit {
     }
 
     console.log(`Se agregaron ${count} ${logLabel}`);
+    } catch (error) {
+      console.error(`Error al cargar ${logLabel}: ${JSON.stringify(error)}`)
+    }
+  }
+
+  async preloadProd<T>(): Promise<void> {
+    try {
+    let count = 0;
+    let countCat = 0;
+
+    for (const product of preloadProduct) {
+      const prod = await this.productRepo.findOneBy({name: product.name})
+      if (!prod) {
+        let cat = await this.CatRepo.findOneBy({name: product.category})
+        if (!cat) {
+          cat = await this.CatRepo.save({name:product.category});
+          countCat++;
+        }
+        const {category, ...saveProduct} = product;
+        await this.productRepo.save({...saveProduct, category_id: cat.id});
+        count++;
+      }
+    }
+    console.log(`Se agregaron ${countCat} Categorias`);
+    console.log(`Se agregaron ${count} Productos`);
+    } catch (error) {
+      console.error(`Error al cargar Productos: ${JSON.stringify(error)}`)
+    }
   }
  
   async onModuleInit() {
@@ -62,12 +98,14 @@ export class DatabaseInitService implements OnModuleInit {
       );
       await this.preload<TransactionType>(preloadTT, this.transTypeRepo, 'code', 'Tipos de Transacciones');
       await this.preload<TransactionState>(preloadTS, this.transStateRepo, 'code', 'Estados de Transacciones');
-      await this.preload<Product>(preloadProduct, this.productRepo, 'name', 'Productos');
+      await this.preloadProd();
+      await this.preload<PaymentType>(preloadPaymentType, this.payTypeRepo, 'code', 'Forma de Pago');
     } catch (error: any) {
+
       this.logger.error(
         `❌ Error durante la inicialización de la aplicación: ${error.message}`,
         error.stack,
-      );
+      ); 
     }
   }
 }

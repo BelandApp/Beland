@@ -51,11 +51,11 @@ export class ProductsController {
     summary: 'Listar productos con paginación, ordenamiento y filtrado',
   })
   async findAll(@Query() query: ProductQueryDto) {
-    const { page, limit, sortBy, order, category, name } = query;
+    const { page, limit, sortBy, order, category_id, name } = query;
     return this.productsService.findAll(
       { page, limit },
       { sortBy, order },
-      category,
+      category_id,
       name
     );
   }

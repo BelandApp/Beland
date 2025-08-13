@@ -1,6 +1,6 @@
 // src/products/dto/create-product.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsNumber, IsUUID } from 'class-validator';
 
 export class CreateProductDto {
   @ApiProperty({ description: 'Nombre del producto' })
@@ -12,6 +12,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiProperty({ description: 'Costo del producto en monedas internas' })
+  @IsNumber()
+  cost: number;
 
   @ApiProperty({ description: 'Precio del producto en monedas internas' })
   @IsNumber()
@@ -25,8 +29,8 @@ export class CreateProductDto {
   @IsString()
   image_url?: string;
 
-  @ApiProperty({ description: 'Categoría del producto', required: false })
+  @ApiProperty({ description: 'UUID de la Categoría del producto', required: false })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsUUID()
+  category_id?: string;
 }
