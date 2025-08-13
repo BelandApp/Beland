@@ -12,62 +12,78 @@ export class ProductRepository extends Repository<Product> {
   }
 
   async findById(id: string): Promise<Product | null> {
-    return this.findOne({ where: { id } });
+    return this.findOne({ 
+      where: { id },
+      relations: {category: true}
+    });
   }
 
   async findByName(name: string): Promise<Product | null> {
-    return this.createQueryBuilder('product')
-      .where('LOWER(product.name) = LOWER(:name)', { name })
-      .getOne();
+    return this.findOne({ 
+      where: { name },
+      relations: {category: true}
+    });
   }
 
-  async findAllPaginated(
-    pagination: PaginationDto,
-    order: OrderDto,
-    category?: string,
-    name?: string,
-  ): Promise<{
-    products: Product[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
-    const { page = 1, limit = 10 } = pagination;
-    const { sortBy = 'created_at', order: orderDir = 'DESC' } = order;
+async findAllPaginated(
+  pagination: PaginationDto,
+  order: OrderDto,
+  category_id?: string,
+  name?: string,
+): Promise<{
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  const { page = 1, limit = 10 } = pagination;
+  const { sortBy = 'created_at', order: orderDir = 'DESC' } = order;
 
-    this.logger.log(
-      `[ProductRepository] Parámetros recibidos: ${JSON.stringify({ pagination, order, category, name })}`,
-    );
+  this.logger.log(
+    `[ProductRepository] Parámetros recibidos: ${JSON.stringify({ pagination, order, category_id, name })}`,
+  );
 
-    const query = this.createQueryBuilder('product');
+  // Base query
+  const query = this.createQueryBuilder('product');
 
-    if (category) {
-      this.logger.log(
-        `[ProductRepository] Filtrando por categoría: ${category}`,
-      );
-      query.andWhere('product.category ILIKE :category', {
-        category: `%${category}%`,
-      });
-    }
-
-    if (name) {
-      this.logger.log(`[ProductRepository] Filtrando por nombre: ${name}`);
-      query.andWhere('product.name ILIKE :name', {
-        name: `%${name}%`,
-      });
-    }
-
-    this.logger.log(`[ProductRepository] Query SQL: ${query.getSql()}`);
-
-    query.orderBy(`product.${sortBy}`, orderDir);
-    query.skip((page - 1) * limit).take(limit);
-
-    const [products, total] = await query.getManyAndCount();
-
-    this.logger.log(
-      `[ProductRepository] Resultados: total=${total}, productos=${products.length}`,
-    );
-
-    return { products, total, page, limit };
+  // Filtro por categoría (si viene ID)
+  if (category_id) {
+    this.logger.log(`[ProductRepository] Filtrando por categoría ID: ${category_id}`);
+    query
+      .innerJoin('product.category', 'category') // JOIN solo si filtro
+      .andWhere('category.id = :categoryId', {
+        categoryId: category_id,
+      })
+      .addSelect(['category.id', 'category.name']); // Solo traigo lo necesario de category
   }
+
+  // Filtro por nombre
+  if (name) {
+    this.logger.log(`[ProductRepository] Filtrando por nombre: ${name}`);
+    query.andWhere('product.name ILIKE :name', {
+      name: `%${name}%`,
+    });
+  }
+
+  // Validar y setear columna de orden
+  const validSortColumns = ['created_at', 'name', 'price', 'cost'];
+  const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+
+  // Orden + paginación
+  query.orderBy(`product.${sortColumn}`, orderDir.toUpperCase() as 'ASC' | 'DESC');
+  query.skip((page - 1) * limit).take(limit);
+
+  // Debug query
+  this.logger.log(`[ProductRepository] Query SQL: ${query.getSql()}`);
+
+  // Ejecución
+  const [products, total] = await query.getManyAndCount();
+
+  this.logger.log(
+    `[ProductRepository] Resultados: total=${total}, productos=${products.length}`,
+  );
+
+  return { products, total, page, limit };
+}
+
 }

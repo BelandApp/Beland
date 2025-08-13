@@ -1,0 +1,12 @@
+[
+  {
+    "code": "FULL",
+    "description": "Pago único por un solo usuario",
+    "is_active": true
+  },
+  {
+    "code": "SPLIT",
+    "description": "Pago dividido entre todos por igual",
+    "is_active": true
+  }
+]
