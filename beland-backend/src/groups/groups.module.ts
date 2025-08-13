@@ -12,6 +12,7 @@ import { User } from 'src/users/entities/users.entity'; // Import User entity fo
 import { AuthModule } from 'src/auth/auth.module'; // Import AuthModule for authentication/authorization guards
 import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
 import { GroupMembersModule } from 'src/group-members/group-members.module';
+import { GroupInvitationsModule } from 'src/group-invitations/group-invitations.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { GroupMembersModule } from 'src/group-members/group-members.module';
     forwardRef(() => AuthModule),
     forwardRef(() => AdminsModule),
     forwardRef(() => GroupMembersModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
+    forwardRef(() => GroupInvitationsModule),
   ],
   controllers: [GroupsController], // Register controllers handled by this module
   providers: [GroupsService, GroupsRepository, GroupMembersRepository], // Register services and repositories as providers
