@@ -55,4 +55,7 @@ export class GroupInvitation {
 
   @Column({ type: 'timestamptz', nullable: true })
   expires_at: Date | null; // Optional: for invitations with an expiration time
+
+  @Column({ type: 'timestamptz', nullable: true }) // <-- NUEVA COLUMNA PARA SOFT DELETE
+  deleted_at: Date | null;
 }
