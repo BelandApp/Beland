@@ -37,7 +37,7 @@ export class Product {
   @ManyToOne (() => Category, (cate) => cate.products)
   @JoinColumn({name: 'category_id'})
   category: Category
-  @Column('uuid')
+  @Column('uuid', {nullable:true}) 
   category_id: string;
 
   @CreateDateColumn({ type: 'timestamptz' })

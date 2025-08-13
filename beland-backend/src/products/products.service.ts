@@ -22,7 +22,7 @@ export class ProductsService {
       throw new ConflictException(`El producto "${dto.name}" ya existe.`);
     }
 
-    const newProduct = this.repo.create(dto);
+    const newProduct = await this.repo.create(dto);
     return await this.repo.save(newProduct);
   }
 
