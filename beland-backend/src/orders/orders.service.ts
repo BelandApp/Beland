@@ -7,11 +7,12 @@ import {
 } from '@nestjs/common';
 import { OrdersRepository } from './orders.repository';
 import { Order } from './entities/order.entity';
-import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { CartsRepository } from 'src/cart/cart.repository';
 import { OrderItemsRepository } from 'src/order-items/order-items.repository';
 import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
 import { PaymentTypesRepository } from 'src/payment-types/payment-types.repository';
+import { WalletsService } from 'src/wallets/wallets.service';
+import { PaymentsRepository } from 'src/payments/payments.repository';
 
 @Injectable()
 export class OrdersService {
@@ -20,9 +21,10 @@ export class OrdersService {
   constructor(
     private readonly repository: OrdersRepository,
     private readonly orderItemRepo: OrderItemsRepository,
-    private readonly walletRepo: WalletsRepository,
+    private readonly walletService: WalletsService,
     private readonly cartRepo: CartsRepository, 
     private readonly payTypeRepo: PaymentTypesRepository, 
+    private readonly payRepo: PaymentsRepository, 
 
   ) {}
 
@@ -68,7 +70,7 @@ export class OrdersService {
   }
 
   async createOrderByCart(order_create: CreateOrderByCartDto): Promise<Order> {
-    const wallet = await this.walletRepo.findOne(order_create.wallet_id);
+    const wallet = await this.walletService.findOne(order_create.wallet_id);
     const cart = await this.cartRepo.findOne(order_create.cart_id);
     if (!wallet) throw new NotFoundException('Wallet no encontrada');
     if (!cart) throw new NotFoundException('Carrito no encontrado');
@@ -101,12 +103,16 @@ export class OrdersService {
     if (!paymentType) throw new ConflictException('La forma de Pago no se puede usar por el momento');
 
     if (paymentType.code == 'FULL') {
-      
+      await this.walletService.purchaseBeland(wallet.id, cart.total_amount, `PURCHASEBELAND-${order.id}`);
+      await this.payRepo.create({
+        amount_paid:order.total_amount, 
+        order_id: order.id, 
+        payment_type_id: order.payment_type_id,
+        user_id: order.leader_id,
+      })
     } else { 
-
+       // SPLIT.... implementar que se divida el pago excluyendo a alguno del consumo.
     }
-    
-    
     return savedOrder;
   }
 
