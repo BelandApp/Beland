@@ -40,7 +40,7 @@ export class Wallet {
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
-  @ManyToOne(() => User, (user) => user.wallets)
+  @OneToOne(() => User, (user) => user.wallet)
   @JoinColumn({ name: 'user_id' })
   user: User;
   @Column('uuid')
