@@ -1,12 +1,12 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { productStyles } from "../styles";
-import { AvailableProduct } from "../../../data/products";
-import { ProductCard } from "./ProductCard";
+import { CartProduct } from "../../../stores/useCartStore";
+import { ProductCard, ProductCardType } from "./ProductCard";
 
-interface ProductGridProps {
-  products: AvailableProduct[];
-  onAddToCart: (product: AvailableProduct) => void;
+export interface ProductGridProps {
+  products: ProductCardType[];
+  onAddToCart: (product: ProductCardType) => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({

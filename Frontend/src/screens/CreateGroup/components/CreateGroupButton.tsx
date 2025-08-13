@@ -5,17 +5,15 @@ import { buttonStyles } from "../styles";
 interface CreateGroupButtonProps {
   isLoading: boolean;
   groupName: string;
-  hasProducts: boolean;
   onPress: () => void;
 }
 
 export const CreateGroupButton: React.FC<CreateGroupButtonProps> = ({
   isLoading,
   groupName,
-  hasProducts,
   onPress,
 }) => {
-  const isDisabled = isLoading || !groupName.trim() || !hasProducts;
+  const isDisabled = isLoading || !groupName.trim();
 
   return (
     <TouchableOpacity

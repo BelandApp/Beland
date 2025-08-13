@@ -12,6 +12,7 @@ import {
 import { GroupMember } from 'src/group-members/entities/group-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/users.entity';
+import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
 
 @Entity('groups')
 export class Group {
@@ -58,4 +59,7 @@ export class Group {
   @OneToMany(() => Order, (order) => order.group)
   orders: Order[];
 
+  // NEW: Invitations associated with this group
+  @OneToMany(() => GroupInvitation, (invitation) => invitation.group)
+  invitations: GroupInvitation[];
 }
