@@ -21,13 +21,14 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { AuthenticationGuard } from 'src/auth/guards/auth.guard';
 import { Request } from 'express';
 import { UserCard } from './entities/user-card.entity';
 import { UserCardsService } from './user-cards.service';
 import { CreateUserCardDto } from './dto/create-user-card.dto';
 import { UpdateUserCardDto } from './dto/update-user-card.dto';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+import { encrypted_aes } from 'src/utils/encryption.util';
+import { CardResponseDto } from './dto/resp-user-card-pay.dto';
 
 @ApiTags('user-cards')
 @Controller('user-cards')
@@ -64,6 +65,17 @@ export class UserCardsController {
     return await this.service.findOne(id);
   }
 
+  @Get('data-payment/:card_id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener los datos de Tarjeta para Comprar en un click' })
+  @ApiParam({ name: 'card_id', description: 'UUID de la tarjeta' })
+  @ApiResponse({ status: 200, description: 'Tarjeta encontrada' })
+  @ApiResponse({ status: 404, description: 'No se encontró la tarjeta' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async dataPayCard(@Param('card_id', ParseUUIDPipe) card_id: string): Promise<CardResponseDto> {
+    return await this.service.dataPayCard(card_id);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva tarjeta' })
@@ -71,7 +83,9 @@ export class UserCardsController {
   @ApiResponse({ status: 400, description: 'Datos inválidos para crear la tarjeta' })
   @ApiResponse({ status: 500, description: 'No se pudo crear la tarjeta' })
   async create(@Body() body: CreateUserCardDto): Promise<UserCard> {
-    return await this.service.create(body);
+    const {optionalParameter4, ...cardsave} = body;
+    const nameEncripted= encrypted_aes(optionalParameter4);
+    return await this.service.create({...cardsave, cardHolder: nameEncripted});
   }
 
   @Put(':id')

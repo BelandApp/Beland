@@ -20,27 +20,17 @@ export class RechargeDto {
   @IsString()
   referenceCode: string;
 
-  @ApiPropertyOptional({
-    example: 'CREDIT_CARD',
-    description: 'Método de recarga',
-  })
-  @IsString()
-  @IsOptional()
-  recarge_method?: string; // generar tabla y relacion- En principio el unico metodo sera tarjeta.
-
-  @ApiPropertyOptional({
-    example: 'REF123456789',
-    description: 'Reference code for tracking',
-  })
-  @IsString()
-  @IsOptional()
-  clientTransactionId?: string;
-
-  @ApiPropertyOptional({
-    example: 50.0,
-    description: 'Amount in USD to recharge',
+  @ApiProperty({
+    example: "PAYPHONE-TransactionID",
+    description: 'Identificador entregado por Payphone para seguimientos',
   })
   @IsNumber()
-  @IsOptional()
-  transactionId?: number;
+  payphone_transactionId: number;
+
+  @ApiProperty({
+    example: "8f03a1de-b71c-4a5a-a9ff-0d9a3a3c5b2a",
+    description: 'codigo interno para seguimientos',
+  })
+  @IsUUID()
+  clientTransactionId: number;
 }

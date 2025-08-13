@@ -51,9 +51,7 @@ export class TransactionsRepository {
   }
 
   async create(body: Partial<Transaction>): Promise<Transaction> {
-    const state = await this.stateRepository.findOneBy({code: 'PENDING'})
-    if (!state) throw new ConflictException ("No se encuentra el estado para 'PENDING'"); 
-    return await this.repository.save({...body, status_id: state.id});
+    return await this.repository.save({...body});
   }
 
   async update(id: string, body: Partial<Transaction>): Promise<UpdateResult> {
