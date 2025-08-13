@@ -9,13 +9,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 import { Product } from 'src/products/entities/product.entity';
+import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 
 @Module({
   imports: [
     RolesModule,
     UsersModule,
     ConfigModule, // Asegúrate de que ConfigModule esté importado aquí o globalmente
-    TypeOrmModule.forFeature([TransactionState, TransactionType, Product])
+    TypeOrmModule.forFeature([TransactionState, TransactionType, Product, PaymentType])
   ],
   providers: [
     DatabaseInitService,

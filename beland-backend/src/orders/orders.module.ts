@@ -10,10 +10,14 @@ import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { CartsRepository } from 'src/cart/cart.repository';
 import { OrderItem } from 'src/order-items/entities/order-item.entity';
 import { OrderItemsRepository } from 'src/order-items/order-items.repository';
+import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
+import { PaymentTypesRepository } from 'src/payment-types/payment-types.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Wallet, Cart, OrderItem])],
+  imports: [TypeOrmModule.forFeature([Order, Wallet, Cart, OrderItem, PaymentType])],
   controllers: [OrdersController],
-  providers: [OrdersService, OrdersRepository, WalletsRepository, CartsRepository, OrderItemsRepository],
+  providers: [OrdersService, OrdersRepository, WalletsRepository, CartsRepository, OrderItemsRepository,
+    PaymentTypesRepository
+  ],
 })
 export class OrdersModule {}

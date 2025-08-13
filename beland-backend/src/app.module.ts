@@ -44,6 +44,8 @@ import { CartItemsModule } from './cart-items/cart-items.module';
 import { UserCardsModule } from './user-cards/user-cards.module';
 import { UserAddressModule } from './user-address/user-address.module';
 import { PaymentTypesModule } from './payment-types/payment-types.module';
+import { PaymentHoldModule } from './payment-hold/payment-hold.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -122,6 +124,8 @@ import { PaymentTypesModule } from './payment-types/payment-types.module';
     UserCardsModule,
     UserAddressModule,
     PaymentTypesModule,
+    PaymentHoldModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [

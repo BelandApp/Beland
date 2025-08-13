@@ -1,4 +1,5 @@
 // src/products/entities/product.entity.ts
+import { Category } from 'src/category/entities/category.entity';
 import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
 import { OrderItem } from 'src/order-items/entities/order-item.entity';
 import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
@@ -9,6 +10,8 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 @Entity('products')
@@ -22,14 +25,20 @@ export class Product {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
+  cost: number;
+
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
   price: number;
 
   @Column({ type: 'text', nullable: true })
   image_url: string;
 
-  @Column({ type: 'text', nullable: true })
-  category: string;
+  @ManyToOne (() => Category, (cate) => cate.products)
+  @JoinColumn({name: 'category_id'})
+  category: Category
+  @Column('uuid')
+  category_id: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;

@@ -1,22 +1,11 @@
 // src/auth/dto/register-auth.dto.ts
-import { PartialType, PickType } from '@nestjs/mapped-types';
+import { PickType } from '@nestjs/mapped-types';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
-  IsEmail,
-  IsNotEmpty,
-  MinLength,
-  MaxLength,
   IsOptional,
-  IsNumber,
-  IsBoolean,
-  IsDate,
-  IsIn,
-  IsStrongPassword,
-  Matches,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 // RegisterAuthDto define los campos necesarios para el registro directo (signup).
 // PickType hereda las propiedades Y SUS VALIDACIONES como REQUERIDAS por defecto.

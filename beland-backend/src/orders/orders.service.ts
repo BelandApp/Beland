@@ -11,6 +11,7 @@ import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { CartsRepository } from 'src/cart/cart.repository';
 import { OrderItemsRepository } from 'src/order-items/order-items.repository';
 import { CreateOrderByCartDto } from './dto/create-order-cart.dto';
+import { PaymentTypesRepository } from 'src/payment-types/payment-types.repository';
 
 @Injectable()
 export class OrdersService {
@@ -20,7 +21,8 @@ export class OrdersService {
     private readonly repository: OrdersRepository,
     private readonly orderItemRepo: OrderItemsRepository,
     private readonly walletRepo: WalletsRepository,
-    private readonly cartRepo: CartsRepository,
+    private readonly cartRepo: CartsRepository, 
+    private readonly payTypeRepo: PaymentTypesRepository, 
 
   ) {}
 
@@ -95,9 +97,17 @@ export class OrdersService {
     const itemsCreated = await this.orderItemRepo.createMany(orderItems);
     if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
 
+    const paymentType = await this.payTypeRepo.findOne(savedOrder.payment_type_id)
+    if (!paymentType) throw new ConflictException('La forma de Pago no se puede usar por el momento');
+
+    if (paymentType.code == 'FULL') {
+      
+    } else { 
+
+    }
     
     
-    return 
+    return savedOrder;
   }
 
   async update(id: string, body: Partial<Order>) {

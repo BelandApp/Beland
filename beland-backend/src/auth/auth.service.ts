@@ -66,16 +66,18 @@ export class AuthService {
   }
 
   async signup(user: RegisterAuthDto): Promise<{ token: string }> {
+    
+    // ✅ VALIDACIÓN: Comparar password y confirmPassword here
+      if (user.password !== user.confirmPassword) {
+        throw new BadRequestException('Las contraseñas no coinciden.');
+      }
+    
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // ✅ VALIDACIÓN: Comparar password y confirmPassword here
-      if (user.password !== user.confirmPassword) {
-        throw new BadRequestException('Las contraseñas no coinciden.');
-      }
 
       const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
