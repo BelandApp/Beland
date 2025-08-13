@@ -19,9 +19,6 @@ export const DashboardScreen = () => {
   if (Platform.OS === "web") {
     return (
       <div className="sidebar-content">
-        {/* Header */}
-        <AppHeader />
-        {/* Contenido principal */}
         <div
           style={{
             padding: 16,

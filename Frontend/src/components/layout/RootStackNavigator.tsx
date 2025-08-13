@@ -17,6 +17,7 @@ import { GroupsScreen } from "../../screens/Groups/GroupsScreen";
 import { WalletScreen } from "../../screens/WalletScreen";
 import { RewardsScreen } from "../../screens/RewardsScreen";
 import { DashboardScreen } from "../../screens/Dashboard/DashboardScreen";
+import { HistoryScreen } from "../../screens/HistoryScreen";
 export type RootStackParamList = {
   MainTabs: undefined;
   Home: undefined;
@@ -125,6 +126,15 @@ export const RootStackNavigator = () => {
           component={RecyclingMapScreen}
           options={{ headerShown: true, title: "Mapa de Reciclaje" }}
         />
+        <Stack.Screen
+          name="HistoryScreen"
+          component={(props: any) => (
+            <SidebarLayout>
+              <HistoryScreen {...props} />
+            </SidebarLayout>
+          )}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     );
   }
@@ -174,6 +184,11 @@ export const RootStackNavigator = () => {
         name="RecyclingMap"
         component={RecyclingMapScreen}
         options={{ headerShown: true, title: "Mapa de Reciclaje" }}
+      />
+      <Stack.Screen
+        name="HistoryScreen"
+        component={HistoryScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

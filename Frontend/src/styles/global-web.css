@@ -208,3 +208,173 @@ body,
   display: flex;
   flex-direction: column;
 }
+
+/* Recarga Web - Wallet */
+.recharge-web-bg {
+  min-height: 100vh;
+  width: 100vw;
+  background: #f0f9ff;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+.recharge-web-main {
+  width: 420px;
+  margin-top: 48px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
+  padding: 32px 32px 40px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.recharge-web-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.recharge-web-back {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: #f88d2a;
+  cursor: pointer;
+  padding: 0 8px;
+}
+.recharge-web-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f88d2a;
+}
+.recharge-web-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recharge-web-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f88d2a;
+  margin-bottom: 8px;
+}
+.recharge-web-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.recharge-web-preset-btn {
+  background: #f0f9ff;
+  border: 2px solid #e0f2fe;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6ba43a;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.recharge-web-preset-btn.selected {
+  background: #f88d2a;
+  border-color: #f88d2a;
+  color: #fff;
+}
+.recharge-web-input-container {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #f88d2a;
+  padding: 12px 16px;
+  gap: 8px;
+}
+.recharge-web-currency-symbol {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f88d2a;
+}
+.recharge-web-amount-input {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.recharge-web-currency-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6ba43a;
+}
+.recharge-web-methods-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.recharge-web-method-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 2px solid #e0f2fe;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #333;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.recharge-web-method-btn.selected {
+  background: #fff8f0;
+  border-color: #f88d2a;
+  color: #4ecdc4;
+  font-weight: 600;
+}
+.recharge-web-method-icon {
+  font-size: 18px;
+  font-weight: 500;
+}
+.recharge-web-method-check {
+  font-size: 18px;
+  color: #4ecdc4;
+  margin-left: 12px;
+}
+.recharge-web-conversion-info {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+  margin-top: 8px;
+}
+.recharge-web-conversion-text {
+  font-size: 16px;
+  color: #666;
+}
+.recharge-web-conversion-amount {
+  font-weight: bold;
+  color: #6ba43a;
+}
+.recharge-web-conversion-note {
+  font-size: 14px;
+  color: #999;
+}
+.recharge-web-btn {
+  background: #f88d2a;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 0;
+  margin-bottom: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(248, 141, 42, 0.08);
+  transition: background 0.2s;
+}
+.recharge-web-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
