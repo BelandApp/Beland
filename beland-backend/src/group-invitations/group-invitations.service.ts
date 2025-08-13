@@ -21,7 +21,7 @@ import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/users.entity';
 import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto';
 import { GroupInvitation } from './entities/group-invitation.entity';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull } from 'typeorm';
 import { LessThanOrEqual } from 'typeorm';
 
 @Injectable()
@@ -103,7 +103,7 @@ export class GroupInvitationsService {
       );
     }
 
-    // LÓGICA CLAVE: Verificar SÓLO invitaciones PENDIENTES
+    // LÓGICA CLAVE: Verificar SÓLO invitaciones PENDIENTES que no estén soft-deleted
     const existingPendingInvitation =
       await this.groupInvitationsRepository.findPendingInvitation(
         group_id,
@@ -143,12 +143,18 @@ export class GroupInvitationsService {
   /**
    * Recupera una invitación a grupo específica por su ID.
    * @param invitationId El ID de la invitación.
+   * @param includeSoftDeleted Si se deben incluir las invitaciones marcadas como eliminadas lógicamente.
    * @returns El GroupInvitationDto.
    * @throws NotFoundException si no se encuentra la invitación.
    */
-  async findInvitationById(invitationId: string): Promise<GroupInvitationDto> {
-    const invitation =
-      await this.groupInvitationsRepository.findOneById(invitationId);
+  async findInvitationById(
+    invitationId: string,
+    includeSoftDeleted: boolean = false,
+  ): Promise<GroupInvitationDto> {
+    const invitation = await this.groupInvitationsRepository.findOneById(
+      invitationId,
+      includeSoftDeleted,
+    );
     if (!invitation) {
       throw new NotFoundException(
         `Invitación a grupo con ID "${invitationId}" no encontrada.`,
@@ -167,6 +173,81 @@ export class GroupInvitationsService {
   ): Promise<GroupInvitationDto[]> {
     const invitations =
       await this.groupInvitationsRepository.findPendingInvitationsForUser(
+        userId,
+      );
+    return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
+  }
+
+  /**
+   * Recupera todas las invitaciones ACEPTADAS para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupInvitationDto.
+   */
+  async findUserAcceptedInvitations(
+    userId: string,
+  ): Promise<GroupInvitationDto[]> {
+    const invitations =
+      await this.groupInvitationsRepository.findAcceptedInvitationsForUser(
+        userId,
+      );
+    return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
+  }
+
+  /**
+   * Recupera todas las invitaciones RECHAZADAS para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupInvitationDto.
+   */
+  async findUserRejectedInvitations(
+    userId: string,
+  ): Promise<GroupInvitationDto[]> {
+    const invitations =
+      await this.groupInvitationsRepository.findRejectedInvitationsForUser(
+        userId,
+      );
+    return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
+  }
+
+  /**
+   * Recupera todas las invitaciones CANCELADAS (por el remitente) para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupInvitationDto.
+   */
+  async findUserCanceledInvitations(
+    userId: string,
+  ): Promise<GroupInvitationDto[]> {
+    const invitations =
+      await this.groupInvitationsRepository.findCanceledInvitationsForUser(
+        userId,
+      );
+    return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
+  }
+
+  /**
+   * Recupera todas las invitaciones EXPIRADAS para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupInvitationDto.
+   */
+  async findUserExpiredInvitations(
+    userId: string,
+  ): Promise<GroupInvitationDto[]> {
+    const invitations =
+      await this.groupInvitationsRepository.findExpiredInvitationsForUser(
+        userId,
+      );
+    return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
+  }
+
+  /**
+   * Recupera todas las invitaciones que han sido soft-deleted para un usuario específico.
+   * @param userId El ID del usuario.
+   * @returns Una lista de GroupInvitationDto.
+   */
+  async findUserSoftDeletedInvitations(
+    userId: string,
+  ): Promise<GroupInvitationDto[]> {
+    const invitations =
+      await this.groupInvitationsRepository.findSoftDeletedInvitationsForUser(
         userId,
       );
     return invitations.map((inv) => plainToInstance(GroupInvitationDto, inv));
@@ -204,8 +285,8 @@ export class GroupInvitationsService {
     // NUEVA LÓGICA: Verificar si la invitación ha expirado
     if (invitation.expires_at && invitation.expires_at < new Date()) {
       // Opcional: Podrías querer cambiar el estado a 'EXPIRED' en la DB aquí directamente
-      invitation.status = 'EXPIRED';
-      await this.groupInvitationsRepository.saveInvitation(invitation);
+      // invitation.status = 'EXPIRED';
+      // await this.groupInvitationsRepository.saveInvitation(invitation);
       throw new BadRequestException('La invitación ha expirado.');
     }
 
@@ -291,8 +372,8 @@ export class GroupInvitationsService {
     // NUEVA LÓGICA: Verificar si la invitación ha expirado
     if (invitation.expires_at && invitation.expires_at < new Date()) {
       // Opcional: Podrías querer cambiar el estado a 'EXPIRED' en la DB aquí directamente
-      invitation.status = 'EXPIRED';
-      await this.groupInvitationsRepository.saveInvitation(invitation);
+      // invitation.status = 'EXPIRED';
+      // await this.groupInvitationsRepository.saveInvitation(invitation);
       throw new BadRequestException('La invitación ha expirado.');
     }
 
@@ -355,27 +436,75 @@ export class GroupInvitationsService {
   }
 
   /**
-   * Elimina una invitación a grupo permanentemente. Úsalo con precaución.
+   * Realiza un soft delete en una invitación a grupo, marcándola como eliminada lógicamente.
+   * @param invitationId El ID de la invitación a soft-delete.
+   * @param userId El ID del usuario que realiza la acción (para validación de permisos).
+   * @throws NotFoundException si no se encuentra la invitación.
+   * @throws ForbiddenException si el usuario no tiene permisos para eliminar (no es el remitente o un administrador).
+   */
+  async softDeleteInvitation(
+    invitationId: string,
+    userId: string,
+  ): Promise<void> {
+    this.logger.log(
+      `softDeleteInvitation(): Intentando soft-eliminar invitación ${invitationId} por usuario ${userId}`,
+    );
+    const invitation =
+      await this.groupInvitationsRepository.findOneById(invitationId);
+
+    if (!invitation) {
+      throw new NotFoundException(
+        `Invitación con ID "${invitationId}" no encontrada.`,
+      );
+    }
+
+    // Solo el remitente de la invitación o un administrador/superadmin puede soft-eliminarla.
+    const actingUser = await this.usersService.findUserEntityById(userId);
+    if (!actingUser) {
+      throw new NotFoundException(`Usuario con ID "${userId}" no encontrado.`);
+    }
+
+    const isSender = invitation.sender_id === userId;
+    const isAdminOrSuperAdmin =
+      actingUser.role_name === 'ADMIN' || actingUser.role_name === 'SUPERADMIN';
+
+    if (!isSender && !isAdminOrSuperAdmin) {
+      throw new ForbiddenException(
+        'No tienes permisos para eliminar esta invitación. Solo el remitente o un administrador pueden hacerlo.',
+      );
+    }
+
+    await this.groupInvitationsRepository.softDeleteInvitation(invitationId);
+    this.logger.log(
+      `softDeleteInvitation(): Invitación ${invitationId} soft-eliminada exitosamente.`,
+    );
+  }
+
+  /**
+   * Elimina una invitación a grupo permanentemente (hard delete). Úsalo con extrema precaución.
+   * Este método debería ser solo para administradores o lógica de limpieza profunda.
    * @param invitationId El ID de la invitación a eliminar.
    * @throws NotFoundException si no se encuentra la invitación.
    */
-  async deleteInvitation(invitationId: string): Promise<void> {
-    const invitation =
-      await this.groupInvitationsRepository.findOneById(invitationId);
+  async hardDeleteInvitation(invitationId: string): Promise<void> {
+    const invitation = await this.groupInvitationsRepository.findOneById(
+      invitationId,
+      true,
+    ); // Incluir soft-deleted para poder eliminar permanentemente
     if (!invitation) {
       throw new NotFoundException(
         `Invitación a grupo con ID "${invitationId}" no encontrada.`,
       );
     }
     const deleteResult =
-      await this.groupInvitationsRepository.delete(invitationId);
+      await this.groupInvitationsRepository.hardDeleteInvitation(invitationId);
     if (deleteResult.affected === 0) {
       this.logger.warn(
-        `deleteInvitation(): No se eliminaron registros para la invitación con ID "${invitationId}".`,
+        `hardDeleteInvitation(): No se eliminaron registros para la invitación con ID "${invitationId}".`,
       );
     } else {
       this.logger.log(
-        `deleteInvitation(): Invitación ${invitationId} eliminada permanentemente.`,
+        `hardDeleteInvitation(): Invitación ${invitationId} eliminada permanentemente.`,
       );
     }
   }
@@ -405,12 +534,12 @@ export class GroupInvitationsService {
       }
 
       this.logger.log(
-        `handleExpiredInvitations(): Encontradas ${expiredInvitations.length} invitaciones que cumplen los criterios de expiración.`,
+        `handleExpiredInvitations(): Procesando ${expiredInvitations.length} invitaciones para marcarlas como EXPIRED.`,
       );
 
       for (const invitation of expiredInvitations) {
         this.logger.debug(
-          `handleExpiredInvitations(): Procesando invitación ${invitation.id} (status: ${invitation.status}, expires_at: ${invitation.expires_at?.toISOString() || 'N/A'}). Hora actual: ${now.toISOString()}`,
+          `handleExpiredInvitations(): Marcando como EXPIRED invitación ${invitation.id} (status: ${invitation.status}, expires_at: ${invitation.expires_at?.toISOString() || 'N/A'}). Hora actual: ${now.toISOString()}`,
         );
 
         invitation.status = 'EXPIRED';
@@ -442,6 +571,7 @@ export class GroupInvitationsService {
     return this.groupInvitationsRepository.find({
       where: {
         status: 'PENDING',
+        deleted_at: IsNull(), // Solo las que no han sido soft-deleted
         // Opcional: puedes añadir un filtro de expires_at si quieres recordar solo las que están cerca de expirar
         // expires_at: LessThanOrEqual(new Date(Date.now() + 24 * 60 * 60 * 1000)), // Recordar 24h antes de expirar
       },

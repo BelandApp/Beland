@@ -1,22 +1,25 @@
-// src/group-invitations/group-invitations.controller.ts
 import {
   Controller,
   Get,
   Post,
   Body,
-  Param,
   Patch,
+  Param,
   Delete,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
+  Query,
   Req,
-  ForbiddenException,
-  NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
+  HttpCode,
+  HttpStatus,
+  UsePipes,
+  ValidationPipe,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { GroupInvitationsService } from './group-invitations.service';
 import { CreateGroupInvitationDto } from './dto/create-group-invitation.dto';
@@ -27,218 +30,224 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
-import { PermissionsGuard } from 'src/auth/guards/permissions.guard';
+import { Request } from 'express';
 import { User } from 'src/users/entities/users.entity';
-import { GroupsService } from 'src/groups/groups.service';
-import { Request } from 'express'; // Importar Request de express para el tipo req.user
 
 @ApiTags('group-invitations')
 @Controller('group-invitations')
-@ApiBearerAuth('JWT-auth')
-@UseGuards(FlexibleAuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(FlexibleAuthGuard) // Aplicar autenticación a todo el controlador
 export class GroupInvitationsController {
   private readonly logger = new Logger(GroupInvitationsController.name);
 
   constructor(
     private readonly groupInvitationsService: GroupInvitationsService,
-    private readonly groupsService: GroupsService,
   ) {}
 
-  /**
-   * Método auxiliar para obtener el ID de usuario y el rol de la solicitud.
-   * @param req El objeto de solicitud de Express (ahora con la propiedad 'user' debido a la extensión de la interfaz).
-   * @returns Un objeto que contiene el ID de usuario y el nombre del rol.
-   * @throws ForbiddenException si no se puede determinar el ID de usuario o el rol.
-   */
-  private getUserInfo(req: Request): { userId: string; roleName: string } {
-    const user = req.user; // 'user' property es reconocida gracias a src/common/interfaces/request-with-user.interface.ts
-    if (!user || !user.id || !user.role_name) {
-      this.logger.error(
-        'getUserInfo(): No se encontró ID de usuario o rol en el JWT.',
-      );
-      throw new ForbiddenException(
-        'Contexto de autenticación de usuario faltante. Asegúrese de proporcionar un JWT válido.',
+  // Helper para obtener el ID del usuario de la request
+  private getUserId(req: Request): string {
+    const user = req.user as User;
+    if (!user || !user.id) {
+      throw new UnauthorizedException(
+        'User not authenticated or ID not found.',
       );
     }
-    return { userId: user.id, roleName: user.role_name };
+    return user.id;
   }
 
   @Post()
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
-  @ApiOperation({
-    summary: 'Enviar una invitación a grupo',
-    description:
-      'Envía una invitación a un usuario para unirse a un grupo específico. El usuario invitado puede ser identificado por email, nombre de usuario o número de teléfono. Solo los líderes de grupo o administradores pueden enviar invitaciones.',
-  })
-  @ApiBody({
-    type: CreateGroupInvitationDto,
-    description:
-      'Proporcione group_id y al menos uno de: email, username, o phone.',
-    examples: {
-      emailInvite: {
-        summary: 'Invitación por Email',
-        value: {
-          group_id: '123e4567-e89b-12d3-a456-426614174000',
-          email: 'invited.user@example.com',
-          role: 'MEMBER',
-        },
-      },
-      usernameInvite: {
-        summary: 'Invitación por Nombre de Usuario',
-        value: {
-          group_id: '123e4567-e89b-12d3-a456-426614174000',
-          username: 'invitedUser',
-          role: 'MEMBER',
-        },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Crea y envía una nueva invitación a un grupo.' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 201,
-    description: 'Invitación a grupo enviada exitosamente.',
+    description: 'Invitación creada exitosamente.',
     type: GroupInvitationDto,
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Entrada inválida (por ejemplo, no se proporcionó identificador, teléfono no numérico, invitándose a sí mismo).',
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Prohibido (no autorizado para enviar invitaciones para este grupo).',
-  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({
     status: 404,
     description: 'Grupo o usuario invitado no encontrado.',
   })
   @ApiResponse({
     status: 409,
-    description: 'El usuario ya es miembro o tiene una invitación pendiente.',
+    description:
+      'Ya existe una invitación pendiente o el usuario ya es miembro.',
   })
-  @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async create(
     @Body() createInvitationDto: CreateGroupInvitationDto,
     @Req() req: Request,
   ): Promise<GroupInvitationDto> {
-    const { userId, roleName } = this.getUserInfo(req);
+    const senderId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations - Enviando invitación del usuario ${userId} al grupo ${createInvitationDto.group_id}`,
+      `🚧 [BACKEND] Ruta /group-invitations - Enviando invitación del usuario ${senderId} al grupo ${createInvitationDto.group_id}`,
     );
-
-    const group = await this.groupsService.findGroupById(
-      createInvitationDto.group_id,
-    );
-    if (!group) {
-      throw new NotFoundException(
-        `Grupo con ID "${createInvitationDto.group_id}" no encontrado.`,
-      );
-    }
-
-    const isCurrentUserLeader = group.leader?.id === userId;
-    const isCurrentUserAdminOrSuperAdmin =
-      roleName === 'ADMIN' || roleName === 'SUPERADMIN';
-
-    if (!isCurrentUserLeader && !isCurrentUserAdminOrSuperAdmin) {
-      throw new ForbiddenException(
-        'Solo el líder del grupo o un administrador pueden enviar invitaciones para este grupo.',
-      );
-    }
-
     try {
       return await this.groupInvitationsService.createInvitation(
         createInvitationDto,
-        userId,
+        senderId,
       );
     } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ConflictException ||
-        error instanceof ForbiddenException
-      ) {
-        this.logger.warn(
-          `create(): Error al enviar invitación: ${(error as Error).message}`,
-        );
-        throw error;
-      }
-      this.logger.error(
-        `create(): Error interno del servidor al enviar invitación: ${(error as Error).message}`,
-        (error as Error).stack,
+      this.logger.warn(
+        `create(): Error al enviar invitación: ${(error as Error).message}`,
       );
-      throw new InternalServerErrorException(
-        'Fallo al enviar la invitación a grupo debido a un error interno.',
-      );
+      throw error;
     }
   }
 
   @Get('my-pending')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
   @ApiOperation({
     summary:
-      'Obtener todas las invitaciones pendientes para el usuario autenticado',
-    description:
-      'Recupera una lista de todas las invitaciones a grupo pendientes enviadas al usuario autenticado.',
+      'Obtiene todas las invitaciones PENDIENTES recibidas por el usuario autenticado.',
   })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 200,
     description: 'Lista de invitaciones pendientes.',
     type: [GroupInvitationDto],
   })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor.' })
-  async getMyPendingInvitations(
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMyPendingInvitations(
     @Req() req: Request,
   ): Promise<GroupInvitationDto[]> {
-    const { userId } = this.getUserInfo(req);
+    const userId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations/my-pending - Obteniendo invitaciones pendientes para el usuario ${userId}`,
+      `🚧 [BACKEND] Ruta /group-invitations/my-pending - Buscando invitaciones pendientes para el usuario ${userId}`,
     );
-    try {
-      return await this.groupInvitationsService.findUserPendingInvitations(
-        userId,
-      );
-    } catch (error) {
-      this.logger.error(
-        `getMyPendingInvitations(): Error interno del servidor: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Fallo al recuperar las invitaciones pendientes debido a un error interno.',
-      );
-    }
+    return this.groupInvitationsService.findUserPendingInvitations(userId);
+  }
+
+  @Get('my-accepted')
+  @ApiOperation({
+    summary:
+      'Obtiene todas las invitaciones ACEPTADAS por el usuario autenticado.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de invitaciones aceptadas.',
+    type: [GroupInvitationDto],
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMyAcceptedInvitations(
+    @Req() req: Request,
+  ): Promise<GroupInvitationDto[]> {
+    const userId = this.getUserId(req);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/my-accepted - Buscando invitaciones aceptadas para el usuario ${userId}`,
+    );
+    return this.groupInvitationsService.findUserAcceptedInvitations(userId);
+  }
+
+  @Get('my-rejected')
+  @ApiOperation({
+    summary:
+      'Obtiene todas las invitaciones RECHAZADAS por el usuario autenticado.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de invitaciones rechazadas.',
+    type: [GroupInvitationDto],
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMyRejectedInvitations(
+    @Req() req: Request,
+  ): Promise<GroupInvitationDto[]> {
+    const userId = this.getUserId(req);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/my-rejected - Buscando invitaciones rechazadas para el usuario ${userId}`,
+    );
+    return this.groupInvitationsService.findUserRejectedInvitations(userId);
+  }
+
+  @Get('my-canceled')
+  @ApiOperation({
+    summary:
+      'Obtiene todas las invitaciones CANCELADAS (por el remitente) donde el usuario autenticado fue el invitado.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de invitaciones canceladas.',
+    type: [GroupInvitationDto],
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMyCanceledInvitations(
+    @Req() req: Request,
+  ): Promise<GroupInvitationDto[]> {
+    const userId = this.getUserId(req);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/my-canceled - Buscando invitaciones canceladas para el usuario ${userId}`,
+    );
+    return this.groupInvitationsService.findUserCanceledInvitations(userId);
+  }
+
+  @Get('my-expired')
+  @ApiOperation({
+    summary:
+      'Obtiene todas las invitaciones EXPIRADAS donde el usuario autenticado fue el invitado.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de invitaciones expiradas.',
+    type: [GroupInvitationDto],
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMyExpiredInvitations(
+    @Req() req: Request,
+  ): Promise<GroupInvitationDto[]> {
+    const userId = this.getUserId(req);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/my-expired - Buscando invitaciones expiradas para el usuario ${userId}`,
+    );
+    return this.groupInvitationsService.findUserExpiredInvitations(userId);
+  }
+
+  @Get('my-soft-deleted')
+  @ApiOperation({
+    summary:
+      'Obtiene todas las invitaciones SOFT-DELETED (eliminadas lógicamente) donde el usuario autenticado fue el invitado.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de invitaciones soft-deleted.',
+    type: [GroupInvitationDto],
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  async findMySoftDeletedInvitations(
+    @Req() req: Request,
+  ): Promise<GroupInvitationDto[]> {
+    const userId = this.getUserId(req);
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/my-soft-deleted - Buscando invitaciones soft-deleted para el usuario ${userId}`,
+    );
+    return this.groupInvitationsService.findUserSoftDeletedInvitations(userId);
   }
 
   @Patch(':invitationId/accept')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
-  @ApiOperation({
-    summary: 'Aceptar una invitación a grupo',
-    description:
-      'Acepta una invitación a grupo pendiente. El usuario será añadido al grupo como miembro.',
-  })
-  @ApiParam({
-    name: 'invitationId',
-    description: 'ID de la invitación a aceptar.',
-  })
+  @ApiOperation({ summary: 'Acepta una invitación a grupo.' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 200,
-    description: 'Invitación aceptada exitosamente. Usuario añadido al grupo.',
+    description: 'Invitación aceptada exitosamente.',
     type: GroupInvitationDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Invitación no pendiente, expirada o solicitud inválida.',
+    description: 'La invitación no está pendiente o ha expirado.',
   })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({
     status: 403,
-    description: 'Prohibido (no es el usuario invitado).',
+    description: 'No autorizado para aceptar esta invitación.',
   })
   @ApiResponse({ status: 404, description: 'Invitación no encontrada.' })
   @ApiResponse({
@@ -249,47 +258,19 @@ export class GroupInvitationsController {
     @Param('invitationId') invitationId: string,
     @Req() req: Request,
   ): Promise<GroupInvitationDto> {
-    const { userId: acceptingUserId } = this.getUserInfo(req);
+    const acceptingUserId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations/:invitationId/accept - El usuario ${acceptingUserId} aceptando la invitación ${invitationId}`,
+      `🚧 [BACKEND] Ruta /group-invitations/${invitationId}/accept - Aceptando invitación por el usuario ${acceptingUserId}`,
     );
-    try {
-      return await this.groupInvitationsService.acceptInvitation(
-        invitationId,
-        acceptingUserId,
-      );
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException ||
-        error instanceof ConflictException
-      ) {
-        this.logger.warn(
-          `acceptInvitation(): Error al aceptar invitación: ${(error as Error).message}`,
-        );
-        throw error;
-      }
-      this.logger.error(
-        `acceptInvitation(): Error interno del servidor al aceptar invitación: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Fallo al aceptar la invitación debido a un error interno.',
-      );
-    }
+    return await this.groupInvitationsService.acceptInvitation(
+      invitationId,
+      acceptingUserId,
+    );
   }
 
   @Patch(':invitationId/reject')
-  @Roles('USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA')
-  @ApiOperation({
-    summary: 'Rechazar una invitación a grupo',
-    description: 'Rechaza una invitación a grupo pendiente.',
-  })
-  @ApiParam({
-    name: 'invitationId',
-    description: 'ID de la invitación a rechazar.',
-  })
+  @ApiOperation({ summary: 'Rechaza una invitación a grupo.' })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 200,
     description: 'Invitación rechazada exitosamente.',
@@ -297,165 +278,119 @@ export class GroupInvitationsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Invitación no pendiente, expirada o ya rechazada.',
+    description: 'La invitación no está pendiente o ha expirado.',
   })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({
     status: 403,
-    description: 'Prohibido (no es el usuario invitado).',
+    description: 'No autorizado para rechazar esta invitación.',
   })
   @ApiResponse({ status: 404, description: 'Invitación no encontrada.' })
   async rejectInvitation(
     @Param('invitationId') invitationId: string,
     @Req() req: Request,
   ): Promise<GroupInvitationDto> {
-    const { userId: rejectingUserId } = this.getUserInfo(req);
+    const rejectingUserId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations/:invitationId/reject - El usuario ${rejectingUserId} rechazando la invitación ${invitationId}`,
+      `🚧 [BACKEND] Ruta /group-invitations/${invitationId}/reject - Rechazando invitación por el usuario ${rejectingUserId}`,
     );
-    try {
-      return await this.groupInvitationsService.rejectInvitation(
-        invitationId,
-        rejectingUserId,
-      );
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException
-      ) {
-        this.logger.warn(
-          `rejectInvitation(): Error al rechazar invitación: ${(error as Error).message}`,
-        );
-        throw error;
-      }
-      this.logger.error(
-        `rejectInvitation(): Error interno del servidor al rechazar invitación: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Fallo al rechazar la invitación debido a un error interno.',
-      );
-    }
+    return await this.groupInvitationsService.rejectInvitation(
+      invitationId,
+      rejectingUserId,
+    );
   }
 
   @Patch(':invitationId/cancel')
-  @Roles('LEADER', 'ADMIN', 'SUPERADMIN')
   @ApiOperation({
-    summary: 'Cancelar una invitación a grupo pendiente',
-    description:
-      'Permite al usuario que envió la invitación (o a un administrador) cancelar una invitación pendiente.',
+    summary: 'Cancela una invitación a grupo (solo el remitente o un admin).',
   })
-  @ApiParam({
-    name: 'invitationId',
-    description: 'ID de la invitación a cancelar.',
-  })
+  @ApiBearerAuth()
+  @Roles('LEADER', 'ADMIN', 'SUPERADMIN') // Requiere roles específicos para cancelar
+  @UseGuards(RolesGuard)
   @ApiResponse({
     status: 200,
     description: 'Invitación cancelada exitosamente.',
     type: GroupInvitationDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'La invitación no está pendiente o no se puede cancelar.',
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 400, description: 'La invitación no está pendiente.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({
     status: 403,
-    description: 'Prohibido (no es el remitente o un administrador).',
+    description: 'No autorizado para cancelar esta invitación.',
   })
   @ApiResponse({ status: 404, description: 'Invitación no encontrada.' })
   async cancelInvitation(
     @Param('invitationId') invitationId: string,
     @Req() req: Request,
   ): Promise<GroupInvitationDto> {
-    const { userId: cancellingUserId, roleName } = this.getUserInfo(req);
+    const cancellingUserId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations/:invitationId/cancel - El usuario ${cancellingUserId} cancelando la invitación ${invitationId}`,
+      `🚧 [BACKEND] Ruta /group-invitations/${invitationId}/cancel - Cancelando invitación por el usuario ${cancellingUserId}`,
     );
-    try {
-      const invitation =
-        await this.groupInvitationsService.findInvitationById(invitationId);
-      const isCurrentUserSender = invitation.sender.id === cancellingUserId;
-      const isCurrentUserAdminOrSuperAdmin =
-        roleName === 'ADMIN' || roleName === 'SUPERADMIN';
-
-      if (!isCurrentUserSender && !isCurrentUserAdminOrSuperAdmin) {
-        throw new ForbiddenException(
-          'No estás autorizado para cancelar esta invitación. Solo el remitente o un administrador pueden cancelar invitaciones.',
-        );
-      }
-
-      return await this.groupInvitationsService.cancelInvitation(
-        invitationId,
-        cancellingUserId,
-      );
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException ||
-        error instanceof ForbiddenException
-      ) {
-        this.logger.warn(
-          `cancelInvitation(): Error al cancelar invitación: ${(error as Error).message}`,
-        );
-        throw error;
-      }
-      this.logger.error(
-        `cancelInvitation(): Error interno del servidor al cancelar invitación: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Fallo al cancelar la invitación debido a un error interno.',
-      );
-    }
+    return await this.groupInvitationsService.cancelInvitation(
+      invitationId,
+      cancellingUserId,
+    );
   }
 
   @Delete(':invitationId')
-  @Roles('ADMIN', 'SUPERADMIN')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary:
-      'Eliminar una invitación a grupo permanentemente (Solo Admin/Superadmin)',
-    description:
-      'Elimina una invitación a grupo permanentemente de la base de datos. Esta acción es irreversible y debe usarse con precaución. Solo accesible por administradores.',
+      'Realiza un soft delete en una invitación a grupo (la marca como eliminada lógicamente).',
   })
-  @ApiParam({
-    name: 'invitationId',
-    description: 'ID de la invitación a eliminar.',
-  })
+  @ApiBearerAuth()
   @ApiResponse({
     status: 204,
-    description: 'Invitación eliminada exitosamente (Sin Contenido).',
+    description: 'Invitación soft-deleted exitosamente.',
   })
-  @ApiResponse({ status: 401, description: 'No autorizado.' })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
   @ApiResponse({
     status: 403,
-    description: 'Prohibido (rol/permiso insuficiente).',
+    description: 'No autorizado para soft-eliminar esta invitación.',
   })
   @ApiResponse({ status: 404, description: 'Invitación no encontrada.' })
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteInvitation(
+  async softDeleteInvitation(
     @Param('invitationId') invitationId: string,
+    @Req() req: Request,
   ): Promise<void> {
+    const userId = this.getUserId(req);
     this.logger.log(
-      `🚧 [BACKEND] Ruta /group-invitations/:invitationId - Eliminando invitación ${invitationId}`,
+      `🚧 [BACKEND] Ruta /group-invitations/${invitationId} - Solicitud de soft-delete por el usuario ${userId}`,
     );
-    try {
-      await this.groupInvitationsService.deleteInvitation(invitationId);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        this.logger.warn(
-          `deleteInvitation(): Error al eliminar invitación: ${(error as Error).message}`,
-        );
-        throw error;
-      }
-      this.logger.error(
-        `deleteInvitation(): Error interno del servidor al eliminar invitación: ${(error as Error).message}`,
-        (error as Error).stack,
-      );
-      throw new InternalServerErrorException(
-        'Fallo al eliminar la invitación debido a un error interno.',
-      );
-    }
+    await this.groupInvitationsService.softDeleteInvitation(
+      invitationId,
+      userId,
+    );
+  }
+
+  @Delete(':invitationId/hard')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary:
+      'ELIMINA PERMANENTEMENTE una invitación a grupo (solo SuperAdmin).',
+  })
+  @ApiBearerAuth()
+  @Roles('SUPERADMIN') // Solo SUPERADMIN puede eliminar permanentemente
+  @UseGuards(RolesGuard)
+  @ApiResponse({
+    status: 204,
+    description: 'Invitación eliminada permanentemente.',
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  @ApiResponse({
+    status: 403,
+    description: 'No autorizado para hard-eliminar esta invitación.',
+  })
+  @ApiResponse({ status: 404, description: 'Invitación no encontrada.' })
+  async hardDeleteInvitation(
+    @Param('invitationId') invitationId: string,
+    @Req() req: Request,
+  ): Promise<void> {
+    const userId = this.getUserId(req); // Solo para logging o trazabilidad, la autorización la maneja RolesGuard
+    this.logger.log(
+      `🚧 [BACKEND] Ruta /group-invitations/${invitationId}/hard - Solicitud de hard-delete por el usuario ${userId}`,
+    );
+    await this.groupInvitationsService.hardDeleteInvitation(invitationId);
   }
 }
