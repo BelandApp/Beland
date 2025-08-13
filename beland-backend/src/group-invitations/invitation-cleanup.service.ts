@@ -11,24 +11,17 @@ export class InvitationCleanupService {
     private readonly groupInvitationsService: GroupInvitationsService,
   ) {}
 
-  //   /**
-  //    * Tarea programada para manejar invitaciones expiradas.
-  //    * Se ejecuta todos los días a las 2:00 AM (CronExpression.EVERY_DAY_AT_2AM).
-  //    *
-  //    * Para pruebas, puedes usar una expresión más frecuente, como '*/30 * * * *' (cada 30 segundos).
-  //    * Asegúrate de comentar la expresión de producción y descomentar la de prueba SOLO para testear.
-  //    *
-  //    * Las expresiones Cron se leen así:
-  //    * segundo (opcional) | minuto | hora | día del mes | mes | día de la semana
-  //    * (0-59)             | (0-59) | (0-23) | (1-31)      | (1-12) | (0-7, donde 0 y 7 son domingo)
-  //    */
-  //   @Cron(CronExpression.EVERY_DAY_AT_2AM) // Se ejecutará todos los días a las 2:00 AM
-  @Cron('*/30 * * * *') // Descomenta esta línea y comenta la de arriba para pruebas (cada 30 segundos)
+  /**
+   * Tarea programada para manejar invitaciones expiradas (cambia el estado a 'EXPIRED').
+   * Se ejecuta cada 30 segundos para pruebas, o diariamente a las 2:00 AM para producción.
+   */
+  // @Cron(CronExpression.EVERY_DAY_AT_2AM) // Configuración para producción
+  @Cron('*/30 * * * * *') // PARA PRUEBAS: cada 30 segundos (con segundos al final)
   async handleCron(): Promise<void> {
     this.logger.debug(
       'handleCron(): Ejecutando tarea programada de limpieza de invitaciones expiradas...',
     );
-    await this.groupInvitationsService.handleExpiredInvitations();
+    await this.groupInvitationsService.handleExpiredInvitations(); // Llama al método del servicio
     this.logger.debug(
       'handleCron(): Tarea de limpieza de invitaciones expiradas finalizada.',
     );
