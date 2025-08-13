@@ -79,6 +79,9 @@ export class OrdersService {
       throw new NotAcceptableException('Saldo insuficiente');
     }
 
+    const paymentType = await this.payTypeRepo.findOne(cart.payment_type_id)
+    if (!paymentType) throw new ConflictException('Forma de pago no disponible. Pruebe otra o intente luego.');
+    
     // Crear la orden
     const { id, user_id, created_at, updated_at, items, ...createOrder } = cart;
     const order = await this.repository.create({
@@ -99,14 +102,12 @@ export class OrdersService {
     const itemsCreated = await this.orderItemRepo.createMany(orderItems);
     if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
 
-    const paymentType = await this.payTypeRepo.findOne(savedOrder.payment_type_id)
-    if (!paymentType) throw new ConflictException('La forma de Pago no se puede usar por el momento');
-
+    
     if (paymentType.code == 'FULL') {
       await this.walletService.purchaseBeland(wallet.id, cart.total_amount, `PURCHASEBELAND-${order.id}`);
       await this.payRepo.create({
-        amount_paid:order.total_amount, 
-        order_id: order.id, 
+        amount_paid:order.total_amount,
+        order_id: order.id,
         payment_type_id: order.payment_type_id,
         user_id: order.leader_id,
       })

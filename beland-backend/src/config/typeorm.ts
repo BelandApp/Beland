@@ -19,7 +19,7 @@ const config = {
   //dropschema: true,
   logging: false, //process.env.NODE_ENV !== 'production',
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, 
   },
 }; //ok
 

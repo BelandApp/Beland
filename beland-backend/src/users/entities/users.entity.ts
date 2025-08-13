@@ -115,8 +115,8 @@ export class User {
   cart: Cart;
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
-  @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
-  wallets: Wallet[];
+  @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
+  wallet: Wallet;
 
   @OneToMany(() => Group, (group) => group.leader)
   led_groups: Group[];
