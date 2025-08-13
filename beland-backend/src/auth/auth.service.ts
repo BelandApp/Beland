@@ -115,16 +115,23 @@ export class AuthService {
       const usernamePart = user.email.split('@')[0];
       const randomNumber = Math.floor(Math.random() * 1000);
       const alias = `${usernamePart}.${randomNumber}`;
-      const qr = await QRCode.toDataURL(alias);
 
-      // ✅ Crear wallet usando el mismo manager
-      const wallet = await queryRunner.manager.getRepository(Wallet).save({
-        alias,
-        qr,
+      const walletRepo = this.dataSource.getRepository(Wallet);
+
+      // 1️⃣ Crear y guardar la wallet con user_id y alias
+      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
         user_id: userSave.id,
+        alias
       });
 
-      if (!wallet)
+      // 2️⃣ Generar el QR con el ID ya guardado
+      const qr = await QRCode.toDataURL(savedWallet.id);
+
+      // 3️⃣ Actualizar la wallet con el QR
+      savedWallet.qr = qr;
+      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
+
+      if (!savedWallet)
         throw new InternalServerErrorException(
           'Error al crear la billetera. Intente registrarse Nuevamente',
         );
