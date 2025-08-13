@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, ScrollView, Dimensions } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { WaveBottomGray } from "../../components/icons";
 import {
   WalletHeader,
@@ -26,8 +27,11 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   type PaymentAccountType = "payphone" | "bank" | null;
   const { walletData } = useWalletData();
   const { mainWalletActions } = useWalletActions();
-  const { transactions, isLoading: transactionsLoading } =
-    useWalletTransactions();
+  const {
+    transactions,
+    isLoading: transactionsLoading,
+    refetch,
+  } = useWalletTransactions();
   const [showPayphone, setShowPayphone] = useState(false);
   const [selectedAccount, setSelectedAccount] =
     useState<PaymentAccountType>(null);
@@ -51,6 +55,16 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     backgroundColor: "#F88D2A",
     urlMobile: payphoneUrl,
   };
+
+  // Actualizar transacciones al volver a la pantalla
+  const nav = useNavigation();
+  useEffect(() => {
+    const unsubscribe = nav.addListener("focus", () => {
+      refetch();
+    });
+    return unsubscribe;
+  }, [nav, refetch]);
+
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
       {/* Widget Payphone solo si está seleccionado y showPayphone */}
