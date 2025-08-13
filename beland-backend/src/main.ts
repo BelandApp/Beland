@@ -44,6 +44,7 @@ async function bootstrap() {
       'https://auth.expo.io/@beland/Beland',
       'belandnative://redirect',
       'https://eoy0nfm-beland-8081.exp.direct',
+      'https://nl6egxw-anonymous-8081.exp.direct',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,

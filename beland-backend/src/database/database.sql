@@ -57,11 +57,11 @@ CREATE TABLE public.cart_items (
   product_id uuid NOT NULL,
   quantity integer NOT NULL DEFAULT 1,
   unit_price numeric NOT NULL,
-  subtotal numeric NOT NULL,
+  total_price numeric NOT NULL,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   CONSTRAINT cart_items_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_6385a745d9e12a89b859bb25623 FOREIGN KEY (cart_id) REFERENCES public.carts(id),
-  CONSTRAINT FK_30e89257a105eab7648a35c7fce FOREIGN KEY (product_id) REFERENCES public.products(id)
+  CONSTRAINT FK_30e89257a105eab7648a35c7fce FOREIGN KEY (product_id) REFERENCES public.products(id),
+  CONSTRAINT FK_6385a745d9e12a89b859bb25623 FOREIGN KEY (cart_id) REFERENCES public.carts(id)
 );
 CREATE TABLE public.carts (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -70,8 +70,15 @@ CREATE TABLE public.carts (
   total_items integer NOT NULL DEFAULT 0,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  address_id uuid,
+  group_id uuid,
+  group_ip uuid,
+  payment_type_id uuid,
   CONSTRAINT carts_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_2ec1c94a977b940d85a4f498aea FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_2ec1c94a977b940d85a4f498aea FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT FK_64d39f6b86964e5ce06f9fecf50 FOREIGN KEY (address_id) REFERENCES public.user_addresses(id),
+  CONSTRAINT FK_664193e2d42d1b188a7b3d0b50f FOREIGN KEY (group_ip) REFERENCES public.groups(id),
+  CONSTRAINT FK_0b3fe6feaf85c266d9c4005201a FOREIGN KEY (payment_type_id) REFERENCES public.payment_types(id)
 );
 CREATE TABLE public.charities (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -90,8 +97,8 @@ CREATE TABLE public.charities (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT charities_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_67791ce53cb9c75a58496c2a750 FOREIGN KEY (wallet_id) REFERENCES public.wallets(id),
-  CONSTRAINT FK_f4d22dadb80086b25c0e12e9b3c FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_f4d22dadb80086b25c0e12e9b3c FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT FK_67791ce53cb9c75a58496c2a750 FOREIGN KEY (wallet_id) REFERENCES public.wallets(id)
 );
 CREATE TABLE public.coupons (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -106,15 +113,29 @@ CREATE TABLE public.coupons (
   CONSTRAINT coupons_pkey PRIMARY KEY (id),
   CONSTRAINT FK_2326117d6ad81572d73c73fcb17 FOREIGN KEY (redeemed_by_user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.group_invitations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  group_id uuid NOT NULL,
+  sender_id uuid NOT NULL,
+  invited_user_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'PENDING'::text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  expires_at timestamp with time zone,
+  CONSTRAINT group_invitations_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_group_invitations_group FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT fk_group_invitations_sender FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT fk_group_invitations_invited_user FOREIGN KEY (invited_user_id) REFERENCES public.users(id)
+);
 CREATE TABLE public.group_members (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   role text NOT NULL DEFAULT 'MEMBER'::text,
   joined_at timestamp with time zone NOT NULL DEFAULT now(),
-  group_id uuid NOT NULL,
-  user_id uuid NOT NULL,
+  group_id uuid,
+  user_id uuid,
   CONSTRAINT group_members_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_2c840df5db52dc6b4a1b0b69c6e FOREIGN KEY (group_id) REFERENCES public.groups(id),
-  CONSTRAINT FK_20a555b299f75843aa53ff8b0ee FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_20a555b299f75843aa53ff8b0ee FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT FK_2c840df5db52dc6b4a1b0b69c6e FOREIGN KEY (group_id) REFERENCES public.groups(id)
 );
 CREATE TABLE public.groups (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -125,8 +146,10 @@ CREATE TABLE public.groups (
   status text NOT NULL DEFAULT 'ACTIVE'::text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   leader_id uuid NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  deleted_at timestamp with time zone,
   CONSTRAINT groups_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_72ad1e93ec761661298426680dc FOREIGN KEY (leader_id) REFERENCES public.users(id)
+  CONSTRAINT FK_fdb67d577cb1623e0d11a3fa6b0 FOREIGN KEY (leader_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.inventory_items (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -175,34 +198,45 @@ CREATE TABLE public.order_items (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   order_id uuid NOT NULL,
   product_id uuid NOT NULL,
-  consumed_by_user_id uuid NOT NULL,
   CONSTRAINT order_items_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_145532db85752b29c57d2b7b1f1 FOREIGN KEY (order_id) REFERENCES public.orders(id),
   CONSTRAINT FK_9263386c35b6b242540f9493b00 FOREIGN KEY (product_id) REFERENCES public.products(id),
-  CONSTRAINT FK_6416a99947f9349d4268bfd33fd FOREIGN KEY (consumed_by_user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_145532db85752b29c57d2b7b1f1 FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
 CREATE TABLE public.orders (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
-  status text NOT NULL DEFAULT 'PENDING_PAYMENT'::text,
+  status text NOT NULL DEFAULT 'PENDING'::text,
   total_amount numeric NOT NULL DEFAULT '0'::numeric,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  paid_at timestamp with time zone,
   total_items integer NOT NULL DEFAULT 0,
   group_id uuid,
   leader_id uuid NOT NULL,
   group_ip uuid,
+  address_id uuid,
+  address_ip uuid,
+  leader_ip uuid,
+  payment_type_id uuid NOT NULL,
   CONSTRAINT orders_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_f6828c894e0e6c5733452cfc5f2 FOREIGN KEY (group_ip) REFERENCES public.groups(id),
-  CONSTRAINT FK_69d38c1f95477f7c66ee2a3bf9d FOREIGN KEY (leader_id) REFERENCES public.users(id)
+  CONSTRAINT FK_6420df7a9dc858a12d1c3f12416 FOREIGN KEY (payment_type_id) REFERENCES public.payment_types(id),
+  CONSTRAINT FK_6a648e7450e6be2eddfefe79c0c FOREIGN KEY (address_ip) REFERENCES public.user_addresses(id),
+  CONSTRAINT FK_6a4e2e91f771d5c19e0ae10252b FOREIGN KEY (leader_ip) REFERENCES public.users(id),
+  CONSTRAINT FK_f6828c894e0e6c5733452cfc5f2 FOREIGN KEY (group_ip) REFERENCES public.groups(id)
+);
+CREATE TABLE public.payment_types (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  code character varying NOT NULL UNIQUE,
+  description character varying NOT NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT payment_types_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.payments (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   amount_paid numeric NOT NULL,
-  payment_type text NOT NULL,
   transaction_hash text,
-  payment_date timestamp with time zone NOT NULL DEFAULT now(),
   order_id uuid NOT NULL,
   user_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT payments_pkey PRIMARY KEY (id),
   CONSTRAINT FK_b2f7b823a21562eeca20e72b006 FOREIGN KEY (order_id) REFERENCES public.orders(id),
   CONSTRAINT FK_427785468fb7d2733f59e7d7d39 FOREIGN KEY (user_id) REFERENCES public.users(id)
@@ -255,8 +289,8 @@ CREATE TABLE public.recycled_items (
   product_id uuid NOT NULL,
   scanned_by_user_id uuid NOT NULL,
   CONSTRAINT recycled_items_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_69d4cabd205e8c98c6f42d2edb9 FOREIGN KEY (product_id) REFERENCES public.products(id),
-  CONSTRAINT FK_7f2b1b844405ac9bba63334035b FOREIGN KEY (scanned_by_user_id) REFERENCES public.users(id)
+  CONSTRAINT FK_7f2b1b844405ac9bba63334035b FOREIGN KEY (scanned_by_user_id) REFERENCES public.users(id),
+  CONSTRAINT FK_69d4cabd205e8c98c6f42d2edb9 FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
 CREATE TABLE public.roles (
   role_id uuid NOT NULL DEFAULT uuid_generate_v4(),
@@ -296,9 +330,43 @@ CREATE TABLE public.transactions (
   reference text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT transactions_pkey PRIMARY KEY (id),
-  CONSTRAINT FK_819b9b741319d533ea9e5617eb0 FOREIGN KEY (status_id) REFERENCES public.transaction_states(id),
+  CONSTRAINT FK_bf1cb034a93b703e528b926a75d FOREIGN KEY (type_id) REFERENCES public.transaction_types(id),
   CONSTRAINT FK_0b171330be0cb621f8d73b87a9e FOREIGN KEY (wallet_id) REFERENCES public.wallets(id),
-  CONSTRAINT FK_bf1cb034a93b703e528b926a75d FOREIGN KEY (type_id) REFERENCES public.transaction_types(id)
+  CONSTRAINT FK_819b9b741319d533ea9e5617eb0 FOREIGN KEY (status_id) REFERENCES public.transaction_states(id)
+);
+CREATE TABLE public.user_addresses (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  addressLine1 character varying NOT NULL,
+  addressLine2 character varying,
+  city character varying NOT NULL,
+  state character varying,
+  country character varying NOT NULL,
+  postalCode character varying,
+  latitude numeric,
+  longitude numeric,
+  isDefault boolean NOT NULL DEFAULT false,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  deleted_at timestamp without time zone,
+  CONSTRAINT user_addresses_pkey PRIMARY KEY (id),
+  CONSTRAINT FK_7a5100ce0548ef27a6f1533a5ce FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_cards (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  email character varying NOT NULL,
+  phoneNumber character varying NOT NULL,
+  documentId character varying NOT NULL,
+  optionalParameter4 character varying NOT NULL,
+  cardBrand character varying NOT NULL,
+  cardType character varying NOT NULL,
+  lastDigits integer NOT NULL,
+  cardToken character varying NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_cards_pkey PRIMARY KEY (id),
+  CONSTRAINT FK_fd1dbad94a6a2ccfc149c819076 FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
