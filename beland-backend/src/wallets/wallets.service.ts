@@ -212,4 +212,32 @@ export class WalletsService {
 
     return { wallet: walletUpdate };
   }
+
+  async purchaseBeland (wallet_id: string, becoinAmount:number, referenceCode:string ) {
+    const wallet = await this.repository.findOne(wallet_id);
+    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+  
+    // 3) Actualizar saldo
+    wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
+    const type = await this.typeRepo.findOneBy({ code: 'PURCHASE' });
+    if (!type)
+      throw new ConflictException("No se encuentra el tipo 'RECHARGE'");
+
+    const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
+    if (!status)
+      throw new ConflictException("No se encuentra el estado 'COMPLETED'");
+
+    const walletUpdated: Wallet = await this.repository.create(wallet);
+
+    // 4) Registrar transacción
+    await this.txRepo.save({
+      wallet_id: wallet.id,
+      type_id: type.id,
+      status_id: status.id,
+      amount: becoinAmount,
+      post_balance: wallet.becoin_balance,
+      reference: referenceCode,
+    });
+    return { wallet: walletUpdated };
+  } 
 }
