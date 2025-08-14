@@ -5,7 +5,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Platform, Alert } from "react-native";
+import { Platform, Alert, ActivityIndicator } from "react-native";
 import { authService } from "../services/authService";
 import { apiRequest } from "../services/api";
 import { useAuthTokenStore } from "../stores/useAuthTokenStore";
@@ -16,29 +16,25 @@ import {
   useAuthRequest,
   exchangeCodeAsync,
 } from "expo-auth-session";
-import Constants from "expo-constants"; // Importar Constants para acceder a extra
+import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
 
 // === CONFIGURACIÓN ===
-// Acceder a las variables de entorno desde Constants.expoConfig.extra
 const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
 const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
-const scheme = Constants.expoConfig?.scheme as string; // Usar el scheme definido en app.json/app.config.js
-const apiBaseUrl = Constants.expoConfig?.extra?.apiUrl as string || "http://localhost:8081";
+const scheme = Constants.expoConfig?.scheme as string;
+const apiBaseUrl =
+  (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:8081";
 const auth0Audience = "https://beland.onrender.com/api";
 
-// Validar que las variables de entorno estén definidas
 if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
   console.error(
     "❌ Error: Las variables de entorno de Auth0 o API no están configuradas correctamente en app.config.js."
   );
-  // Puedes lanzar un error o manejarlo de otra manera, dependiendo de tu estrategia
-  // throw new Error("Auth0 or API environment variables are missing.");
 }
 
 const isWeb = Platform.OS === "web";
-// Redirección con soporte a proxy y esquema nativo
 const redirectUri = makeRedirectUri({
   scheme,
   useProxy: !isWeb,
@@ -58,10 +54,11 @@ const discovery = {
 
 // === TIPADO ===
 export interface AuthUser {
-  id: string; // ID de tu base de datos (UUID)
+  id: string;
   email: string;
-  name?: string; // full_name o username de tu DB
-  picture?: string; // profile_picture_url de tu DB
+  name?: string;
+  picture?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -93,7 +90,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       clientId: clientWebId,
       redirectUri,
       scopes: ["openid", "profile", "email"],
-      responseType: "code", // Usamos Authorization Code Flow con PKCE
+      responseType: "code",
       usePKCE: true,
       extraParams: {
         audience: auth0Audience,
@@ -101,8 +98,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     discovery
   );
-console.log(response)
-console.log(request)
+  console.log(response);
+  console.log(request);
 
   const saveToken = async (token: string) => {
     if (Platform.OS === "web") {
@@ -145,12 +142,12 @@ console.log(request)
     }
 
     const backendUser = await res.json();
-    // Mapear los datos del backend a la interfaz AuthUser del frontend
     return {
       id: backendUser.id,
       email: backendUser.email,
-      name: backendUser.full_name || backendUser.username, // Preferir full_name, si no username
+      name: backendUser.full_name || backendUser.username,
       picture: backendUser.profile_picture_url,
+      role: backendUser.role_name,
     };
   };
 
@@ -158,8 +155,8 @@ console.log(request)
   useEffect(() => {
     const handleAuth = async () => {
       if (response?.type === "success" && response.params?.code) {
+        setIsLoading(true); // Nuevo: Iniciar el estado de carga
         try {
-          // 1. Intercambiar el código por el token de acceso de Auth0
           const tokenResult = await exchangeCodeAsync(
             {
               code: response.params.code,
@@ -171,20 +168,16 @@ console.log(request)
           );
 
           const accessToken = tokenResult.accessToken;
-          console.log(accessToken, "✅ Access Token obtenido")
+          console.log(accessToken, "✅ Access Token obtenido");
           if (!accessToken) {
             console.error("❌ No se obtuvo accessToken de Auth0.");
             throw new Error("No access token from Auth0.");
           }
 
-          // 2. Guardar el token de Auth0 (este es el que el backend validará)
           await saveToken(accessToken);
 
-          // 3. Llamar a tu backend para obtener el perfil del usuario.
-          // El backend usará el accessToken para validar con Auth0 y sincronizar el usuario en Supabase.
           const authUser = await fetchUserProfileFromBackend(accessToken);
 
-          // 4. Establecer el usuario en el estado del contexto
           setUser(authUser);
           setIsDemo(false);
         } catch (err) {
@@ -192,7 +185,7 @@ console.log(request)
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
             err
           );
-          await deleteToken(); // Limpiar token si falla la autenticación o sincronización
+          await deleteToken();
         } finally {
           setIsLoading(false);
         }
@@ -203,11 +196,12 @@ console.log(request)
     };
 
     handleAuth();
-  }, [response, request]); // Dependencias: response y request para el flujo de Auth0
+  }, [response, request]);
 
   // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
+      // setIsLoading(true); // Ya se inicializa en true, no es necesario aquí
       const token = await getToken();
       if (!token) {
         setIsLoading(false);
@@ -215,22 +209,19 @@ console.log(request)
       }
 
       try {
-        // Llamar a tu backend para obtener el perfil del usuario.
-        // El backend validará el token y devolverá el usuario de tu DB.
         const authUser = await fetchUserProfileFromBackend(token);
-
         setUser(authUser);
         setIsDemo(false);
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
-        await deleteToken(); // Limpiar token si falla la restauración
+        await deleteToken();
       } finally {
         setIsLoading(false);
       }
     };
 
     restoreSession();
-  }, []); // Se ejecuta solo una vez al montar el componente
+  }, []);
 
   // === Login con email y password ===
   const loginWithEmailPassword = useCallback(
@@ -243,7 +234,6 @@ console.log(request)
         console.log("[LOGIN] Token recibido:", token);
         if (!token) throw new Error("No se recibió token del backend");
         setToken(token);
-        // Obtener datos del usuario con /auth/me
         const headers = { Authorization: `Bearer ${token}` };
         console.log("[LOGIN] Headers para /auth/me:", headers);
         try {
@@ -257,6 +247,7 @@ console.log(request)
             email: userResp.email,
             name: userResp.name || userResp.full_name,
             picture: userResp.profile_picture_url,
+            role: userResp.role_name,
           });
           setIsDemo(false);
           return true;
@@ -311,13 +302,14 @@ console.log(request)
   );
 
   const loginWithAuth0 = () => {
-    // `promptAsync` inicia el flujo de autenticación
+    // Nuevo: Activar el estado de carga al iniciar el flujo
+    setIsLoading(true);
     promptAsync();
   };
 
   const loginAsDemo = () => {
     setUser({
-      id: "demo-user-uuid", // Un UUID de ejemplo para el usuario demo
+      id: "demo-user-uuid",
       email: "demo@beland.app",
       name: "Usuario Demo",
       picture: "https://ui-avatars.com/api/?name=Demo+User&background=random",
@@ -330,8 +322,6 @@ console.log(request)
     setUser(null);
     setIsDemo(false);
     await deleteToken();
-    // Opcional: Redirigir a Auth0 para cerrar sesión completamente (logout de Auth0)
-    // WebBrowser.openAuthSessionAsync(`https://${auth0Domain}/v2/logout?client_id=${clientWebId}&returnTo=${encodeURIComponent(redirectUri)}`);
   };
 
   return (
@@ -345,8 +335,7 @@ console.log(request)
         loginAsDemo,
         loginWithEmailPassword,
         registerWithEmailPassword,
-      }}
-    >
+      }}>
       {children}
     </AuthContext.Provider>
   );

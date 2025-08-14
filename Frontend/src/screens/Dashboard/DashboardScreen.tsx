@@ -21,9 +21,6 @@ export const DashboardScreen = () => {
       <ScrollView style={containerStyles.scrollView}>
         {/* Header */}
         <AppHeader
-          userName={userStats.userName}
-          onMenuPress={handleMenuPress}
-          onCoinsPress={handleCoinsPress}
         />
 
         {/* Contenido principal */}
