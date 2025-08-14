@@ -28,6 +28,7 @@ export const DashboardScreen = () => {
             paddingBottom: 86,
           }}
         >
+          <AppHeader />
           <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
           <RewardsCard />
           <RecyclingMapWidget onPress={handleRecyclingMapPress} />
