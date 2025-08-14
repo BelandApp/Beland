@@ -11,6 +11,7 @@ import { User } from 'src/users/entities/users.entity';
 import { GroupInvitationsRepository } from './group-invitations.repository';
 import { AdminsModule } from 'src/admins/admins.module'; // CORRECTED: Import AdminsModule
 import { InvitationCleanupService } from './invitation-cleanup.service';
+import { InvitationReminderService } from './invitation-reminder.service';
 
 @Module({
   imports: [
@@ -24,7 +25,9 @@ import { InvitationCleanupService } from './invitation-cleanup.service';
   providers: [
     GroupInvitationsService,
     GroupInvitationsRepository,
-    InvitationCleanupService],
+    InvitationCleanupService,
+    InvitationReminderService,
+  ],
   exports: [GroupInvitationsService, GroupInvitationsRepository, TypeOrmModule],
 })
 export class GroupInvitationsModule {}

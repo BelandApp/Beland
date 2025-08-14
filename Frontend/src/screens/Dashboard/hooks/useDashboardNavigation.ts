@@ -9,8 +9,8 @@ export const useDashboardNavigation = () => {
   };
 
   const handleViewHistory = () => {
-    // Navegar a la pantalla de historial oculta
-    navigation.navigate("History" as never);
+    // Navegar a la pantalla de historial
+    navigation.navigate("HistoryScreen" as never);
   };
 
   const handleCoinsPress = () => {

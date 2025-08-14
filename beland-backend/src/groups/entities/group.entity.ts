@@ -13,6 +13,7 @@ import { GroupMember } from 'src/group-members/entities/group-member.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/users.entity';
 import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
+import { GroupType } from 'src/group-type/entities/group-type.entity';
 
 @Entity('groups')
 export class Group {
@@ -52,6 +53,12 @@ export class Group {
   leader: User;
   @Column('uuid') // This column stores the actual UUID of the leader
   leader_id: string;
+
+  @ManyToOne(() => GroupType, {onDelete : 'SET NULL'})
+  @JoinColumn({name:'group_type_id'})
+  group_type: GroupType;
+  @Column('uuid', { nullable:true })
+  group_type_id:string;
 
   @OneToMany(() => GroupMember, (member) => member.group)
   members: GroupMember[];

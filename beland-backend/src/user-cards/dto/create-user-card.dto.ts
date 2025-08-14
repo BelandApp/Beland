@@ -30,10 +30,6 @@ export class CreateUserCardDto {
   @ApiProperty({ example: 'Credit', description: 'Credit o Debit' })
   @IsString()
   cardType: 'Credit' | 'Debit';
-  
-  @ApiProperty({ example: 'Nombre del Titular', description: 'Nombre retornado por Payphone' })
-  @IsString()
-  cardHolder: string;
 
   @ApiProperty({ example: 3456, description: 'Ultimos cuatro digitos de la tarjeta' })
   @IsNumber()

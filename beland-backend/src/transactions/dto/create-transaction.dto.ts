@@ -23,12 +23,13 @@ export class CreateTransactionDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   amount: number;
 
-  @ApiProperty({
-    description: 'Saldo resultante tras la operación (máximo 2 decimales)',
-    example: 1200.50,
+  @ApiPropertyOptional({
+    description: 'Id de la Transaccion generada por payphone (solo en recargas)',
+    example: 'e4f5g6h7-i8j9-0123-klmn-456789abcdef',
   })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  post_balance: number;
+  @IsOptional()
+  @IsUUID()
+  payohone_transactionId?: string;
 
   @ApiPropertyOptional({
     description: 'Wallet relacionada para transferencias (opcional)',

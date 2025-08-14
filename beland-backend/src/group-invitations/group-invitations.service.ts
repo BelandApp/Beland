@@ -21,8 +21,8 @@ import { Group } from 'src/groups/entities/group.entity';
 import { User } from 'src/users/entities/users.entity';
 import { CreateGroupMemberDto } from 'src/group-members/dto/create-group-member.dto';
 import { GroupInvitation } from './entities/group-invitation.entity';
-import { DataSource, IsNull } from 'typeorm';
-import { LessThanOrEqual } from 'typeorm';
+import { DataSource } from 'typeorm';
+import { LessThanOrEqual, IsNull } from 'typeorm'; // <-- ¡Importación Correcta de IsNull!
 
 @Injectable()
 export class GroupInvitationsService {
@@ -282,11 +282,11 @@ export class GroupInvitationsService {
       );
     }
 
-    // NUEVA LÓGICA: Verificar si la invitación ha expirado
+    // LÓGICA: Verificar si la invitación ha expirado
     if (invitation.expires_at && invitation.expires_at < new Date()) {
-      // Opcional: Podrías querer cambiar el estado a 'EXPIRED' en la DB aquí directamente
-      // invitation.status = 'EXPIRED';
-      // await this.groupInvitationsRepository.saveInvitation(invitation);
+      // Si la invitación está expirada, cámbiala a EXPIRED y lanza el error.
+      invitation.status = 'EXPIRED';
+      await this.groupInvitationsRepository.saveInvitation(invitation);
       throw new BadRequestException('La invitación ha expirado.');
     }
 
@@ -369,11 +369,10 @@ export class GroupInvitationsService {
       );
     }
 
-    // NUEVA LÓGICA: Verificar si la invitación ha expirado
+    // LÓGICA: Verificar si la invitación ha expirado
     if (invitation.expires_at && invitation.expires_at < new Date()) {
-      // Opcional: Podrías querer cambiar el estado a 'EXPIRED' en la DB aquí directamente
-      // invitation.status = 'EXPIRED';
-      // await this.groupInvitationsRepository.saveInvitation(invitation);
+      invitation.status = 'EXPIRED';
+      await this.groupInvitationsRepository.saveInvitation(invitation);
       throw new BadRequestException('La invitación ha expirado.');
     }
 
@@ -504,7 +503,7 @@ export class GroupInvitationsService {
       );
     } else {
       this.logger.log(
-        `hardDeleteInvitation(): Invitación ${invitationId} eliminada permanentemente.`,
+        `hardDeleteInvitation(): Invitación ${invitation.id} eliminada permanentemente.`,
       );
     }
   }
@@ -560,22 +559,67 @@ export class GroupInvitationsService {
   }
 
   /**
-   * Recupera todas las invitaciones PENDIENTES para TODOS los usuarios.
-   * Este método es usado principalmente por los cron jobs de recordatorios.
-   * @returns Una lista de entidades GroupInvitation pendientes.
+   * Envía recordatorios para invitaciones pendientes que están cerca de expirar.
+   * Este método es llamado por un cron job.
    */
-  async findUserPendingInvitationsForAllUsers(): Promise<GroupInvitation[]> {
-    this.logger.debug(
-      'findUserPendingInvitationsForAllUsers(): Buscando todas las invitaciones pendientes para todos los usuarios.',
+  async sendInvitationReminders(): Promise<void> {
+    const now = new Date();
+    // Definimos un umbral para los recordatorios (ej. 15 minutos antes de expirar)
+    const reminderThresholdMs = 15 * 60 * 1000; // 15 minutos en milisegundos
+    const remindBefore = new Date(now.getTime() + reminderThresholdMs);
+
+    this.logger.log(
+      `sendInvitationReminders(): Iniciando el envío de recordatorios. Invitaciones que expiran antes de ${remindBefore.toISOString()} serán recordadas.`,
     );
-    return this.groupInvitationsRepository.find({
-      where: {
-        status: 'PENDING',
-        deleted_at: IsNull(), // Solo las que no han sido soft-deleted
-        // Opcional: puedes añadir un filtro de expires_at si quieres recordar solo las que están cerca de expirar
-        // expires_at: LessThanOrEqual(new Date(Date.now() + 24 * 60 * 60 * 1000)), // Recordar 24h antes de expirar
-      },
-      relations: ['group', 'sender', 'invited_user'], // Necesitas estos datos para el email
-    });
+
+    try {
+      // Buscar invitaciones PENDIENTES que expiran en los próximos 'reminderThresholdMs'
+      // y que aún no han sido soft-deleted.
+      // Puedes añadir un campo 'reminder_sent_at' en la entidad si quieres evitar múltiples recordatorios
+      const invitationsToRemind = await this.groupInvitationsRepository.find({
+        where: {
+          status: 'PENDING',
+          expires_at: LessThanOrEqual(remindBefore),
+          deleted_at: IsNull(),
+          // Aquí podrías añadir: reminder_sent_at: IsNull() para enviar solo una vez
+        },
+        relations: ['group', 'sender', 'invited_user'], // Necesitas estos datos para el recordatorio
+      });
+
+      if (invitationsToRemind.length === 0) {
+        this.logger.log(
+          'sendInvitationReminders(): No se encontraron invitaciones para recordar.',
+        );
+        return;
+      }
+
+      this.logger.log(
+        `sendInvitationReminders(): Encontradas ${invitationsToRemind.length} invitaciones para enviar recordatorio.`,
+      );
+
+      for (const invitation of invitationsToRemind) {
+        this.logger.log(
+          `sendInvitationReminders(): Enviando recordatorio para la invitación ${invitation.id} al usuario ${invitation.invited_user.email}. Expira en: ${invitation.expires_at?.toISOString() || 'N/A'}.`,
+        );
+        // Aquí iría la lógica para enviar el recordatorio (ej. Nodemailer, Push Notifications)
+        // Por ahora, solo es un log.
+        // Ejemplo de log de "recordatorio":
+        this.logger.log(
+          `*** RECORDATORIO FICTICIO ***: Hola ${invitation.invited_user.full_name || invitation.invited_user.email}, tu invitación para unirte al grupo "${invitation.group.name}" expira pronto (${invitation.expires_at?.toLocaleString()}). ¡Acéptala ahora!`,
+        );
+
+        // Si implementas un campo `reminder_sent_at`, actualízalo aquí:
+        // invitation.reminder_sent_at = new Date();
+        // await this.groupInvitationsRepository.saveInvitation(invitation);
+      }
+      this.logger.log(
+        'sendInvitationReminders(): Proceso de recordatorios finalizado.',
+      );
+    } catch (error) {
+      this.logger.error(
+        `sendInvitationReminders(): Error al enviar recordatorios: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+    }
   }
 }
