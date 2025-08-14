@@ -4,24 +4,22 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { UserCard } from './entities/user-card.entity';
-import { UserCardsRepository } from './user-cards.repository';
-import { CardResponseDto } from './dto/resp-user-card-pay.dto';
+import { GroupType } from './entities/group-type.entity';
+import { GroupTypeRepository } from './group-type.repository';
+import { Product } from 'src/products/entities/product.entity';
 
 @Injectable()
-export class UserCardsService {
-  private readonly completeMessage = 'la tarjeta';
+export class GroupTypeService {
+  private readonly completeMessage = 'el tipo de grupo';
 
-  constructor(private readonly repository: UserCardsRepository) {}
+  constructor(private readonly repository: GroupTypeRepository) {}
 
   async findAll(
-    user_id: string,
     pageNumber: number,
     limitNumber: number,
-  ): Promise<[UserCard[], number]> {
+  ): Promise<[GroupType[], number]> {
     try {
       const response = await this.repository.findAll(
-        user_id,
         pageNumber,
         limitNumber,
       );
@@ -31,7 +29,7 @@ export class UserCardsService {
     }
   }
 
-  async findOne(id: string): Promise<UserCard> {
+  async findOne(id: string): Promise<GroupType> {
     try {
       const res = await this.repository.findOne(id);
       if (!res)
@@ -42,7 +40,7 @@ export class UserCardsService {
     }
   }
 
-  async create(body: Partial<UserCard>): Promise<UserCard> {
+  async create(body: Partial<GroupType>): Promise<GroupType> {
     try {
       const res = await this.repository.create(body);
       if (!res)
@@ -55,7 +53,7 @@ export class UserCardsService {
     }
   }
 
-  async update(id: string, body: Partial<UserCard>) {
+  async update(id: string, body: Partial<GroupType>) {
     try {
       const res = await this.repository.update(id, body);
       if (res.affected === 0)
@@ -81,14 +79,10 @@ export class UserCardsService {
     }
   }
 
-  async dataPayCard (card_id:string): Promise<CardResponseDto> {
+  async getProductsByGroupType(groupTypeId: string): Promise<Product[]> {
     try {
-      const res = await this.repository.dataPayCard(card_id);
-      if (!res)
-        throw new NotFoundException(
-          `No se encontró ${this.completeMessage} del usuario`,
-        );
-      return res;
+      const response = await this.repository.getProductsByGroupType(groupTypeId);
+      return response;
     } catch (error) {
       throw new InternalServerErrorException(error);
     }

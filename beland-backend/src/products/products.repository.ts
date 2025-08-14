@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { DataSource, Repository, In } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
+import { GroupType } from 'src/group-type/entities/group-type.entity';
 
 @Injectable()
 export class ProductRepository extends Repository<Product> {
@@ -86,4 +87,33 @@ async findAllPaginated(
   return { products, total, page, limit };
 }
 
+async addGroupTypesToProduct(productId: string, groupTypeIds: string[]): Promise<Product> {
+    const productRepo = this.dataSource.getRepository(Product);
+    const groupRepo = this.dataSource.getRepository(GroupType);
+
+    // Buscar producto con la relación
+    const product = await productRepo.findOne({
+      where: { id: productId },
+      relations: ['group_types'],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Producto con ID ${productId} no encontrado`);
+    }
+
+    // Buscar los tipos de grupo
+    const groupTypes = await groupRepo.findBy({ id: In(groupTypeIds) });
+
+    if (!groupTypes.length) {
+      throw new NotFoundException(`No se encontraron GroupTypes para los IDs especificados`);
+    }
+
+    // Agregar evitando duplicados
+    const existingIds = new Set(product.group_types.map(gt => gt.id));
+    const newGroupTypes = groupTypes.filter(gt => !existingIds.has(gt.id));
+
+    product.group_types = [...product.group_types, ...newGroupTypes];
+
+    return await productRepo.save(product);
+  }
 }

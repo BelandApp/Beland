@@ -43,8 +43,15 @@ export class UserCardsRepository {
     return await this.repository.delete(id);
   }
 
-  async dataPayCard (): Promise<CardResponseDto> {
-    
-    return
+  async dataPayCard (id:string): Promise<CardResponseDto> {
+    const card = await this.repository.findOneBy({id})
+    const returnCard:CardResponseDto = {
+        cardHolder: card.cardHolder,
+        cardToken: card.cardToken,
+        documentId: card.documentId,
+        phoneNumber: card.phoneNumber,
+        email: card.email,
+    }
+    return returnCard;
   }
 }

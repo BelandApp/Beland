@@ -29,11 +29,11 @@ export class UserCard {
   @Column({ length: 50 })
   documentId: string;
 
-  @Column({ length: 255 })
-  optionalParameter4: string; // En la lógica de servicio la encriptas y lo devuelves como cardHolder
-
   @Column({ length: 50 })
   cardBrand: string;
+
+  @Column({ length: 100 })
+  cardHolder:string
 
   @Column({ length: 20 })
   cardType: 'Credit' | 'Debit';

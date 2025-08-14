@@ -45,7 +45,9 @@ export class TransactionsService {
     }
   }
 
-  async create(body: Partial<Transaction>): Promise<Transaction> {
+  async create(
+    body: Partial<Transaction>,
+  ): Promise<Transaction> {
     try {
       const res = await this.repository.create(body);
       if (!res)
