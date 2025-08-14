@@ -7,12 +7,20 @@ import {
   StyleSheet,
   Modal,
   Pressable,
+  ActivityIndicator, // Importar ActivityIndicator
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "src/hooks/AuthContext";
-import { LogOut } from "lucide-react-native";
+import { LogOut, LayoutDashboard } from "lucide-react-native";
+import { RootStackParamList } from "./RootStackNavigator";
+import { StackNavigationProp } from "@react-navigation/stack";
+
+type AppHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
 
 export const AppHeader = () => {
-  const { user, isDemo, loginWithAuth0, logout, loginAsDemo } = useAuth();
+  const navigation = useNavigation<AppHeaderNavigationProp>();
+  const { user, isLoading, isDemo, loginWithAuth0, logout, loginAsDemo } =
+    useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
 
   const handleLogin = async () => {
@@ -27,6 +35,21 @@ export const AppHeader = () => {
   const handleDemoLogin = () => {
     loginAsDemo();
   };
+
+  const handleNavigateToDashboard = () => {
+    setMenuVisible(false);
+    navigation.navigate("UserDashboardScreen");
+  };
+
+  // Nuevo: Mostrar un spinner de carga si la sesión está en proceso de restauración.
+  if (isLoading) {
+    return (
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Beland</Text>
+        <ActivityIndicator size="small" color="#1E90FF" />
+      </View>
+    );
+  }
 
   const isLoggedIn = !!user;
   const userName = user?.name ?? "Usuario";
@@ -44,8 +67,7 @@ export const AppHeader = () => {
 
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}
-          >
+            onPress={handleDemoLogin}>
             <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>
@@ -54,14 +76,8 @@ export const AppHeader = () => {
           {userPicture && (
             <Image source={{ uri: userPicture }} style={styles.avatar} />
           )}
-          <Text style={styles.userName}>{userName}</Text>
-
-          <TouchableOpacity onPress={() => setMenuVisible(true)}>
-            <View style={styles.menuIcon}>
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
-              <View style={styles.menuDot} />
-            </View>
+          <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
+            <Text style={styles.userName}>{userName}</Text>
           </TouchableOpacity>
 
           <Modal transparent={true} visible={menuVisible} animationType="fade">
@@ -70,6 +86,12 @@ export const AppHeader = () => {
               onPress={() => setMenuVisible(false)}
             />
             <View style={styles.menuDropdown}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleNavigateToDashboard}>
+                <LayoutDashboard size={18} style={styles.menuItemIcon} />
+                <Text style={styles.menuItemText}>Dashboard</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                 <LogOut size={18} style={styles.menuItemIcon} />
                 <Text style={styles.menuItemText}>Cerrar sesión</Text>
@@ -92,6 +114,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
   },
   headerTitle: {
     fontSize: 24,
@@ -117,7 +146,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
   },
   userName: {
     fontSize: 16,
@@ -138,23 +166,35 @@ const styles = StyleSheet.create({
   menuDropdown: {
     position: "absolute",
     top: 60,
-    right: 10,
+    right: 16,
     backgroundColor: "white",
     borderRadius: 8,
     padding: 8,
+    width: 180,
     elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
     zIndex: 10,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 4,
   },
   menuItemIcon: {
-    marginRight: 8,
+    marginRight: 10,
+    color: "#333",
   },
   menuItemText: {
     fontSize: 16,
+    color: "#333",
   },
   overlay: {
     position: "absolute",
