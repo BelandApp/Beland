@@ -1,4 +1,3 @@
-// src/components/UserDashboard.tsx
 import React from "react";
 import { useAuth } from "src/hooks/AuthContext";
 import SuperAdminPanel from "./components/SuperAdminPanel";
@@ -6,28 +5,34 @@ import AdminPanel from "./components/AdminPanel";
 import LeaderPanel from "./components/LeaderPanel";
 import EmpresaPanel from "./components/EmpresaPanel";
 import UserPanel from "./components/UserPanel";
+import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
 
 const UserDashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
 
+  // Paso 1: Muestra un loader si la información del usuario se está cargando
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        Cargando...
-      </div>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#1E90FF" />
+        <Text style={styles.loadingText}>Cargando...</Text>
+      </View>
     );
   }
 
-  if (!user) {
-    // Esto debería redirigir al login si un usuario no está autenticado
+  // Paso 2: Maneja el caso en el que no hay un usuario logueado
+  if (!user || !user.role) {
+    // Si no hay usuario o rol, no se debe renderizar este dashboard
     return (
-      <div className="text-center p-8">
-        No tienes permisos para ver esta página.
-      </div>
+      <View style={styles.container}>
+        <Text style={styles.errorText}>
+          No tienes permisos para ver esta página.
+        </Text>
+      </View>
     );
   }
 
-  // Renderizado condicional basado en el rol del usuario
+  // Paso 3: Renderiza el componente adecuado basado en el rol del usuario
   switch (user.role) {
     case "SUPERADMIN":
       return <SuperAdminPanel />;
@@ -41,14 +46,32 @@ const UserDashboard: React.FC = () => {
       return <UserPanel />;
     default:
       return (
-        <div className="text-center p-8">
-          <h1 className="text-red-500 font-bold">
-            Error: Rol de usuario no reconocido.
-          </h1>
-          <p>Contacta al soporte técnico si crees que esto es un error.</p>
-        </div>
+        <View style={styles.container}>
+          <Text style={styles.errorText}>
+            No se reconoce tu rol. Contacta al soporte.
+          </Text>
+        </View>
       );
   }
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#333",
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#E53E3E",
+    textAlign: "center",
+  },
+});
 
 export default UserDashboard;
