@@ -95,7 +95,7 @@ import { GroupTypeModule } from './group-type/group-type.module';
     ScheduleModule.forRoot(),
 
     DatabaseModule,
-    DatabaseInitModule,
+    //DatabaseInitModule,
     UsersModule,
     RolesModule,
     WalletsModule,
