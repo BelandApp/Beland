@@ -24,9 +24,7 @@ import {
 // Styles
 import { containerStyles } from "./styles";
 
-type GroupsScreenProps = StackScreenProps<GroupsStackParamList, "GroupsList">;
-
-export const GroupsScreen: React.FC<GroupsScreenProps> = ({ navigation }) => {
+export const GroupsScreen: React.FC<any> = (props) => {
   // Hooks personalizados
   const { selectedTab, setSelectedTab, isActiveTab } = useGroupsTabs();
   const { navigateToCreateGroup, navigateToGroupManagement } =
