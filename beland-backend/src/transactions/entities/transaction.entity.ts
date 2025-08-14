@@ -28,10 +28,10 @@ export class Transaction {
   @Column('uuid')
   status_id: string;
 
-  @Column({ type: 'decimal',  })
+  @Column({ type: 'decimal' })
   amount: number;                     // importe en Dolares (positivo o negativo según tipo)
 
-  @Column({ type: 'decimal',  })
+  @Column({ type: 'decimal' })
   amount_beicon: number;                     // importe en Becoin (positivo o negativo según tipo)
 
   @Column({ type: 'numeric' })

@@ -6,7 +6,8 @@ import { SuperAdminUserSeeder } from './seeders/superadmin-user.seeder';
 import preloadTT from './json/transactionsType.json';
 import preloadTS from './json/transactionState.json';
 import preloadProduct from './json/products.json';
-import preloadPaymentType from './json/paymentType.json'
+import preloadPaymentType from './json/paymentType.json';
+import preloadGroupType from './json/groupType.json';
 
 // Entidades
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
@@ -16,6 +17,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 import { Category } from 'src/category/entities/category.entity';
+import { GroupType } from 'src/group-type/entities/group-type.entity';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
@@ -34,6 +36,8 @@ export class DatabaseInitService implements OnModuleInit {
     private readonly payTypeRepo: Repository<PaymentType>,
     @InjectRepository(Category)
     private readonly CatRepo: Repository<Category>,
+    @InjectRepository(GroupType)
+    private readonly groupTypeRepo: Repository<GroupType>,
   ) {}
 
   async preload<T>(
@@ -99,7 +103,8 @@ export class DatabaseInitService implements OnModuleInit {
       await this.preload<TransactionType>(preloadTT, this.transTypeRepo, 'code', 'Tipos de Transacciones');
       await this.preload<TransactionState>(preloadTS, this.transStateRepo, 'code', 'Estados de Transacciones');
       await this.preloadProd();
-      await this.preload<PaymentType>(preloadPaymentType, this.payTypeRepo, 'code', 'Forma de Pago');
+      await this.preload<PaymentType>(preloadPaymentType, this.payTypeRepo, 'code', 'Formas de Pago');
+      await this.preload<GroupType>(preloadGroupType, this.groupTypeRepo, 'name', 'Tipos de Grupos');
     } catch (error: any) {
 
       this.logger.error(

@@ -13,7 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateProductDto } from './dto/create-product.dto';
+import { AddGroupTypesDto, CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
@@ -24,9 +24,11 @@ import {
   ApiParam,
   ApiQuery,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+import { Product } from './entities/product.entity';
 
 @ApiTags('products')
 @Controller('products')
@@ -44,6 +46,27 @@ export class ProductsController {
   async create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
+
+  @Post('group-types/:id')
+  @ApiOperation({ summary: 'Asociar tipos de grupo a un producto' })
+  @ApiParam({ name: 'id', type: 'string', description: 'ID del producto' })
+  @ApiBody({
+    type: AddGroupTypesDto,
+    examples: {
+      example1: {
+        summary: 'Ejemplo de asociación',
+        value: { groupTypeIds: ['uuid-1', 'uuid-2'] },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Producto actualizado con nuevos tipos de grupo', type: Product })
+  async addGroupTypes(
+    @Param('id') productId: string,
+    @Body() body: AddGroupTypesDto,
+  ): Promise<Product> {
+    return this.productsService.addGroupTypesToProduct(productId, body.groupTypeIds);
+  }
+
 
   @Get()
   @HttpCode(HttpStatus.OK)
