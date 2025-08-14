@@ -9,6 +9,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductRepository } from './products.repository';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
+import { Product } from './entities/product.entity';
 
 @Injectable()
 export class ProductsService {
@@ -46,5 +47,9 @@ export class ProductsService {
   async remove(id: string) {
     const product = await this.findOne(id);
     await this.repo.softRemove(product);
+  }
+
+  async addGroupTypesToProduct(productId: string, groupTypeIds: string[]): Promise<Product> {
+    return this.repo.addGroupTypesToProduct(productId, groupTypeIds);
   }
 }

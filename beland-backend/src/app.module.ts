@@ -47,6 +47,7 @@ import { PaymentTypesModule } from './payment-types/payment-types.module';
 import { CategoryModule } from './category/category.module';
 import { GroupInvitationsModule } from './group-invitations/group-invitations.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { GroupTypeModule } from './group-type/group-type.module';
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PaymentTypesModule,
     CategoryModule,
     GroupInvitationsModule,
+    GroupTypeModule,
   ],
   controllers: [],
   providers: [

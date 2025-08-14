@@ -45,7 +45,11 @@ export const DashboardScreen = () => {
     <View style={containerStyles.container}>
       <ScrollView style={containerStyles.scrollView}>
         {/* Header */}
-        <AppHeader />
+
+        <AppHeader
+        />
+
+
         {/* Contenido principal */}
         <View style={containerStyles.content}>
           <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
