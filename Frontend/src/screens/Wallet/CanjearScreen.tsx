@@ -179,6 +179,263 @@ const CanjearScreen: React.FC<{
     }
   };
 
+  if (Platform.OS === "web") {
+    return (
+      <div className="redeem-web-main">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "20px 0 0 0",
+            marginBottom: 16,
+          }}
+        >
+          <button
+            style={{
+              background: "#FFF3E0",
+              border: "none",
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              if (navigation && navigation.goBack) navigation.goBack();
+              else window.history.back();
+            }}
+            aria-label="Volver"
+          >
+            <span style={{ fontSize: 22, color: "#F88D2A" }}>←</span>
+          </button>
+          <span
+            style={{
+              fontWeight: 700,
+              fontSize: 18,
+              color: "#1E293B",
+            }}
+          >
+            Canjear BeCoins
+          </span>
+        </div>
+        {/* Tarjeta de saldo */}
+        <div className="redeem-web-balance-card">
+          {/* Botón volver atrás web */}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <span className="redeem-web-balance-label">
+                Tu saldo disponible
+              </span>
+              <div className="redeem-web-balance-amount">
+                {balance.toLocaleString()} BeCoins
+              </div>
+              <span className="redeem-web-balance-estimate">
+                ≈ ${formatUSDPrice(convertBeCoinsToUSD(balance))} USD
+              </span>
+            </div>
+            <span
+              style={{
+                background: "#FFF3E0",
+                borderRadius: "50%",
+                padding: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {/* Icono wallet */}
+              <span
+                role="img"
+                aria-label="wallet"
+                style={{ fontSize: 28, color: "#F88D2A" }}
+              >
+                👛
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Tarjeta de formulario */}
+        <div className="redeem-web-form-card">
+          <span className="redeem-web-section-title">
+            ¿Cuánto quieres canjear?
+          </span>
+          <span className="redeem-web-input-label">Monto en BeCoins</span>
+          <div className="redeem-web-input-row">
+            <input
+              className="redeem-web-amount-input"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0"
+              type="number"
+              maxLength={8}
+            />
+            <span className="redeem-web-badge">BeCoins</span>
+          </div>
+          {/* Error */}
+          {!isAmountValid && amount !== "" && (
+            <div className="redeem-web-error">
+              <span role="img" aria-label="alert" style={{ fontSize: 16 }}>
+                ⚠️
+              </span>
+              Monto inválido o insuficiente
+            </div>
+          )}
+
+          {/* Conversión */}
+          <div className="redeem-web-conversion-info">
+            <span className="redeem-web-conversion-label">Recibirás</span>
+            <div className="redeem-web-conversion-row">
+              <span className="redeem-web-conversion-amount">
+                {amount && isAmountValid
+                  ? formatUSDPrice(convertBeCoinsToUSD(Number(amount)))
+                  : "0.00"}
+              </span>
+              <span className="redeem-web-conversion-currency">
+                {currency === "usd" ? "USD" : "ARS"}
+              </span>
+              <button
+                style={{
+                  background: "#FFF3E0",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "4px 12px",
+                  color: "#F88D2A",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                onClick={() => setShowCurrencyModal(true)}
+              >
+                ▼
+              </button>
+            </div>
+            <span className="redeem-web-conversion-note">
+              Conversión aproximada • Tasa: 1 BeCoin = ${convertBeCoinsToUSD(1)}{" "}
+              USD
+            </span>
+          </div>
+
+          {showCurrencyModal && (
+            <div
+              className="redeem-web-modal-overlay"
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "rgba(0,0,0,0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 9999,
+              }}
+            >
+              <div
+                className="redeem-web-modal-content"
+                style={{
+                  background: "#fff",
+                  borderRadius: 16,
+                  padding: 24,
+                  minWidth: 280,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+                }}
+              >
+                <div
+                  className="redeem-web-modal-header"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 16,
+                  }}
+                >
+                  <span style={{ fontWeight: 700, fontSize: 18 }}>
+                    Seleccionar moneda
+                  </span>
+                  <button
+                    style={{
+                      background: "none",
+                      border: "none",
+                      fontSize: 22,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setShowCurrencyModal(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {digitalCurrencies.slice(1).map((item) => (
+                  <div
+                    key={item.value}
+                    className={`redeem-web-modal-option${
+                      currency === item.value ? " selected" : ""
+                    }`}
+                    style={{
+                      padding: "12px 0",
+                      cursor: "pointer",
+                      fontWeight: currency === item.value ? 700 : 500,
+                      color: currency === item.value ? "#F88D2A" : "#1E293B",
+                      borderBottom: "1px solid #F3F4F6",
+                    }}
+                    onClick={() => {
+                      setCurrency(item.value);
+                      setShowCurrencyModal(false);
+                    }}
+                  >
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Botón de canje */}
+          <button
+            className={`redeem-web-btn${
+              !isAmountValid || isLoading ? " disabled" : ""
+            }`}
+            onClick={handleBuy}
+            disabled={!isAmountValid || isLoading}
+          >
+            {isLoading ? "Procesando..." : "Canjear BeCoins"}
+          </button>
+        </div>
+
+        {/* Información adicional */}
+        <div className="redeem-web-info-card">
+          <div className="redeem-web-info-title">
+            <span
+              role="img"
+              aria-label="info"
+              style={{ fontSize: 20, color: "#6B7280" }}
+            >
+              ℹ️
+            </span>
+            Información del canje
+          </div>
+          <div className="redeem-web-info-text">
+            • El canje se realiza al tipo de cambio actual
+            <br />
+            • Los fondos estarán disponibles inmediatamente
+            <br />
+            • No se aplican comisiones adicionales
+            <br />• Monto mínimo: 1 BeCoin
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Header profesional */}

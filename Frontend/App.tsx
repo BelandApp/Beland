@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { ActivityIndicator, Platform } from "react-native";
 import { useBeCoinsStoreHydration } from "./src/stores/useBeCoinsStore";
 import { View } from "react-native";
@@ -12,20 +12,30 @@ import {
 } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootStackNavigator } from "./src/components/layout/RootStackNavigator";
-import { AuthStackNavigator } from "./src/components/layout/AuthStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
-import { colors } from "./src/styles/colors";
-import { AuthProvider, useAuth } from "src/hooks/AuthContext";
+import { useAuth } from "src/hooks/AuthContext";
+import { AuthProvider } from "src/hooks/AuthContext";
 
-// Componente interno que tiene acceso al contexto de autenticación
 const AppContent = () => {
+  // Declarar todos los hooks al inicio, sin condicionales
   const { user, isLoading } = useAuth();
   const isBeCoinsLoaded = useBeCoinsStoreHydration();
-
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
   const [currentRoute, setCurrentRoute] = useState<string | undefined>(
     undefined
   );
+  // Padding dinámico para web móvil
+  const dynamicPaddingBottom = useMemo(() => {
+    if (Platform.OS === "web" && window.innerWidth < 600) {
+      const tabbarHeight = 70;
+      const extraBottom =
+        typeof window.visualViewport !== "undefined" && window.visualViewport
+          ? window.innerHeight - window.visualViewport.height
+          : 0;
+      return tabbarHeight + extraBottom;
+    }
+    return 0;
+  }, []);
 
   // Configurar la barra de navegación y estado para Android
   useEffect(() => {
@@ -34,19 +44,15 @@ const AppContent = () => {
         try {
           // Ocultar barra de navegación
           await NavigationBar.setVisibilityAsync("hidden");
-
           // Ocultar barra de estado también
           setStatusBarHidden(true, "slide");
-
           console.log("Barras del sistema ocultas correctamente");
         } catch (error) {
           console.log("Error configurando las barras del sistema:", error);
         }
       }
     };
-
     configureSystemBars();
-
     // También intentar configurar cada vez que la app vuelve al foco
     const interval = setInterval(() => {
       if (Platform.OS === "android") {
@@ -58,7 +64,6 @@ const AppContent = () => {
         }
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -100,10 +105,10 @@ const AppContent = () => {
               flex: 1,
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: colors.background,
+              backgroundColor: "#F7F8FA",
             }}
           >
-            <ActivityIndicator size="large" color={colors.primary || "#000"} />
+            <ActivityIndicator size="large" color="#FF7A00" />
           </View>
         </NavigationContainer>
       </View>
@@ -117,14 +122,15 @@ const AppContent = () => {
         ref={navigationRef}
         onStateChange={onNavigationStateChange}
       >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-<
-            <>
-              <RootStackNavigator />
-              {shouldShowQRButton && (
-                <FloatingQRButton onPress={handleQRPress} />
-              )}
-            </>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#F7F8FA",
+            paddingBottom: dynamicPaddingBottom,
+          }}
+        >
+          <RootStackNavigator />
+          {shouldShowQRButton && <FloatingQRButton onPress={handleQRPress} />}
         </View>
       </NavigationContainer>
     </View>

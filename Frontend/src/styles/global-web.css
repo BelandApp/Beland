@@ -17,10 +17,10 @@ body,
   height: 100%;
   min-height: 100vh;
   width: 100vw;
-  padding: 32px 0 64px 0;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  position: relative;
 }
 
 /* El contenedor principal de React Navigation debe ocupar todo el alto */
@@ -31,55 +31,6 @@ body,
   min-width: 100vw;
 }
 
-/* El layout del sidebar y el contenido debe ocupar todo el alto */
-.sidebar-layout-web {
-  min-height: 100vh;
-  width: 100vw;
-  display: flex;
-  flex-direction: row;
-}
-
-/* El sidebar debe ocupar todo el alto */
-.sidebar {
-  height: 100vh;
-  min-height: 100vh;
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e5e7eb;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  padding: 0 0 32px 0;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.04);
-  position: relative;
-  z-index: 10;
-  font-family: "Inter", "Segoe UI", "Arial", sans-serif;
-}
-
-.sidebar .menu {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 0;
-}
-
-.sidebar .userSection {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: auto;
-  margin-bottom: 64px;
-  position: relative;
-}
-
-.logoContainer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 32px;
-}
 .logo {
   font-size: 24px;
   font-weight: 700;
@@ -218,17 +169,99 @@ body,
   justify-content: center;
   align-items: flex-start;
   font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  overflow-y: auto;
+}
+.recharge-web-btn {
+  width: calc(100vw - 32px);
+  background: #f88d2a;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 1.2rem 0;
+  margin-top: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 16px rgba(248, 141, 42, 0.15);
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
 }
 .recharge-web-main {
-  width: 420px;
-  margin-top: 48px;
-  background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
-  padding: 32px 32px 40px 32px;
+  padding-top: 24px;
+  padding-bottom: 120px;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+.recharge-web-header {
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.recharge-web-title {
+  font-size: 22px;
+}
+.recharge-web-btn {
+  width: 100%;
+  background: #f88d2a;
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 1.2rem 0;
+  margin-top: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 16px rgba(248, 141, 42, 0.15);
+  cursor: pointer;
+  transition: background 0.2s;
+  display: block;
+}
+.recharge-web-input-container {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #f88d2a;
+  padding: 12px 16px;
+  gap: 8px;
+  position: relative;
+}
+.recharge-web-currency-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6ba43a;
+  position: absolute;
+  right: 16px;
+}
+.recharge-web-amount-input {
+  font-size: 22px;
+}
+.recharge-web-methods-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.recharge-web-method-btn {
+  width: 100%;
+  font-size: 18px;
+  padding: 16px 10px;
+}
+.recharge-web-btn {
+  background: #f88d2a;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 0;
+  margin-bottom: 50px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(248, 141, 42, 0.08);
+  transition: background 0.2s;
 }
 .recharge-web-header {
   display: flex;
@@ -289,6 +322,7 @@ body,
   border: 2px solid #f88d2a;
   padding: 12px 16px;
   gap: 8px;
+  position: relative;
 }
 .recharge-web-currency-symbol {
   font-size: 20px;
@@ -308,6 +342,8 @@ body,
   font-size: 16px;
   font-weight: 600;
   color: #6ba43a;
+  position: absolute;
+  right: 16px;
 }
 .recharge-web-methods-grid {
   display: grid;
@@ -377,4 +413,172 @@ body,
 .recharge-web-btn.disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+.redeem-web-main {
+  padding-top: 24px;
+  padding-bottom: 120px;
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #f0f9ff;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+.redeem-web-balance-card,
+.redeem-web-form-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.redeem-web-balance-label {
+  font-size: 16px;
+  color: #6b7280;
+  font-weight: 600;
+}
+.redeem-web-balance-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #222;
+  margin: 4px 0;
+}
+.redeem-web-balance-estimate {
+  font-size: 15px;
+  color: #6b7280;
+}
+
+.redeem-web-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 16px;
+}
+
+.redeem-web-input-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+  display: block;
+}
+.redeem-web-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.redeem-web-amount-input {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  border: 2px solid #e0f2fe;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.redeem-web-badge {
+  background: #fff3e0;
+  border: 2px solid #f88d2a;
+  border-radius: 12px;
+  color: #f88d2a;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 18px;
+  margin-left: 8px;
+}
+
+.redeem-web-error {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.redeem-web-conversion-info {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  text-align: left;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.redeem-web-conversion-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.redeem-web-conversion-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.redeem-web-conversion-amount {
+  font-weight: bold;
+  color: #f88d2a;
+  font-size: 32px;
+}
+.redeem-web-conversion-currency {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 20px;
+}
+.redeem-web-conversion-note {
+  font-size: 15px;
+  color: #6b7280;
+  display: block;
+  margin-top: 4px;
+}
+
+.redeem-web-btn {
+  background: #f88d2a;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 0;
+  margin-top: 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 16px rgba(248, 141, 42, 0.15);
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+  display: block;
+}
+.redeem-web-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.redeem-web-info-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.redeem-web-info-title {
+  font-weight: 700;
+  color: #222;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.redeem-web-info-text {
+  color: #6b7280;
+  font-size: 15px;
+  line-height: 1.6;
 }

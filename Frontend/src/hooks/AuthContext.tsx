@@ -48,13 +48,11 @@ const redirectUri = makeRedirectUri({
   useProxy: !isWeb,
 } as any);
 
-
 console.log("🔁 redirectUri:", redirectUri);
 console.log("Domain:", auth0Domain);
 console.log("Client Web ID:", clientWebId);
 console.log("Audience:", auth0Audience);
 console.log("Redirect URI:", redirectUri);
-
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -170,7 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserProfileFromBackend = async (
     token: string
   ): Promise<AuthUser> => {
-    const res = await fetch(`${apiBaseUrl}auth/me`, {
+    const res = await fetch(`${apiBaseUrl}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -247,7 +245,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
-
       // setIsLoading(true); // Ya se inicializa en true, no es necesario aquí
 
       const token = await getToken();
@@ -377,7 +374,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const loginWithAuth0 = () => {
-
     // Nuevo: Activar el estado de carga al iniciar el flujo
     setIsLoading(true);
 
@@ -399,7 +395,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setIsDemo(false);
     await deleteToken();
-
   };
 
   return (
@@ -413,7 +408,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loginAsDemo,
         loginWithEmailPassword,
         registerWithEmailPassword,
-      }}>
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
