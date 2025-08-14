@@ -12,12 +12,10 @@ import RechargeScreen from "../../screens/Wallet/RechargeScreen";
 import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { RecyclingMapScreen } from "../../screens";
-import { CatalogScreen } from "../../screens/Catalog/CatalogScreen";
-import { GroupsScreen } from "../../screens/Groups/GroupsScreen";
-import { WalletScreen } from "../../screens/WalletScreen";
-import { RewardsScreen } from "../../screens/RewardsScreen";
-import { DashboardScreen } from "../../screens/Dashboard/DashboardScreen";
-import { HistoryScreen } from "../../screens/HistoryScreen";
+
+import UserDashboardScreen from "src/screens/UserDashboardScreen";
+
+
 export type RootStackParamList = {
   MainTabs: undefined;
   Home: undefined;
@@ -32,8 +30,9 @@ export type RootStackParamList = {
   WalletHistoryScreen: undefined;
   RechargeScreen: undefined;
   WalletSettingsScreen: undefined;
-  Catalog: undefined;
-  Groups: undefined;
+
+  UserDashboardScreen: undefined;
+
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -142,8 +141,7 @@ export const RootStackNavigator = () => {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-      }}
-    >
+      }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen
         name="CanjearScreen"
@@ -189,6 +187,14 @@ export const RootStackNavigator = () => {
         name="HistoryScreen"
         component={HistoryScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UserDashboardScreen"
+        component={UserDashboardScreen}
+        options={{
+          headerShown: true,
+          title: "Mapa de Reciclaje",
+        }}
       />
     </Stack.Navigator>
   );
