@@ -7,6 +7,7 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -46,62 +47,27 @@ export default function RechargeScreen() {
       Alert.alert("Error", "Ingresa un monto válido");
       return;
     }
-
     if (!selectedPaymentMethod) {
       Alert.alert("Error", "Selecciona un método de pago");
       return;
     }
-
     if (!user?.email) {
       Alert.alert("Error", "Usuario no autenticado");
       return;
     }
-
     setIsLoading(true);
-
     try {
-      // Determinar si usar modo demo o producción
-      const isDemoMode = process.env.EXPO_PUBLIC_USE_DEMO_MODE === "true";
-
-      console.log("🔧 RechargeScreen configuración:");
-      console.log("- isDemoMode:", isDemoMode);
-      console.log("- user.email:", user.email);
-      console.log("- amount:", amount);
-      console.log("- paymentMethod:", selectedPaymentMethod);
-
-      if (!isDemoMode) {
-        try {
-          // Modo producción: usar el nuevo endpoint real
-          const result = await walletService.rechargeByUserEmail(
-            user.email,
-            parseFloat(amount),
-            selectedPaymentMethod
-          );
-
-          console.log("✅ Recarga exitosa:", result);
-
-          // Actualizar wallet
-          await refetch();
-
-          // Actualizar transacciones
-          await refetchTransactions();
-        } catch (apiError: any) {
-          console.warn("API no disponible, usando modo demo:", apiError);
-          // Fallback: simular recarga exitosa
-        }
-      } else {
-        // Modo demo: simular delay
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        console.log("📝 Recarga simulada (modo demo)");
-      }
-
-      // Mostrar éxito
+      // Llamar al backend para recargar saldo
+      await walletService.rechargeByUserEmail(
+        user.email,
+        parseFloat(amount),
+        selectedPaymentMethod as any
+      );
+      await refetch();
+      await refetchTransactions(); // <-- Actualiza historial en tiempo real
       setShowSuccess(true);
-
-      // Limpiar formulario
       setAmount("");
       setSelectedPaymentMethod("");
-
       setTimeout(() => {
         setShowSuccess(false);
         navigation.goBack();
@@ -134,7 +100,95 @@ export default function RechargeScreen() {
     );
   }
 
-  return (
+  return Platform.OS === "web" ? (
+    <div className="recharge-web-bg">
+      <div className="recharge-web-main">
+        <div className="recharge-web-header">
+          <button
+            className="recharge-web-back"
+            onClick={() => navigation.goBack()}
+          >
+            ←
+          </button>
+          <span className="recharge-web-title">Recargar BeCoins</span>
+        </div>
+        <div className="recharge-web-section">
+          <span className="recharge-web-section-title">Montos rápidos</span>
+          <div className="recharge-web-preset-grid">
+            {PRESET_AMOUNTS.map((presetAmount) => (
+              <button
+                key={presetAmount}
+                className={`recharge-web-preset-btn${
+                  amount === presetAmount.toString() ? " selected" : ""
+                }`}
+                onClick={() => handlePresetAmount(presetAmount)}
+              >
+                ${presetAmount}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="recharge-web-section">
+          <span className="recharge-web-section-title">
+            Monto personalizado
+          </span>
+          <div className="recharge-web-input-container">
+            <span className="recharge-web-currency-symbol">$</span>
+            <input
+              className="recharge-web-amount-input"
+              placeholder="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              type="number"
+              maxLength={10}
+            />
+            <span className="recharge-web-currency-label">USD</span>
+          </div>
+        </div>
+        <div className="recharge-web-section">
+          <span className="recharge-web-section-title">Método de pago</span>
+          <div className="recharge-web-methods-grid">
+            {PAYMENT_METHODS.map((method) => (
+              <button
+                key={method.id}
+                className={`recharge-web-method-btn${
+                  selectedPaymentMethod === method.id ? " selected" : ""
+                }`}
+                onClick={() => setSelectedPaymentMethod(method.id)}
+              >
+                <span className="recharge-web-method-icon">{method.name}</span>
+                {selectedPaymentMethod === method.id && (
+                  <span className="recharge-web-method-check">✔</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+        {amount && (
+          <div className="recharge-web-conversion-info">
+            <span className="recharge-web-conversion-text">
+              Recibirás:{" "}
+              <span className="recharge-web-conversion-amount">
+                {amount} BeCoins
+              </span>
+            </span>
+            <span className="recharge-web-conversion-note">
+              1 USD = 1 BeCoin
+            </span>
+          </div>
+        )}
+        <button
+          className={`recharge-web-btn${
+            !amount || !selectedPaymentMethod || isLoading ? " disabled" : ""
+          }`}
+          onClick={handleRecharge}
+          disabled={!amount || !selectedPaymentMethod || isLoading}
+        >
+          {isLoading ? "Procesando..." : "Recargar BeCoins"}
+        </button>
+      </div>
+    </div>
+  ) : (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity

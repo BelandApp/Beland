@@ -31,6 +31,12 @@ export class Payment {
   @Column('uuid')
   order_id: string;
 
+  @ManyToOne(() => PaymentType)
+  @JoinColumn({name:'payment_type_id'})
+  payment_type: PaymentType;
+  @Column('uuid')
+  payment_type_id: string;
+
   @ManyToOne(() => User, (user) => user.payments)
   @JoinColumn({name:'user_id'})
   user: User;

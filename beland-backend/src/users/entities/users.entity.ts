@@ -27,6 +27,7 @@ import { Merchant } from 'src/merchants/entities/merchant.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
 import { UserAddress } from 'src/user-address/entities/user-address.entity';
 import { UserCard } from 'src/user-cards/entities/user-card.entity';
+import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
 
 // Definición de tipo para todos los roles válidos (importante para consistencia)
 export type ValidRoleNames =
@@ -114,14 +115,22 @@ export class User {
   cart: Cart;
 
   // Relaciones existentes (asegúrate de que las entidades referenciadas existan)
-  @OneToMany(() => Wallet, (wallet) => wallet.user, { cascade: true })
-  wallets: Wallet[];
+  @OneToOne(() => Wallet, (wallet) => wallet.user, { cascade: true })
+  wallet: Wallet;
 
   @OneToMany(() => Group, (group) => group.leader)
   led_groups: Group[];
 
   @OneToMany(() => GroupMember, (member) => member.user)
   group_memberships: GroupMember[];
+
+  // NEW: Invitations sent by this user
+  @OneToMany(() => GroupInvitation, (invitation) => invitation.sender)
+  sent_invitations: GroupInvitation[];
+
+  // NEW: Invitations received by this user
+  @OneToMany(() => GroupInvitation, (invitation) => invitation.invited_user)
+  received_invitations: GroupInvitation[];
 
   @OneToMany(() => Order, (order) => order.leader)
   orders: Order[];

@@ -44,6 +44,10 @@ import { CartItemsModule } from './cart-items/cart-items.module';
 import { UserCardsModule } from './user-cards/user-cards.module';
 import { UserAddressModule } from './user-address/user-address.module';
 import { PaymentTypesModule } from './payment-types/payment-types.module';
+import { CategoryModule } from './category/category.module';
+import { GroupInvitationsModule } from './group-invitations/group-invitations.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { GroupTypeModule } from './group-type/group-type.module';
 
 @Module({
   imports: [
@@ -87,8 +91,9 @@ import { PaymentTypesModule } from './payment-types/payment-types.module';
       },
       inject: [ConfigService],
     }),
-    
-    
+
+    ScheduleModule.forRoot(),
+
     DatabaseModule,
     DatabaseInitModule,
     UsersModule,
@@ -122,6 +127,9 @@ import { PaymentTypesModule } from './payment-types/payment-types.module';
     UserCardsModule,
     UserAddressModule,
     PaymentTypesModule,
+    CategoryModule,
+    GroupInvitationsModule,
+    GroupTypeModule,
   ],
   controllers: [],
   providers: [

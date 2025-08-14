@@ -23,28 +23,21 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       minPrice: "",
       maxPrice: "",
       sortBy: "name",
+      order: "ASC",
+    });
+  };
+  const setOrder = (order: "ASC" | "DESC") => {
+    onFiltersChange({
+      ...filters,
+      order,
     });
   };
 
-  const toggleCategory = (category: string) => {
-    const newCategories = filters.categories.includes(category)
-      ? filters.categories.filter((c) => c !== category)
-      : [...filters.categories, category];
-
+  // Solo permitir una categoría seleccionada a la vez
+  const selectCategory = (category: string) => {
     onFiltersChange({
       ...filters,
-      categories: newCategories,
-    });
-  };
-
-  const toggleBrand = (brand: string) => {
-    const newBrands = filters.brands.includes(brand)
-      ? filters.brands.filter((b) => b !== brand)
-      : [...filters.brands, brand];
-
-    onFiltersChange({
-      ...filters,
-      brands: newBrands,
+      categories: filters.categories[0] === category ? [] : [category],
     });
   };
 
@@ -84,47 +77,19 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               key={category}
               style={[
                 searchFilterStyles.filterChip,
-                filters.categories.includes(category) &&
+                filters.categories[0] === category &&
                   searchFilterStyles.filterChipActive,
               ]}
-              onPress={() => toggleCategory(category)}
+              onPress={() => selectCategory(category)}
             >
               <Text
                 style={[
                   searchFilterStyles.filterChipText,
-                  filters.categories.includes(category) &&
+                  filters.categories[0] === category &&
                     searchFilterStyles.filterChipTextActive,
                 ]}
               >
                 {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Marcas */}
-      <View style={searchFilterStyles.filterSection}>
-        <Text style={searchFilterStyles.filterSectionTitle}>Marcas</Text>
-        <View style={searchFilterStyles.filterRow}>
-          {brands.map((brand) => (
-            <TouchableOpacity
-              key={brand}
-              style={[
-                searchFilterStyles.filterChip,
-                filters.brands.includes(brand) &&
-                  searchFilterStyles.filterChipActive,
-              ]}
-              onPress={() => toggleBrand(brand)}
-            >
-              <Text
-                style={[
-                  searchFilterStyles.filterChipText,
-                  filters.brands.includes(brand) &&
-                    searchFilterStyles.filterChipTextActive,
-                ]}
-              >
-                {brand}
               </Text>
             </TouchableOpacity>
           ))}
@@ -183,6 +148,43 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+        {/* Selector de orden ascendente/descendente mejorado */}
+        <View style={searchFilterStyles.filterRow}>
+          <TouchableOpacity
+            style={[
+              searchFilterStyles.filterChip,
+              filters.order === "ASC" && searchFilterStyles.filterChipActive,
+            ]}
+            onPress={() => setOrder("ASC")}
+          >
+            <Text
+              style={[
+                searchFilterStyles.filterChipText,
+                filters.order === "ASC" &&
+                  searchFilterStyles.filterChipTextActive,
+              ]}
+            >
+              ↑ Ascendente
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              searchFilterStyles.filterChip,
+              filters.order === "DESC" && searchFilterStyles.filterChipActive,
+            ]}
+            onPress={() => setOrder("DESC")}
+          >
+            <Text
+              style={[
+                searchFilterStyles.filterChipText,
+                filters.order === "DESC" &&
+                  searchFilterStyles.filterChipTextActive,
+              ]}
+            >
+              ↓ Descendente
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>

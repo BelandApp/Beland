@@ -42,18 +42,18 @@ export const useCreateGroupStore = create<CreateGroupStore>((set, get) => ({
   clearGroup: () => set({ products: [] }),
 }));
 
-// Store para grupos ya creados
-interface ExistingGroupStore {
+// Store para administración de productos de grupo
+interface GroupAdminStore {
   productsByGroup: { [groupId: string]: GroupProduct[] };
-  setProducts: (groupId: string, products: GroupProduct[]) => void;
+  setGroupProducts: (groupId: string, products: GroupProduct[]) => void;
   addProductToGroup: (groupId: string, product: GroupProduct) => void;
-  increaseProductQuantity: (groupId: string, productName: string) => void;
-  clearProducts: (groupId: string) => void;
+  increaseGroupProductQuantity: (groupId: string, productName: string) => void;
+  clearGroupProducts: (groupId: string) => void;
 }
 
-export const useExistingGroupStore = create<ExistingGroupStore>((set, get) => ({
+export const useGroupAdminStore = create<GroupAdminStore>((set, get) => ({
   productsByGroup: {},
-  setProducts: (groupId, products) => {
+  setGroupProducts: (groupId, products) => {
     set({
       productsByGroup: {
         ...get().productsByGroup,
@@ -79,7 +79,7 @@ export const useExistingGroupStore = create<ExistingGroupStore>((set, get) => ({
       },
     });
   },
-  increaseProductQuantity: (groupId, productName) => {
+  increaseGroupProductQuantity: (groupId, productName) => {
     const products = get().productsByGroup[groupId] || [];
     set({
       productsByGroup: {
@@ -90,7 +90,7 @@ export const useExistingGroupStore = create<ExistingGroupStore>((set, get) => ({
       },
     });
   },
-  clearProducts: (groupId) => {
+  clearGroupProducts: (groupId) => {
     set({
       productsByGroup: {
         ...get().productsByGroup,

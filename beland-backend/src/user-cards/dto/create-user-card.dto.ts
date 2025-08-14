@@ -37,5 +37,5 @@ export class CreateUserCardDto {
 
   @ApiProperty({ example: 'sdgsdfsdfsdfsdfsd', description: 'Token de la tarjeta proporcionado por Payphone' })
   @IsString()
-  ctoken: string;
+  cardToken: string;
 }

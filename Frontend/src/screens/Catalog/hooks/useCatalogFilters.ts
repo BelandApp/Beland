@@ -6,6 +6,7 @@ export interface FilterOptions {
   minPrice: string;
   maxPrice: string;
   sortBy: "name" | "price" | "brand";
+  order: "ASC" | "DESC";
 }
 
 export const useCatalogFilters = () => {
@@ -16,6 +17,7 @@ export const useCatalogFilters = () => {
     minPrice: "",
     maxPrice: "",
     sortBy: "name",
+    order: "ASC",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -33,6 +35,7 @@ export const useCatalogFilters = () => {
       minPrice: "",
       maxPrice: "",
       sortBy: "name",
+      order: "ASC",
     });
     setSearchText("");
   };

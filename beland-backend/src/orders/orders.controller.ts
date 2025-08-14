@@ -92,7 +92,7 @@ export class OrdersController {
   ): Promise<Order> {
     const user: User = req.user; // tipalo si ya tenés interfaz
   
-  const hasWallet = user.wallets.some((wallet: Wallet) => wallet.id === body.wallet_id);
+  const hasWallet = user.wallet.id === body.wallet_id;
 
   if (!hasWallet) {
     throw new ForbiddenException('La billetera no pertenece al usuario autenticado');

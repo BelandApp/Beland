@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { AVAILABLE_PRODUCTS } from "../../../data/products";
+import { AVAILABLE_PRODUCTS, AvailableProduct } from "../../../data/products";
+import { Product } from "../../../services/productsService";
 
 export const useCatalogModals = () => {
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [showProductAddedModal, setShowProductAddedModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<
-    (typeof AVAILABLE_PRODUCTS)[0] | null
+    AvailableProduct | Product | null
   >(null);
 
-  const openDeliveryModal = (product: (typeof AVAILABLE_PRODUCTS)[0]) => {
+  const openDeliveryModal = (product: AvailableProduct | Product) => {
     setSelectedProduct(product);
     setShowDeliveryModal(true);
   };
@@ -18,7 +19,7 @@ export const useCatalogModals = () => {
     setSelectedProduct(null);
   };
 
-  const openProductAddedModal = (product: (typeof AVAILABLE_PRODUCTS)[0]) => {
+  const openProductAddedModal = (product: AvailableProduct | Product) => {
     setSelectedProduct(product);
     setShowProductAddedModal(true);
   };

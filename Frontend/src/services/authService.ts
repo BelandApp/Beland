@@ -21,9 +21,16 @@ export type EmailAuthRequest = {
 };
 
 export type RegisterRequest = {
-  name: string;
+  full_name: string;
   email: string;
   password: string;
+  confirmPassword: string;
+  address: string;
+  phone: number;
+  country: string;
+  city: string;
+  username?: string;
+  profile_picture_url?: string;
 };
 
 // Servicios de autenticación

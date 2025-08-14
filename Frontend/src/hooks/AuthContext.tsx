@@ -9,6 +9,11 @@ import { Platform, Alert, ActivityIndicator } from "react-native";
 import { authService } from "../services/authService";
 import { apiRequest } from "../services/api";
 import { useAuthTokenStore } from "../stores/useAuthTokenStore";
+import {
+  useBeCoinsStore,
+  useBeCoinsStoreHydration,
+} from "../stores/useBeCoinsStore";
+import { walletService } from "../services/walletService";
 import * as WebBrowser from "expo-web-browser";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -23,7 +28,9 @@ WebBrowser.maybeCompleteAuthSession();
 // === CONFIGURACIÓN ===
 const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
 const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
+
 const scheme = Constants.expoConfig?.scheme as string;
+
 const apiBaseUrl =
   (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:8081";
 const auth0Audience = "https://beland.onrender.com/api";
@@ -35,16 +42,19 @@ if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
 }
 
 const isWeb = Platform.OS === "web";
+
 const redirectUri = makeRedirectUri({
   scheme,
   useProxy: !isWeb,
 } as any);
+
 
 console.log("🔁 redirectUri:", redirectUri);
 console.log("Domain:", auth0Domain);
 console.log("Client Web ID:", clientWebId);
 console.log("Audience:", auth0Audience);
 console.log("Redirect URI:", redirectUri);
+
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -72,7 +82,12 @@ interface AuthContextType {
   registerWithEmailPassword: (
     name: string,
     email: string,
-    password: string
+    password: string,
+    confirmPassword: string,
+    address: string,
+    phone: string,
+    country: string,
+    city: string
   ) => Promise<true | string>;
 }
 
@@ -81,9 +96,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // === PROVIDER ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Hidratar el store de BeCoins al iniciar la app
+  useBeCoinsStoreHydration();
+
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
+
+  // Helper para actualizar el balance real desde el backend
+  const updateBeCoinsBalance = async (userEmail: string) => {
+    try {
+      const wallet = await walletService.getWalletByUserId(userEmail);
+      if (wallet && wallet.becoin_balance !== undefined) {
+        // Convertir a número por si viene como string
+        const balanceNum = Number(wallet.becoin_balance);
+        useBeCoinsStore
+          .getState()
+          .setBalance(isNaN(balanceNum) ? 0 : balanceNum);
+      }
+    } catch (e) {
+      console.error("No se pudo actualizar el balance de BeCoins:", e);
+    }
+  };
+
+  // Efecto para actualizar el balance de BeCoins desde el backend si ya hay usuario autenticado
+  useEffect(() => {
+    if (user && user.email) {
+      updateBeCoinsBalance(user.email);
+    }
+  }, [user]);
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -180,6 +221,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           setUser(authUser);
           setIsDemo(false);
+
+          // 5. Actualizar el balance de BeCoins desde el backend
+          if (authUser?.email) {
+            await updateBeCoinsBalance(authUser.email);
+          }
         } catch (err) {
           console.error(
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
@@ -201,7 +247,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
+
       // setIsLoading(true); // Ya se inicializa en true, no es necesario aquí
+
       const token = await getToken();
       if (!token) {
         setIsLoading(false);
@@ -212,6 +260,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const authUser = await fetchUserProfileFromBackend(token);
         setUser(authUser);
         setIsDemo(false);
+
+        // Actualizar el balance de BeCoins desde el backend
+        if (authUser?.email) {
+          await updateBeCoinsBalance(authUser.email);
+        }
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
         await deleteToken();
@@ -227,21 +280,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loginWithEmailPassword = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       setIsLoading(true);
+      // Limpiar wallet al iniciar sesión para evitar persistencia entre usuarios
+      useBeCoinsStore.getState().resetBalance();
       const setToken = useAuthTokenStore.getState().setToken;
       try {
         const loginResp = await authService.loginWithEmail({ email, password });
         const token = loginResp.token;
-        console.log("[LOGIN] Token recibido:", token);
         if (!token) throw new Error("No se recibió token del backend");
         setToken(token);
         const headers = { Authorization: `Bearer ${token}` };
-        console.log("[LOGIN] Headers para /auth/me:", headers);
         try {
           const userResp = await apiRequest("/auth/me", {
             method: "GET",
             headers,
           });
-          console.log("[LOGIN] Respuesta de /auth/me:", userResp);
           setUser({
             id: userResp.id,
             email: userResp.email,
@@ -270,16 +322,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     async (
       name: string,
       email: string,
-      password: string
+      password: string,
+      confirmPassword: string,
+      address: string,
+      phone: string,
+      country: string,
+      city: string
     ): Promise<true | string> => {
       setIsLoading(true);
       const setToken = useAuthTokenStore.getState().setToken;
       try {
-        const registerResp = await authService.registerWithEmail({
-          name,
+        const body = {
+          full_name: name,
           email,
           password,
-        });
+          confirmPassword,
+          address,
+          phone: Number(phone),
+          country,
+          city,
+          username: email.split("@")[0],
+          profile_picture_url: undefined,
+        };
+        const registerResp = await authService.registerWithEmail(body);
         const token = registerResp.token;
         if (!token) throw new Error("No se recibió token del backend");
         setToken(token);
@@ -287,11 +352,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsDemo(false);
         return true;
       } catch (error: any) {
+        // Log detallado del error
+        // ...existing code...
         if (error?.status === 409 || error?.status === 401) {
           return "EMAIL_ALREADY_EXISTS";
         }
         if (!error.status || error.status >= 500) {
           return "NETWORK_ERROR";
+        }
+        // Mostrar el mensaje de error si existe
+        if (error?.message) {
+          alert(
+            "Error: " +
+              error.message +
+              (error?.body ? "\n" + JSON.stringify(error.body) : "")
+          );
         }
         return "REGISTRATION_ERROR";
       } finally {
@@ -302,8 +377,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const loginWithAuth0 = () => {
+
     // Nuevo: Activar el estado de carga al iniciar el flujo
     setIsLoading(true);
+
     promptAsync();
   };
 
@@ -322,6 +399,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setIsDemo(false);
     await deleteToken();
+
   };
 
   return (

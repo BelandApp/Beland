@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Platform } from "react-native";
 import { AppHeader } from "../../components/layout/AppHeader";
 import { BeCoinsBalance } from "../../components/ui/BeCoinsBalance";
 import { RecyclingCard, RewardsCard, ActivitySection } from "./components";
@@ -16,25 +16,44 @@ export const DashboardScreen = () => {
   } = useDashboardNavigation();
   const { userStats, activities } = useDashboardData();
 
+  if (Platform.OS === "web") {
+    return (
+      <div className="sidebar-content">
+        <div
+          style={{
+            padding: 16,
+            gap: 16,
+            display: "flex",
+            flexDirection: "column",
+            paddingBottom: 86,
+          }}
+        >
+          <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
+          <RewardsCard />
+          <RecyclingMapWidget onPress={handleRecyclingMapPress} />
+          <ActivitySection
+            activities={activities}
+            onViewHistory={handleViewHistory}
+          />
+        </div>
+      </div>
+    );
+  }
+  // Mobile
   return (
     <View style={containerStyles.container}>
       <ScrollView style={containerStyles.scrollView}>
         {/* Header */}
+
         <AppHeader
         />
 
+
         {/* Contenido principal */}
         <View style={containerStyles.content}>
-          {/* Tarjeta de Reciclaje */}
           <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
-
-          {/* Recompensas */}
           <RewardsCard />
-
-          {/* Mapa de Puntos de Reciclaje */}
           <RecyclingMapWidget onPress={handleRecyclingMapPress} />
-
-          {/* Última actividad */}
           <ActivitySection
             activities={activities}
             onViewHistory={handleViewHistory}

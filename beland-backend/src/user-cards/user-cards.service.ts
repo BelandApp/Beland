@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UserCard } from './entities/user-card.entity';
 import { UserCardsRepository } from './user-cards.repository';
+import { CardResponseDto } from './dto/resp-user-card-pay.dto';
 
 @Injectable()
 export class UserCardsService {
@@ -77,6 +78,19 @@ export class UserCardsService {
       return res;
     } catch (error) {
       throw new ConflictException(`No se puede eliminar ${this.completeMessage}`);
+    }
+  }
+
+  async dataPayCard (card_id:string): Promise<CardResponseDto> {
+    try {
+      const res = await this.repository.dataPayCard(card_id);
+      if (!res)
+        throw new NotFoundException(
+          `No se encontró ${this.completeMessage} del usuario`,
+        );
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
     }
   }
 }

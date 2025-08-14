@@ -12,7 +12,7 @@ export interface CreateGroupData {
   location: string;
   deliveryTime: string;
   participants: Participant[];
-  products: Product[];
+  products?: Product[];
   paymentMode?: PaymentMode;
   payingUserId?: string;
 }
@@ -24,9 +24,11 @@ export class GroupService {
       setTimeout(resolve, APP_CONFIG.NETWORK_DELAY)
     );
 
-    const totalAmount = this.calculateTotalAmount(data.products);
+    const products = data.products || [];
+    const totalAmount = this.calculateTotalAmount(products);
     const totalParticipants = data.participants.length + 1; // +1 for creator
-    const costPerPerson = totalAmount / totalParticipants;
+    const costPerPerson =
+      totalParticipants > 0 ? totalAmount / totalParticipants : 0;
 
     const newGroup: Group = {
       id: generateId(),
@@ -44,7 +46,7 @@ export class GroupService {
         ...data.participants,
       ],
       participants: totalParticipants,
-      products: data.products.map((p) => ({
+      products: products.map((p) => ({
         ...p,
         totalPrice: p.estimatedPrice * p.quantity,
       })),

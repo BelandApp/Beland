@@ -83,7 +83,7 @@ export const validateGroupForm = (data: {
   location: string;
   deliveryTime: string;
   participants: any[];
-  products: any[];
+  products?: any[];
 }): FormErrors => {
   const errors: FormErrors = {};
 
@@ -116,10 +116,10 @@ export const validateGroupForm = (data: {
     errors.participants = "Debe agregar al menos un participante";
   }
 
-  // Validar productos
-  if (data.products.length === 0) {
-    errors.products = "Debe agregar al menos un producto";
-  }
+  // Validar productos (opcional, solo si existe y se requiere en otro flujo)
+  // if (data.products && data.products.length === 0) {
+  //   errors.products = "Debe agregar al menos un producto";
+  // }
 
   return errors;
 };
