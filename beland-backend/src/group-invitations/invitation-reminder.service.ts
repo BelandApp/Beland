@@ -16,7 +16,7 @@ export class InvitationReminderService {
    * Se ejecuta cada 15 segundos para pruebas, o cada hora para producción.
    */
   // @Cron(CronExpression.EVERY_HOUR) // Ejemplo para producción: cada hora
-  @Cron('*/15 * * * * *') // PARA PRUEBAS: cada 15 segundos (con segundos al final)
+  @Cron('*/60 * * * * *') // PARA PRUEBAS: cada 60 segundos (con segundos al final)
   async handleReminderCron(): Promise<void> {
     this.logger.debug(
       'handleReminderCron(): Ejecutando tarea programada de envío de recordatorios de invitaciones...',

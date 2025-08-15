@@ -41,6 +41,7 @@ import { User } from 'src/users/entities/users.entity';
 @ApiTags('group-invitations')
 @Controller('group-invitations')
 @UseGuards(FlexibleAuthGuard) // Aplicar autenticación a todo el controlador
+@ApiBearerAuth('JWT-auth')
 export class GroupInvitationsController {
   private readonly logger = new Logger(GroupInvitationsController.name);
 
@@ -61,7 +62,6 @@ export class GroupInvitationsController {
 
   @Post()
   @ApiOperation({ summary: 'Crea y envía una nueva invitación a un grupo.' })
-  @ApiBearerAuth()
   @ApiResponse({
     status: 201,
     description: 'Invitación creada exitosamente.',
