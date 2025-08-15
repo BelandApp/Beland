@@ -10,23 +10,19 @@ export class CategoryRepository {
     private repository: Repository<Category>,
   ) {}
 
-  async findAll(
-    page: number,
-    limit: number,
-  ): Promise<[Category[], number]> {
-
+  async findAll(page: number, limit: number): Promise<[Category[], number]> {
     return this.repository.findAndCount({
-        order: { created_at: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
-        relations: ['user'],
+      order: { created_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      // relations: ['user'],
     });
   }
 
   async findOne(id: string): Promise<Category> {
     return this.repository.findOne({
       where: { id },
-      relations: ['user'],
+      // relations: ['user'],
     });
   }
 

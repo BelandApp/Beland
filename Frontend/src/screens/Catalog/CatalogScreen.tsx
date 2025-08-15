@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 import { useCatalogFilters, useCatalogModals } from "./hooks";
 import { useProducts } from "../../hooks/useProducts";
 import { productsService } from "../../services/productsService";
+import { categoryService } from "../../services/categoryService";
 import { Product } from "../../services/productsService";
 import { ProductCardType } from "./components/ProductCard";
 
@@ -91,8 +92,17 @@ export const CatalogScreen = () => {
   const [showRouteInfo, setShowRouteInfo] = useState(false);
   // Estado para el carrito
   const [showCart, setShowCart] = useState(false);
-  const [showCheckoutOptions, setShowCheckoutOptions] = useState(false);
+  const [allCategories, setAllCategories] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const selectedCategoryId = allCategories.find(
+    (cat) => cat.name === filters.categories[0]
+  )?.id;
+  const brands: string[] = [];
   // Eliminado: const { products } = useCartStore();
+
+  // Hook para productos desde el backend
+  // ...existing code...
 
   // Hook para productos desde el backend
   const {
@@ -106,52 +116,43 @@ export const CatalogScreen = () => {
     fetchProducts,
   } = useProducts({
     page: 1,
-    limit: 12,
+    category_id: undefined, // Se inicializa sin categoría
     name: searchText,
-    category: filters.categories[0]?.toLowerCase() || undefined,
     sortBy: filters.sortBy || undefined,
     order: filters.order || undefined,
   });
 
-  // Efecto para actualizar productos al cambiar filtros
   useEffect(() => {
     const query = {
       page: 1,
       limit: 12,
       name: searchText,
-      category: filters.categories[0]?.toLowerCase() || undefined,
+      category_id: selectedCategoryId || undefined,
       sortBy: filters.sortBy || undefined,
       order: filters.order || undefined,
     };
     setQuery(query);
-  }, [filters, searchText, setQuery]);
+  }, [filters, searchText, setQuery, selectedCategoryId]);
 
-  // Obtener todas las categorías posibles al inicio (sin filtro)
-  const [allCategories, setAllCategories] = useState<string[]>([]);
+  // Obtener todas las categorías posibles desde el endpoint /category
+
   useEffect(() => {
-    // Solo obtener una vez al montar
     (async () => {
       try {
-        const data = await productsService.getProducts({ limit: 100 });
-        console.log("[CATEGORIAS] Respuesta productos:", data);
-        const cats = Array.from(
-          new Set(
-            (data.products || []).map((p: any) => p.category).filter(Boolean)
-          )
+        const categories = await categoryService.getCategories();
+        setAllCategories(
+          categories.map((cat) => ({ id: cat.id, name: cat.name }))
         );
-        console.log("[CATEGORIAS] Categorías encontradas:", cats);
-        setAllCategories(cats as string[]);
       } catch (e: any) {
-        console.error(
-          "[CATEGORIAS] Error al cargar productos:",
-          e,
-          e?.body || e?.message
-        );
-        setAllCategories([]);
+        console.error("[CATEGORIAS] Error al cargar categorías:", e);
+        // Fallback: categorías únicas de los productos
+        const cats = Array.from(
+          new Set((products || []).map((p) => p.category).filter(Boolean))
+        ).map((name) => ({ id: String(name), name: String(name) }));
+        setAllCategories(cats);
       }
     })();
-  }, []);
-  const brands: string[] = [];
+  }, [products]);
 
   // Función para agregar producto
   const handleAddProduct = (product: ProductCardType) => {
@@ -334,7 +335,7 @@ export const CatalogScreen = () => {
           <FilterPanel
             filters={filters}
             onFiltersChange={setFilters}
-            categories={allCategories}
+            categories={allCategories.map((cat) => cat.name)}
             brands={brands}
           />
         )}

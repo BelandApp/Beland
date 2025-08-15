@@ -15,11 +15,11 @@ const config = {
   entities: ['dist/**/*.entity{.ts,.js}'],
   migrations: ['dist/database/migrations/*.js'],
   autoLoadEntities: true,
-  //synchronize: true,
-  //dropschema: true,
+  // synchronize: true,
+  // dropschema: true,
   logging: false, //process.env.NODE_ENV !== 'production',
   ssl: {
-    rejectUnauthorized: false, 
+    rejectUnauthorized: false,
   },
 }; //ok
 

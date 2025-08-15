@@ -15,6 +15,7 @@ export interface Transaction {
   id: string;
   type: "transfer" | "receive" | "recharge" | "exchange";
   amount: number;
+  amount_beicon: number;
   description: string;
   date: string;
   status: "completed" | "pending" | "failed";

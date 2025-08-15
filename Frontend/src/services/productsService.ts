@@ -23,7 +23,7 @@ export interface ProductQuery {
   limit?: number;
   sortBy?: string;
   order?: "ASC" | "DESC";
-  category?: string;
+  category_id?: string;
   name?: string;
 }
 
@@ -34,7 +34,7 @@ export const productsService = {
     if (query.limit) params.append("limit", String(query.limit));
     if (query.sortBy) params.append("sortBy", query.sortBy);
     if (query.order) params.append("order", query.order);
-    if (query.category) params.append("category", query.category);
+    if (query.category_id) params.append("category_id", query.category_id);
     if (query.name) params.append("name", query.name);
     const url = `/products?${params.toString()}`;
     return await apiRequest(url, { method: "GET" });

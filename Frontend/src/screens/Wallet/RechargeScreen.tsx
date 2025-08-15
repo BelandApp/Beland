@@ -60,6 +60,7 @@ export default function RechargeScreen() {
       // Llamar al backend para recargar saldo
       await walletService.rechargeByUserEmail(
         user.email,
+        user.id,
         parseFloat(amount),
         selectedPaymentMethod as any
       );

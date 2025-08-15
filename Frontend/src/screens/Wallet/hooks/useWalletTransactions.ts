@@ -97,7 +97,13 @@ const mapBackendTransactionToFrontend = (
     type,
     amount: Math.abs(
       convertBackendTransactionAmount(backendTransaction.amount)
-    ), // Usar la utilidad de conversión
+    ),
+    amount_beicon:
+      backendTransaction.amount_beicon !== undefined
+        ? Math.abs(
+            convertBackendTransactionAmount(backendTransaction.amount_beicon)
+          )
+        : Math.abs(convertBackendTransactionAmount(backendTransaction.amount)),
     description: getTransactionDescription(type, backendTransaction),
     date: formattedDate,
     status,
@@ -138,53 +144,6 @@ const getTransactionDescription = (
   }
 };
 
-// Mock data para desarrollo y demo (usado como fallback)
-const getMockTransactions = (): Transaction[] => [
-  {
-    id: "1",
-    type: "receive",
-    amount: 150,
-    description: "Recibido de juan.beland",
-    date: "Hoy, 14:30",
-    status: "completed",
-    from: "juan.beland",
-  },
-  {
-    id: "2",
-    type: "recharge",
-    amount: 500,
-    description: "Recarga con tarjeta",
-    date: "Ayer, 09:15",
-    status: "completed",
-  },
-  {
-    id: "3",
-    type: "transfer",
-    amount: 200,
-    description: "Enviado a maria.beland",
-    date: "2 días atrás",
-    status: "completed",
-    to: "maria.beland",
-  },
-  {
-    id: "4",
-    type: "exchange",
-    amount: 100,
-    description: "Canjeado por premio",
-    date: "3 días atrás",
-    status: "completed",
-  },
-  {
-    id: "5",
-    type: "transfer",
-    amount: 50,
-    description: "Enviado a carlos.beland",
-    date: "1 semana atrás",
-    status: "pending",
-    to: "carlos.beland",
-  },
-];
-
 export const useWalletTransactions = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -210,7 +169,12 @@ export const useWalletTransactions = () => {
           // Modo producción: intentar usar API real
 
           // Primero obtener la billetera del usuario para tener el wallet_id
-          const wallet = await walletService.getWalletByUserId(user.email);
+          if (!user?.email || !user?.id)
+            throw new Error("Faltan datos de usuario");
+          const wallet = await walletService.getWalletByUserId(
+            user.email,
+            user.id
+          );
 
           // Obtener transacciones del backend
           const response = await transactionService.getTransactions({
@@ -233,7 +197,6 @@ export const useWalletTransactions = () => {
           console.warn("API no disponible, usando modo demo:", apiError);
 
           // Si hay error de red, usar datos mock como fallback
-          setTransactions(getMockTransactions());
         }
       } else {
         // Modo demo: usar datos mock
@@ -241,15 +204,10 @@ export const useWalletTransactions = () => {
 
         // Simular delay de red
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        setTransactions(getMockTransactions());
       }
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
       setError(err.message || "Error al cargar transacciones");
-
-      // En caso de error, mostrar datos mock como fallback
-      setTransactions(getMockTransactions());
     } finally {
       setIsLoading(false);
     }

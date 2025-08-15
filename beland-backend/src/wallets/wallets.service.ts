@@ -131,9 +131,12 @@ export class WalletsService {
       wallet_id: wallet.id,
       type_id: type.id,
       status_id: status.id,
-      amount: becoinAmount,
+      amount: dto.amountUsd,
+      amount_beicon: becoinAmount,
       post_balance: wallet.becoin_balance,
       reference: dto.referenceCode,
+      payphone_transactionId: dto.payphone_transactionId?.toString(),
+      clientTransactionId: dto.clientTransactionId,
     });
     return { wallet: walletUpdated };
   }
@@ -213,10 +216,14 @@ export class WalletsService {
     return { wallet: walletUpdate };
   }
 
-  async purchaseBeland (wallet_id: string, becoinAmount:number, referenceCode:string ) {
+  async purchaseBeland(
+    wallet_id: string,
+    becoinAmount: number,
+    referenceCode: string,
+  ) {
     const wallet = await this.repository.findOne(wallet_id);
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
-  
+
     // 3) Actualizar saldo
     wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
     const type = await this.typeRepo.findOneBy({ code: 'PURCHASE' });
@@ -239,5 +246,5 @@ export class WalletsService {
       reference: referenceCode,
     });
     return { wallet: walletUpdated };
-  } 
+  }
 }

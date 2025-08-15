@@ -87,7 +87,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             <BeCoinIcon width={16} height={16} />
             <Text style={[styles.amount, { color: getTransactionColor() }]}>
               {getAmountPrefix()}
-              {transaction.amount}
+              {transaction.amount_beicon}
             </Text>
           </View>
           <View
