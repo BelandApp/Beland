@@ -5,34 +5,31 @@ import AdminPanel from "./components/AdminPanel";
 import LeaderPanel from "./components/LeaderPanel";
 import EmpresaPanel from "./components/EmpresaPanel";
 import UserPanel from "./components/UserPanel";
-import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 
 const UserDashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
 
-  // Paso 1: Muestra un loader si la información del usuario se está cargando
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#1E90FF" />
-        <Text style={styles.loadingText}>Cargando...</Text>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Cargando datos del usuario...</Text>
       </View>
     );
   }
 
-  // Paso 2: Maneja el caso en el que no hay un usuario logueado
   if (!user || !user.role) {
-    // Si no hay usuario o rol, no se debe renderizar este dashboard
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>
-          No tienes permisos para ver esta página.
+          No se pudo cargar la información del usuario. Intente iniciar sesión
+          nuevamente.
         </Text>
       </View>
     );
   }
 
-  // Paso 3: Renderiza el componente adecuado basado en el rol del usuario
   switch (user.role) {
     case "SUPERADMIN":
       return <SuperAdminPanel />;
@@ -60,12 +57,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f0f2f5",
     padding: 20,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: "#333",
+    color: "#666",
   },
   errorText: {
     fontSize: 18,
