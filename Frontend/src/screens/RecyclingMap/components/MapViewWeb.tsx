@@ -47,21 +47,24 @@ const recyclingIcon = new L.DivIcon({
   iconAnchor: [16, 16],
 });
 
-function MapCenter({
+const selectedIcon = new L.DivIcon({
+  html: '<div style="background:#F88D2A;width:28px;height:28px;border-radius:50%;border:4px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 12px #F88D2A99;">♻️</div>',
+  className: "",
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+});
+
+const MapCenter: React.FC<{ lat: number; lng: number; zoom: number }> = ({
   lat,
   lng,
   zoom,
-}: {
-  lat: number;
-  lng: number;
-  zoom: number;
-}) {
+}) => {
   const map = useMap();
   useEffect(() => {
     map.setView([lat, lng], zoom);
   }, [lat, lng, zoom, map]);
   return null;
-}
+};
 
 export const MapViewWeb: React.FC<MapViewWebProps> = ({
   userLocation,
@@ -73,10 +76,21 @@ export const MapViewWeb: React.FC<MapViewWebProps> = ({
   const center = userLocation
     ? [userLocation.latitude, userLocation.longitude]
     : [-34.6037, -58.3816];
-  const zoom = selectedPointId ? 15 : 13;
+  let zoom = selectedPointId ? 15 : 13;
+  if (typeof window !== "undefined" && window.innerWidth < 600) {
+    zoom = selectedPointId ? 13.5 : 12.5;
+  }
   const selectedPoint = points.find((p) => p.id === selectedPointId);
-  const centerLat = selectedPoint ? selectedPoint.latitude : center[0];
-  const centerLng = selectedPoint ? selectedPoint.longitude : center[1];
+  let centerLat = selectedPoint ? selectedPoint.latitude : center[0];
+  let centerLng = selectedPoint ? selectedPoint.longitude : center[1];
+  // Offset visual para centrar el punto en móviles web
+  if (
+    typeof window !== "undefined" &&
+    window.innerWidth < 600 &&
+    selectedPoint
+  ) {
+    centerLat = centerLat - 0.018; // Ajusta este valor según el layout visual
+  }
 
   return (
     <div
@@ -127,24 +141,13 @@ export const MapViewWeb: React.FC<MapViewWebProps> = ({
             <Marker
               key={point.id}
               position={[point.latitude, point.longitude]}
-              icon={recyclingIcon}
+              icon={point.isSelected ? selectedIcon : recyclingIcon}
               eventHandlers={{
                 click: () => {
                   if (onSelectPoint) onSelectPoint(point.id);
                 },
               }}
-            >
-              <Popup>
-                <strong>{point.name}</strong>
-                <br />
-                <small>{point.address}</small>
-                {point.isNearest && (
-                  <span style={{ color: "#F88D2A", fontWeight: "bold" }}>
-                    Más cercano
-                  </span>
-                )}
-              </Popup>
-            </Marker>
+            />
           ))}
           <MapCenter lat={centerLat} lng={centerLng} zoom={zoom} />
         </MapContainer>

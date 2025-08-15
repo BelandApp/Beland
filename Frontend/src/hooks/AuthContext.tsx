@@ -48,13 +48,11 @@ const redirectUri = makeRedirectUri({
   useProxy: !isWeb,
 } as any);
 
-
 console.log("🔁 redirectUri:", redirectUri);
 console.log("Domain:", auth0Domain);
 console.log("Client Web ID:", clientWebId);
 console.log("Audience:", auth0Audience);
 console.log("Redirect URI:", redirectUri);
-
 
 const discovery = {
   authorizationEndpoint: `https://${auth0Domain}/authorize`,
@@ -63,12 +61,16 @@ const discovery = {
 };
 
 // === TIPADO ===
+
 export interface AuthUser {
   id: string;
   email: string;
   name?: string;
   picture?: string;
   role?: string;
+  full_name?: string;
+  profile_picture_url?: string;
+  role_name?: string;
 }
 
 interface AuthContextType {
@@ -94,21 +96,73 @@ interface AuthContextType {
 // === CONTEXTO ===
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Funciones auxiliares de manejo de token
+const saveToken = async (token: string) => {
+  if (Platform.OS === "web") {
+    localStorage.setItem("access_token", token);
+  } else {
+    await SecureStore.setItemAsync("access_token", token);
+  }
+};
+
+const getToken = async (): Promise<string | null> => {
+  if (Platform.OS === "web") {
+    return localStorage.getItem("access_token");
+  } else {
+    return await SecureStore.getItemAsync("access_token");
+  }
+};
+
+const deleteToken = async () => {
+  if (Platform.OS === "web") {
+    localStorage.removeItem("access_token");
+  } else {
+    await SecureStore.deleteItemAsync("access_token");
+  }
+};
+
+// Función para obtener el perfil del usuario desde tu backend
+const fetchUserProfileFromBackend = async (
+  token: string
+): Promise<AuthUser> => {
+  const res = await fetch(`${apiBaseUrl}auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    console.error("❌ Error al obtener el perfil del backend:", errorData);
+    throw new Error(
+      errorData.message || "Error al obtener el perfil del backend."
+    );
+  }
+
+  const backendUser = await res.json();
+  return {
+    id: backendUser.id,
+    email: backendUser.email,
+    name: backendUser.full_name || backendUser.username,
+    picture: backendUser.profile_picture_url,
+    role: backendUser.role_name,
+    // Agregamos las propiedades tal como vienen del backend para que TypeScript no se queje
+    full_name: backendUser.full_name,
+    profile_picture_url: backendUser.profile_picture_url,
+    role_name: backendUser.role_name,
+  };
+};
+
 // === PROVIDER ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Hidratar el store de BeCoins al iniciar la app
   useBeCoinsStoreHydration();
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDemo, setIsDemo] = useState(false);
 
-  // Helper para actualizar el balance real desde el backend
   const updateBeCoinsBalance = async (userEmail: string) => {
     try {
       const wallet = await walletService.getWalletByUserId(userEmail);
       if (wallet && wallet.becoin_balance !== undefined) {
-        // Convertir a número por si viene como string
         const balanceNum = Number(wallet.becoin_balance);
         useBeCoinsStore
           .getState()
@@ -119,7 +173,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Efecto para actualizar el balance de BeCoins desde el backend si ya hay usuario autenticado
   useEffect(() => {
     if (user && user.email) {
       updateBeCoinsBalance(user.email);
@@ -139,64 +192,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     discovery
   );
-  console.log(response);
-  console.log(request);
-
-  const saveToken = async (token: string) => {
-    if (Platform.OS === "web") {
-      localStorage.setItem("access_token", token);
-    } else {
-      await SecureStore.setItemAsync("access_token", token);
-    }
-  };
-
-  const getToken = async (): Promise<string | null> => {
-    if (Platform.OS === "web") {
-      return localStorage.getItem("access_token");
-    } else {
-      return await SecureStore.getItemAsync("access_token");
-    }
-  };
-
-  const deleteToken = async () => {
-    if (Platform.OS === "web") {
-      localStorage.removeItem("access_token");
-    } else {
-      await SecureStore.deleteItemAsync("access_token");
-    }
-  };
-
-  // Función para obtener el perfil del usuario desde tu backend
-  const fetchUserProfileFromBackend = async (
-    token: string
-  ): Promise<AuthUser> => {
-    const res = await fetch(`${apiBaseUrl}auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      console.error("❌ Error al obtener el perfil del backend:", errorData);
-      throw new Error(
-        errorData.message || "Error al obtener el perfil del backend."
-      );
-    }
-
-    const backendUser = await res.json();
-    return {
-      id: backendUser.id,
-      email: backendUser.email,
-      name: backendUser.full_name || backendUser.username,
-      picture: backendUser.profile_picture_url,
-      role: backendUser.role_name,
-    };
-  };
 
   // === Manejo de Login con Auth0 ===
   useEffect(() => {
     const handleAuth = async () => {
       if (response?.type === "success" && response.params?.code) {
-        setIsLoading(true); // Nuevo: Iniciar el estado de carga
+        setIsLoading(true);
         try {
           const tokenResult = await exchangeCodeAsync(
             {
@@ -222,7 +223,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(authUser);
           setIsDemo(false);
 
-          // 5. Actualizar el balance de BeCoins desde el backend
           if (authUser?.email) {
             await updateBeCoinsBalance(authUser.email);
           }
@@ -247,9 +247,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
-
-      // setIsLoading(true); // Ya se inicializa en true, no es necesario aquí
-
       const token = await getToken();
       if (!token) {
         setIsLoading(false);
@@ -261,7 +258,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(authUser);
         setIsDemo(false);
 
-        // Actualizar el balance de BeCoins desde el backend
         if (authUser?.email) {
           await updateBeCoinsBalance(authUser.email);
         }
@@ -280,27 +276,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loginWithEmailPassword = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       setIsLoading(true);
-      // Limpiar wallet al iniciar sesión para evitar persistencia entre usuarios
       useBeCoinsStore.getState().resetBalance();
-      const setToken = useAuthTokenStore.getState().setToken;
       try {
         const loginResp = await authService.loginWithEmail({ email, password });
         const token = loginResp.token;
         if (!token) throw new Error("No se recibió token del backend");
-        setToken(token);
-        const headers = { Authorization: `Bearer ${token}` };
+        await saveToken(token);
         try {
-          const userResp = await apiRequest("/auth/me", {
-            method: "GET",
-            headers,
-          });
-          setUser({
-            id: userResp.id,
-            email: userResp.email,
-            name: userResp.name || userResp.full_name,
-            picture: userResp.profile_picture_url,
-            role: userResp.role_name,
-          });
+          const userResp = await fetchUserProfileFromBackend(token);
+          // Los errores se han corregido al actualizar la interfaz AuthUser
+          setUser(userResp);
           setIsDemo(false);
           return true;
         } catch (meError) {
@@ -330,7 +315,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       city: string
     ): Promise<true | string> => {
       setIsLoading(true);
-      const setToken = useAuthTokenStore.getState().setToken;
       try {
         const body = {
           full_name: name,
@@ -347,20 +331,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const registerResp = await authService.registerWithEmail(body);
         const token = registerResp.token;
         if (!token) throw new Error("No se recibió token del backend");
-        setToken(token);
-        setUser({ id: email, email, name });
-        setIsDemo(false);
-        return true;
+        await saveToken(token);
+        try {
+          const userResp = await fetchUserProfileFromBackend(token);
+          // Los errores se han corregido al actualizar la interfaz AuthUser
+          setUser(userResp);
+          setIsDemo(false);
+          return true;
+        } catch (meError) {
+          console.error("[REGISTER] Error al llamar /auth/me:", meError);
+          return "REGISTRATION_ERROR";
+        }
       } catch (error: any) {
-        // Log detallado del error
-        // ...existing code...
         if (error?.status === 409 || error?.status === 401) {
           return "EMAIL_ALREADY_EXISTS";
         }
         if (!error.status || error.status >= 500) {
           return "NETWORK_ERROR";
         }
-        // Mostrar el mensaje de error si existe
         if (error?.message) {
           alert(
             "Error: " +
@@ -377,8 +365,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const loginWithAuth0 = () => {
-
-    // Nuevo: Activar el estado de carga al iniciar el flujo
     setIsLoading(true);
 
     promptAsync();
@@ -399,7 +385,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setIsDemo(false);
     await deleteToken();
-
   };
 
   return (

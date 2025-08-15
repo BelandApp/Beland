@@ -60,26 +60,47 @@ export const MainTabNavigator = () => {
             }}
           />
         ),
-        tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 0,
-          elevation: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          paddingBottom: Platform.OS === "android" ? 16 : 8, // Más padding inferior en Android
-          paddingTop: 8,
-          height: Platform.OS === "android" ? 80 : 70, // Altura fija para asegurar espacio
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          ...(Platform.OS === "android" && {
-            // Esto desactiva el efecto ripple en Android
-            borderBottomWidth: 0,
-          }),
-        },
+        tabBarStyle: (() => {
+          const baseStyle = {
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 0,
+            elevation: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            paddingTop: 8,
+          };
+          if (
+            Platform.OS === "web" &&
+            typeof window !== "undefined" &&
+            window.innerWidth < 600
+          ) {
+            return {
+              ...baseStyle,
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 70,
+              paddingBottom: 0,
+              zIndex: 9999,
+            };
+          }
+          return {
+            ...baseStyle,
+            paddingBottom: Platform.OS === "android" ? 16 : 8,
+            height: Platform.OS === "android" ? 80 : 70,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: Platform.OS === "web" ? 9999 : 1,
+            ...(Platform.OS === "android" && {
+              borderBottomWidth: 0,
+            }),
+          };
+        })(),
         tabBarItemStyle: {
           paddingHorizontal: 0,
         },
@@ -128,33 +149,3 @@ export const MainTabNavigator = () => {
     </Tab.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  navigatorContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  tempScreen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  tempContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 40,
-  },
-  tempTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  tempText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-});

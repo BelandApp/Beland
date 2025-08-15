@@ -8,7 +8,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import {AppHeader} from "./AppHeader";
+import { AppHeader } from "./AppHeader";
 
 type Props = {
   children: React.ReactNode;
