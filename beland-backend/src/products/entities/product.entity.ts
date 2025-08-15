@@ -1,5 +1,6 @@
 // src/products/entities/product.entity.ts
 import { Category } from 'src/category/entities/category.entity';
+import { GroupType } from 'src/group-type/entities/group-type.entity';
 import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
 import { OrderItem } from 'src/order-items/entities/order-item.entity';
 import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
@@ -12,6 +13,8 @@ import {
   OneToMany,
   ManyToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 @Entity('products')
@@ -39,6 +42,14 @@ export class Product {
   category: Category
   @Column('uuid', {nullable:true}) 
   category_id: string;
+
+  @ManyToMany(() => GroupType, (groupType) => groupType.products)
+  @JoinTable({
+    name: 'product_group_types', // nombre de la tabla intermedia
+    joinColumn: { name: 'product_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'group_type_id', referencedColumnName: 'id' },
+  })
+  group_types: GroupType[];
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
