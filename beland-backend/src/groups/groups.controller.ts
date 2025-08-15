@@ -146,7 +146,7 @@ export class GroupsController {
 
   @Get()
   @Roles('ADMIN', 'SUPERADMIN') // Only Admin and Superadmin can get all groups
-  @RequiredPermissions('content_permission') // Example: Admins/Superadmins might need a 'content_permission' to view all groups
+  // @RequiredPermissions('content_permission') // Example: Admins/Superadmins might need a 'content_permission' to view all groups
   @ApiOperation({
     summary: 'Get all groups',
     description:

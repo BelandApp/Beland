@@ -67,7 +67,8 @@ export const AppHeader = () => {
 
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}>
+            onPress={handleDemoLogin}
+          >
             <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>
@@ -88,7 +89,8 @@ export const AppHeader = () => {
             <View style={styles.menuDropdown}>
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={handleNavigateToDashboard}>
+                onPress={handleNavigateToDashboard}
+              >
                 <LayoutDashboard size={18} style={styles.menuItemIcon} />
                 <Text style={styles.menuItemText}>Dashboard</Text>
               </TouchableOpacity>

@@ -1,5 +1,5 @@
 import { apiRequest } from "./api";
-import { userService } from "./userService";
+// import { userService } from "./userService";
 
 // Tipos para Wallet según el backend
 export interface Wallet {
@@ -24,7 +24,7 @@ export interface RechargeRequest {
 }
 
 export interface TransferRequest {
-  sender_user_id: string;
+  sender_user_id?: string;
   receiver_user_id: string;
   amount: number;
   description?: string;
@@ -32,7 +32,7 @@ export interface TransferRequest {
 }
 
 export interface WalletCreateRequest {
-  userId: string; // El DTO del backend espera userId
+  userId?: string; // El DTO del backend espera userId, pero puede omitirse si el usuario está autenticado
   address?: string;
   alias?: string;
   private_key_encrypted?: string;
@@ -49,43 +49,22 @@ class WalletService {
   // Obtener billetera por email de usuario
   async getWalletByUserId(userEmail: string): Promise<Wallet> {
     try {
-      // Resolver el email a UUID
-      const userUUID = await userService.getUserUUIDByEmail(userEmail);
-
-      const response = await apiRequest(`/wallets/user/${userUUID}`, {
+      // El backend devuelve un solo objeto wallet para el usuario autenticado
+      const wallet = await apiRequest(`/wallets`, {
         method: "GET",
       });
-      return response;
-    } catch (error) {
-      // Si la billetera no existe, intentar crearla automáticamente
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      if (
-        errorMessage.includes("InternalServerErrorException") ||
-        errorMessage.includes("No se encontro") ||
-        errorMessage.includes("Not Found") ||
-        errorMessage.includes("404")
-      ) {
-        console.log("⚠️ Billetera no encontrada, creando automáticamente...");
-        try {
-          const userUUID = await userService.getUserUUIDByEmail(userEmail);
-          // Generar alias automático: parte antes del @ del email
-          const alias = userEmail.split("@")[0];
-
-          const newWallet = await this.createWallet({
-            userId: userUUID,
-            alias: alias,
-          });
-          console.log("✅ Billetera creada automáticamente con alias:", alias);
-          return newWallet;
-        } catch (createError) {
-          console.error(
-            "❌ Error creando billetera automáticamente:",
-            createError
-          );
-          throw createError;
-        }
+      if (wallet && wallet.id) {
+        return wallet;
+      } else {
+        // Si no existe, crearla automáticamente
+        const alias = userEmail.split("@")[0];
+        const newWallet = await this.createWallet({
+          alias: alias,
+        });
+        console.log("✅ Billetera creada automáticamente con alias:", alias);
+        return newWallet;
       }
+    } catch (error) {
       console.error("Error getting wallet by user email:", error);
       throw error;
     }
@@ -267,7 +246,9 @@ class WalletService {
         `💸 Iniciando transferencia de ${senderEmail} a ${recipientIdentifier}: ${amount} BeCoins`
       );
 
-      const senderUUID = await userService.getUserUUIDByEmail(senderEmail);
+      // TODO: Obtener el UUID del usuario de otra forma si es necesario
+      // const senderUUID = await userService.getUserUUIDByEmail(senderEmail);
+      const senderUUID = undefined; // El backend debe tomar el usuario del token
 
       // Buscar wallet del destinatario
       const recipientWallet = await this.findWalletByIdentifier(
@@ -284,7 +265,6 @@ class WalletService {
       // Usuario registrado - transferencia directa
       console.log("✅ Usuario encontrado, realizando transferencia directa...");
       const transferData: TransferRequest = {
-        sender_user_id: senderUUID,
         receiver_user_id: recipientWallet.user_id,
         amount: amount,
         description: description,
