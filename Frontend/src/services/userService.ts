@@ -144,7 +144,7 @@ const API_URL =Constants.expoConfig?.extra?.apiUrl as string || "http://localhos
 
 export const fetchCurrentUser = async (token: string) => {
   try {
-    const response = await fetch(`${API_URL}/users/me`, {
+    const response = await fetch(`${API_URL}users/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

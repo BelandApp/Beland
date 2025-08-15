@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Modal,
   Pressable,
-  ActivityIndicator, // Importar ActivityIndicator
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "src/hooks/AuthContext";
@@ -55,6 +55,23 @@ export const AppHeader = () => {
   const userName = user?.name ?? "Usuario";
   const userPicture = user?.picture;
 
+  // NUEVO: Función para obtener el estilo del badge según el rol
+  const getRoleBadgeStyle = () => {
+    switch (user?.role) {
+      case "SUPERADMIN":
+        return { backgroundColor: "#FFD700", color: "#333" }; // Dorado
+      case "ADMIN":
+        return { backgroundColor: "#00BFFF", color: "#fff" }; // Azul cielo
+      case "LEADER":
+        return { backgroundColor: "#32CD32", color: "#fff" }; // Verde
+      case "EMPRESA":
+        return { backgroundColor: "#FF6347", color: "#fff" }; // Rojo tomate
+      case "USER":
+      default:
+        return { backgroundColor: "#D3D3D3", color: "#555" }; // Gris
+    }
+  };
+
   return (
     <View style={styles.headerContainer}>
       <Text style={styles.headerTitle}>Beland</Text>
@@ -67,8 +84,7 @@ export const AppHeader = () => {
 
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}
-          >
+            onPress={handleDemoLogin}>
             <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>
@@ -77,9 +93,27 @@ export const AppHeader = () => {
           {userPicture && (
             <Image source={{ uri: userPicture }} style={styles.avatar} />
           )}
-          <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
-            <Text style={styles.userName}>{userName}</Text>
-          </TouchableOpacity>
+
+          {/* NUEVO: Contenedor para el nombre y el badge de rol */}
+          <View style={{ alignItems: "flex-end" }}>
+            <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
+              <Text style={styles.userName}>
+                {user?.full_name || user?.email.split("@")[0]}
+              </Text>
+            </TouchableOpacity>
+            {/* NUEVO: Badge de rol con estilo dinámico */}
+            {user?.role && (
+              <View style={[styles.roleBadge, getRoleBadgeStyle()]}>
+                <Text
+                  style={[
+                    styles.roleBadgeText,
+                    { color: getRoleBadgeStyle().color },
+                  ]}>
+                  {user.role_name || user.role}
+                </Text>
+              </View>
+            )}
+          </View>
 
           <Modal transparent={true} visible={menuVisible} animationType="fade">
             <Pressable
@@ -89,8 +123,7 @@ export const AppHeader = () => {
             <View style={styles.menuDropdown}>
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={handleNavigateToDashboard}
-              >
+                onPress={handleNavigateToDashboard}>
                 <LayoutDashboard size={18} style={styles.menuItemIcon} />
                 <Text style={styles.menuItemText}>Dashboard</Text>
               </TouchableOpacity>
@@ -153,6 +186,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
+  // NUEVO: Estilos para el badge de rol
+  roleBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: 2,
+  },
+  roleBadgeText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    textTransform: "uppercase",
+  },
   menuIcon: {
     padding: 8,
     justifyContent: "center",
@@ -206,3 +251,4 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
 });
+export default AppHeader;
