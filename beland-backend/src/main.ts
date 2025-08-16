@@ -1,12 +1,13 @@
 // src/main.ts
+import * as crypto from "crypto";
+(global as any).crypto = crypto;
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { json, raw } from 'express';
-import * as crypto from "crypto";
-(global as any).crypto = crypto;
+
 // import { RequestLoggerMiddleware } from './middleware/request-logger.middleware'; // Nombre corregido 'middleware'
 
 async function bootstrap() {
