@@ -14,7 +14,6 @@ export class CategoryService {
   constructor(private readonly repository: CategoryRepository) {}
 
   async findAll(
-    user_id: string,
     pageNumber: number,
     limitNumber: number,
   ): Promise<[Category[], number]> {

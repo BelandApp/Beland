@@ -16,17 +16,25 @@ import { RolesRepository } from 'src/roles/roles.repository';
 import { Role } from 'src/roles/entities/role.entity';
 import * as bcrypt from 'bcrypt';
 import * as QRCode from 'qrcode';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { Cart } from 'src/cart/entities/cart.entity';
+import { AuthVerification } from './entities/auth.entity';
+import { EmailService } from 'src/email/email.service';
+import { CreateEmailDto } from 'src/email/dto/create-email.dto';
+import { verificationEmailTemplate } from 'src/email/plantilla/htmlVerificacion';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly emailService: EmailService,
     private readonly userRepository: UsersRepository,
+    @InjectRepository(AuthVerification)
+    private authRepository: Repository<AuthVerification>,
     private readonly roleRepository: RolesRepository,
     private readonly jwtService: JwtService,
     private readonly dataSource: DataSource,
@@ -216,5 +224,190 @@ export class AuthService {
 
 
     return { token };
+  }
+
+  // No regstra... sino que manda correo de verificacion 
+  async signupVerification(user: RegisterAuthDto): Promise<{ message: string }> {
+    
+    // ✅ VALIDACIÓN: Comparar password y confirmPassword here
+      if (user.password !== user.confirmPassword) {
+        throw new BadRequestException('Las contraseñas no coinciden.');
+      }
+    
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+      const userDB = await this.userRepository.findByEmail(user.email);
+      if (userDB) {
+        throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
+          `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
+        );
+      }
+
+      const userRole: Role = await this.roleRepository.findByName('USER');
+      if (!userRole) {
+        throw new InternalServerErrorException(
+          'No se pudo obtener el rol USER. Asegúrate de que el rol "USER" exista en la base de datos.',
+        );
+      }
+
+      const HashPassword = await bcrypt.hash(user.password, 10);
+      const numero = Math.floor(100000 + Math.random() * 900000); // entre 100000 y 999999
+      const stringCode = String(numero);
+
+      // ✅ Crear usuario usando el manager de la transacción
+      const userVerificationSave = await queryRunner.manager.getRepository(AuthVerification).save({
+        full_name: user.full_name || null, // Ensure nullable fields can be null
+        email: user.email,
+        username: user.username, // Ensure nullable fields can be null
+        profile_picture_url: user.profile_picture_url || null, // Ensure nullable fields can be null
+        address: user.address,
+        phone: user.phone,
+        country: user.country,
+        city: user.city,
+        role_id: userRole.role_id,
+        passwordHeshed: HashPassword,
+        code: stringCode,
+      });
+
+     await queryRunner.commitTransaction(); // ✅ Confirma todo
+
+     const email: CreateEmailDto = {
+           to: user.email,
+           subject: 'Beland - Verificación de cuenta',
+           text: '¡Aqui tu codigo de verificación! Estas cerca de tener tu cuenta',
+           html: verificationEmailTemplate(user.username, stringCode),
+         }
+
+      await this.emailService.sendMail(email);
+      
+      return {message: 'Codigo enviado correctamente al Email para verificacion'};
+    } catch (error: any) {
+      await queryRunner.rollbackTransaction(); // 🔄 Reversión total
+
+      if (
+        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error; // Re-lanza excepciones específicas
+      }
+      // Log the unexpected error before throwing a generic one
+      console.error('Error durante el registro de usuario:', error);
+      throw new InternalServerErrorException(
+        'No se pudo registrar el usuario debido a un error interno.',
+      );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+    async signupRegister(user: RegisterAuthDto): Promise<{ token: string }> {
+    
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+      const userDB = await this.userRepository.findByEmail(user.email);
+      if (userDB) {
+        throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
+          `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
+        );
+      }
+
+      const userRole: Role = await this.roleRepository.findByName('USER');
+      if (!userRole) {
+        throw new InternalServerErrorException(
+          'No se pudo obtener el rol USER. Asegúrate de que el rol "USER" exista en la base de datos.',
+        );
+      }
+
+      const HashPassword = await bcrypt.hash(user.password, 10);
+
+      // ✅ Crear usuario usando el manager de la transacción
+      const userSave = await queryRunner.manager.getRepository(User).save({
+        full_name: user.full_name || null, // Ensure nullable fields can be null
+        email: user.email,
+        username: user.username || null, // Ensure nullable fields can be null
+        profile_picture_url: user.profile_picture_url || null, // Ensure nullable fields can be null
+        address: user.address,
+        phone: user.phone,
+        country: user.country,
+        city: user.city,
+        isBlocked: false, // Por defecto, no bloqueado
+        deleted_at: null, // Por defecto, no eliminado
+        role_id: userRole.role_id,
+        role_name: userRole.name as any,
+        password: HashPassword,
+      });
+
+      const usernamePart = user.email.split('@')[0];
+      const randomNumber = Math.floor(Math.random() * 1000);
+      const alias = `${usernamePart}.${randomNumber}`;
+
+      const walletRepo = this.dataSource.getRepository(Wallet);
+
+      // 1️⃣ Crear y guardar la wallet con user_id y alias
+      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
+        user_id: userSave.id,
+        alias
+      });
+
+      // 2️⃣ Generar el QR con el ID ya guardado
+      const qr = await QRCode.toDataURL(savedWallet.id);
+
+      // 3️⃣ Actualizar la wallet con el QR
+      savedWallet.qr = qr;
+      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
+
+      if (!savedWallet)
+        throw new InternalServerErrorException(
+          'Error al crear la billetera. Intente registrarse Nuevamente',
+        );
+
+      // ✅ Crear carrito usando el mismo manager
+      const cart = await queryRunner.manager.getRepository(Cart).save({
+        user_id: userSave.id,
+      });
+
+      await queryRunner.commitTransaction(); // ✅ Confirma todo
+
+
+      const userSavePayload = await this.userRepository.findOne(userSave.id);
+
+      // Asegurarse de que userSavePayload no sea null antes de usarlo
+      if (!userSavePayload) {
+        throw new InternalServerErrorException(
+          'Error al recuperar el usuario registrado.',
+        );
+      }
+
+      //Crea el Token con todos los datos de usuario
+      return await this.createToken(userSavePayload);
+    } catch (error: any) {
+      await queryRunner.rollbackTransaction(); // 🔄 Reversión total
+
+      if (
+        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error; // Re-lanza excepciones específicas
+      }
+      // Log the unexpected error before throwing a generic one
+      console.error('Error durante el registro de usuario:', error);
+      throw new InternalServerErrorException(
+        'No se pudo registrar el usuario debido a un error interno.',
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

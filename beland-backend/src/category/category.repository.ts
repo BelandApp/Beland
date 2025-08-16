@@ -15,14 +15,12 @@ export class CategoryRepository {
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
-      // relations: ['user'],
     });
   }
 
   async findOne(id: string): Promise<Category> {
     return this.repository.findOne({
       where: { id },
-      // relations: ['user'],
     });
   }
 

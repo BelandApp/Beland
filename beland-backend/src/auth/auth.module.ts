@@ -28,6 +28,8 @@ import { UsersModule } from 'src/users/users.module';
 import { RolesModule } from 'src/roles/roles.module';
 
 import { AuthController } from './auth.controller';
+import { EmailService } from 'src/email/email.service';
+import { AuthVerification } from './entities/auth.entity';
 
 @Global()
 @Module({
@@ -52,7 +54,7 @@ import { AuthController } from './auth.controller';
       }),
     }),
     // Registra las entidades de TypeORM necesarias para este módulo
-    TypeOrmModule.forFeature([User, Role, Wallet]),
+    TypeOrmModule.forFeature([User, Role, Wallet, AuthVerification]),
   ],
   controllers: [AuthController],
   providers: [
@@ -66,6 +68,7 @@ import { AuthController } from './auth.controller';
     AuthenticationGuard, // Guard de autenticación local
     JwtAuthGuard, // Guard de autenticación de Auth0
     FlexibleAuthGuard, // Guard que combina ambos
+    EmailService
   ],
   exports: [
     AuthService,
