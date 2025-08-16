@@ -1,6 +1,11 @@
 // src/main.ts
 import * as crypto from "crypto";
 
+// Solo si crypto no existe o no tiene "subtle"
+if (!(globalThis as any).crypto?.subtle) {
+  (globalThis as any).crypto = crypto.webcrypto;
+}
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
