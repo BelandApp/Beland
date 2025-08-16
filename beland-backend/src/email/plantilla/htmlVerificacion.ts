@@ -1,4 +1,4 @@
-export function generarPlantillaVerificacion(nombre: string, codigo: string): string {
+export function verificationEmailTemplate(nombre: string, codigo: string): string {
   return `
   <!DOCTYPE html>
   <html lang="es">

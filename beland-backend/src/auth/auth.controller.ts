@@ -145,8 +145,8 @@ export class AuthController {
     return await this.authService.signin(userLogin);
   }
 
-    @Post('signupNew')
-  @ApiOperation({ summary: 'Registra usuarios nuevos' })
+    @Post('signupVerification')
+  @ApiOperation({ summary: 'Envia la Verificaicon de email con el codigo' })
   @ApiBody({
     description:
       'Ingrese todos los datos requeridos para el registro de usuario',
@@ -225,7 +225,7 @@ export class AuthController {
     },
     // --- END: Explicitly define schema ---
   })
-  async signupNew(@Body() user: RegisterAuthDto): Promise<{ token: string }> {
-    return await this.authService.signupNew(user);
+  async signupVerification(@Body() user: RegisterAuthDto): Promise<{ message: string }> {
+    return await this.authService.signupVerification(user);
   }
 }

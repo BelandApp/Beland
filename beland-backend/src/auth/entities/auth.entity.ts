@@ -29,7 +29,7 @@ export class AuthVerification {
   address?: string;
 
   @Column({ nullable: true })
-  phone?: string;
+  phone?: number;
 
   @Column({ nullable: true })
   country?: string;
