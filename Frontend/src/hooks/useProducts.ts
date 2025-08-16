@@ -43,7 +43,7 @@ export function useProducts(initialQuery: ProductQuery = {}) {
     query.limit,
     query.sortBy,
     query.order,
-    query.category,
+    query.category_id,
     query.name,
   ]);
 

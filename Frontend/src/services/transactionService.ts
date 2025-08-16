@@ -6,6 +6,7 @@ export interface Transaction {
   user_id?: string;
   wallet_id: string;
   amount: number;
+  amount_beicon?: number;
   type_id?: string;
   status_id?: string;
   transaction_type_id?: string;

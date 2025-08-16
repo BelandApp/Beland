@@ -7,13 +7,13 @@ import { walletService, Wallet } from "../../../services/walletService";
 
 export const useWalletData = () => {
   const { user } = useAuth();
-  const { balance, getBeCoinsInUSD, setBalance } = useBeCoinsStore();
+  const { balance, setBalance } = useBeCoinsStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullWalletData, setFullWalletData] = useState<Wallet | null>(null);
 
   const fetchWalletData = async () => {
-    if (!user?.email) {
+    if (!user?.email || !user?.id) {
       return;
     }
 
@@ -21,7 +21,7 @@ export const useWalletData = () => {
     setError(null);
 
     try {
-      const wallet = await walletService.getWalletByUserId(user.email);
+      const wallet = await walletService.getWalletByUserId(user.email, user.id);
 
       // Convertir el balance del backend (string) a número
       const backendBalance =
@@ -59,14 +59,14 @@ export const useWalletData = () => {
 
   const walletData: WalletData = {
     balance: balance, // Balance del store (actualizado desde backend o demo)
-    estimatedValue: formatUSDPrice(getBeCoinsInUSD()), // Valor estimado en USD
+    estimatedValue: formatUSDPrice(balance * 0.05), // Valor estimado en USD (solo conversión directa)
   };
 
   // Debug log para verificar cálculos
   console.log("🔍 WalletData debug:", {
     balance: balance,
-    beCoinsInUSD: getBeCoinsInUSD(),
-    estimatedValue: formatUSDPrice(getBeCoinsInUSD()),
+    beCoinsInUSD: balance * 0.05,
+    estimatedValue: formatUSDPrice(balance * 0.05),
   });
 
   return {

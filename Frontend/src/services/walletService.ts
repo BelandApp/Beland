@@ -18,9 +18,9 @@ export interface RechargeRequest {
   wallet_id: string;
   amountUsd: number;
   referenceCode: string;
-  clientTransactionId?: string;
-  transactionId?: number;
-  recarge_method?: "CREDIT_CARD" | "DEBIT_CARD" | "PAYPHONE" | "BANK_TRANSFER";
+  clientTransactionId: string; // UUID
+  payphone_transactionId: number;
+  // recarge_method?: "CREDIT_CARD" | "DEBIT_CARD" | "PAYPHONE" | "BANK_TRANSFER";
 }
 
 export interface TransferRequest {
@@ -47,7 +47,7 @@ export interface PendingTransferRequest {
 
 class WalletService {
   // Obtener billetera por email de usuario
-  async getWalletByUserId(userEmail: string): Promise<Wallet> {
+  async getWalletByUserId(userEmail: string, userId?: string): Promise<Wallet> {
     try {
       // El backend devuelve un solo objeto wallet para el usuario autenticado
       const wallet = await apiRequest(`/wallets`, {
@@ -58,7 +58,13 @@ class WalletService {
       } else {
         // Si no existe, crearla automáticamente
         const alias = userEmail.split("@")[0];
+        if (!userId) {
+          throw new Error(
+            "No se puede crear la wallet: userId es requerido por el backend."
+          );
+        }
         const newWallet = await this.createWallet({
+          userId,
           alias: alias,
         });
         console.log("✅ Billetera creada automáticamente con alias:", alias);
@@ -122,6 +128,7 @@ class WalletService {
   // Función helper para recargar usando email del usuario
   async rechargeByUserEmail(
     userEmail: string,
+    userId: string,
     amountUsd: number,
     recargeMethod:
       | "CREDIT_CARD"
@@ -133,7 +140,7 @@ class WalletService {
       console.log(`💰 Iniciando recarga para ${userEmail}: $${amountUsd} USD`);
 
       // Obtener la wallet del usuario
-      const wallet = await this.getWalletByUserId(userEmail);
+      const wallet = await this.getWalletByUserId(userEmail, userId);
       console.log("📱 Wallet obtenida:", wallet.id);
 
       // Generar código de referencia único
@@ -141,14 +148,15 @@ class WalletService {
         .toString(36)
         .substr(2, 9)}`;
 
-      // Crear la recarga
-      const rechargeData: RechargeRequest = {
+      // Crear la recarga con los tipos correctos
+      const numericReference =
+        Number(referenceCode.replace(/\D/g, "")) || Date.now();
+      const rechargeData = {
         wallet_id: wallet.id,
         amountUsd: amountUsd,
         referenceCode: referenceCode,
-        clientTransactionId: referenceCode, // Para pruebas, igual al referenceCode
-        transactionId: amountUsd, // Para pruebas, igual al amountUsd
-        recarge_method: recargeMethod,
+        payphone_transactionId: Date.now(), // número
+        clientTransactionId: wallet.id, // UUID string
       };
 
       const result = await this.createRecharge(rechargeData);

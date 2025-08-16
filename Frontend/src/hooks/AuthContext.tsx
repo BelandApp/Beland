@@ -98,26 +98,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Funciones auxiliares de manejo de token
 const saveToken = async (token: string) => {
+  // Sincroniza el token con zustand para que apiRequest lo use
+  useAuthTokenStore.getState().setToken(token);
   if (Platform.OS === "web") {
-    localStorage.setItem("access_token", token);
+    localStorage.setItem("auth_token", token);
   } else {
-    await SecureStore.setItemAsync("access_token", token);
+    await SecureStore.setItemAsync("auth_token", token);
   }
 };
 
 const getToken = async (): Promise<string | null> => {
   if (Platform.OS === "web") {
-    return localStorage.getItem("access_token");
+    return localStorage.getItem("auth_token");
   } else {
-    return await SecureStore.getItemAsync("access_token");
+    return await SecureStore.getItemAsync("auth_token");
   }
 };
 
 const deleteToken = async () => {
   if (Platform.OS === "web") {
-    localStorage.removeItem("access_token");
+    localStorage.removeItem("auth_token");
   } else {
-    await SecureStore.deleteItemAsync("access_token");
+    await SecureStore.deleteItemAsync("auth_token");
   }
 };
 
@@ -125,8 +127,13 @@ const deleteToken = async () => {
 const fetchUserProfileFromBackend = async (
   token: string
 ): Promise<AuthUser> => {
-  const res = await fetch(`${apiBaseUrl}auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const res = await fetch(`${apiBaseUrl}/auth/me`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -161,7 +168,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateBeCoinsBalance = async (userEmail: string) => {
     try {
-      const wallet = await walletService.getWalletByUserId(userEmail);
+      if (!user) return;
+      const wallet = await walletService.getWalletByUserId(user.email, user.id);
       if (wallet && wallet.becoin_balance !== undefined) {
         const balanceNum = Number(wallet.becoin_balance);
         useBeCoinsStore
@@ -254,12 +262,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        const authUser = await fetchUserProfileFromBackend(token);
+        // Obtiene perfil y balance en paralelo
+        const authUserPromise = fetchUserProfileFromBackend(token);
+        let authUser: AuthUser | null = null;
+        let balancePromise: Promise<void> | null = null;
+
+        authUser = await authUserPromise;
         setUser(authUser);
         setIsDemo(false);
 
         if (authUser?.email) {
-          await updateBeCoinsBalance(authUser.email);
+          balancePromise = updateBeCoinsBalance(authUser.email);
+        }
+
+        // No bloquea la UI por el balance, solo espera el perfil
+        if (balancePromise) {
+          balancePromise.catch((e) => {
+            console.error("No se pudo actualizar el balance de BeCoins:", e);
+          });
         }
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
@@ -398,7 +418,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loginAsDemo,
         loginWithEmailPassword,
         registerWithEmailPassword,
-      }}>
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
