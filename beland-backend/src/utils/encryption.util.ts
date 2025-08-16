@@ -1,3 +1,5 @@
+import * as CryptoJS from "crypto-js";
+
 //funcion que encripta en AES 256 CBC sin vector de inicializacion
 export function encrypted_aes(optionalParameter4: string) {
     var key = CryptoJS.enc.Utf8.parse(process.env.PAYPHONE_CODIFICATION_PASSWORD);
