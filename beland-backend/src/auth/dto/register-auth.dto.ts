@@ -1,7 +1,7 @@
 // src/auth/dto/register-auth.dto.ts
 import { PickType } from '@nestjs/mapped-types';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsOptional,
@@ -22,15 +22,14 @@ export class RegisterAuthDto extends PickType(CreateUserDto, [
   // Estos campos NO deben estar en el array de PickType si son opcionales.
 
   @ApiProperty({
-    description: 'Nombre de usuario (opcional)',
+    description: 'Nombre de usuario',
     example: 'johndoe',
-    required: false, // Explicitly optional for Swagger
+    required: true, // Explicitly optional for Swagger
   })
-  @IsOptional()
   @IsString()
-  username?: string; // Marked as optional here
+  username: string; // Marked as optional here
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Nombre completo del usuario (opcional)',
     example: 'John Doe',
     required: false,
