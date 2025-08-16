@@ -45,11 +45,10 @@ export class CategoryController {
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Req() req: Request,
   ): Promise<[Category[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(req.user?.id, pageNumber, limitNumber);
+    return await this.service.findAll(pageNumber, limitNumber);
   }
 
   @Get(':id')

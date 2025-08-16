@@ -48,6 +48,7 @@ import { CategoryModule } from './category/category.module';
 import { GroupInvitationsModule } from './group-invitations/group-invitations.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { GroupTypeModule } from './group-type/group-type.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -95,7 +96,7 @@ import { GroupTypeModule } from './group-type/group-type.module';
     ScheduleModule.forRoot(),
 
     DatabaseModule,
-    //DatabaseInitModule,
+    DatabaseInitModule,
     UsersModule,
     RolesModule,
     WalletsModule,
@@ -130,6 +131,7 @@ import { GroupTypeModule } from './group-type/group-type.module';
     CategoryModule,
     GroupInvitationsModule,
     GroupTypeModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [

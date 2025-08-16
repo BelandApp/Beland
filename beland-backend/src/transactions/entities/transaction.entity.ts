@@ -35,13 +35,13 @@ export class Transaction {
   @Column('uuid')
   status_id: string;
 
-  @Column({ type: 'decimal' })
+  @Column({ type: 'numeric', precision: 14, scale:2 })
   amount: number; // importe en Dolares (positivo o negativo según tipo)
 
-  @Column({ type: 'decimal' })
+  @Column({ type: 'numeric', precision: 14, scale:2  })
   amount_beicon: number; // importe en Becoin (positivo o negativo según tipo)
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', precision: 14, scale:2  })
   post_balance: number; // saldo resultante tras la operación
 
   @Column({ type: 'text', nullable: true })
