@@ -16,7 +16,8 @@ export class InvitationCleanupService {
    * Se ejecuta cada 30 segundos para pruebas, o diariamente a las 2:00 AM para producción.
    */
   // @Cron(CronExpression.EVERY_DAY_AT_2AM) // Configuración para producción
-  @Cron('0 0 8 * * *') // todos los días a las 08:00:00
+  @Cron(CronExpression.EVERY_12_HOURS) // Configuración para producción
+  // @Cron('*/60 * * * * *') // PARA PRUEBAS: cada 60 segundos (con segundos al final)
   async handleCron(): Promise<void> {
     this.logger.debug(
       'handleCron(): Ejecutando tarea programada de limpieza de invitaciones expiradas...',
