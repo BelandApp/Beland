@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   productsService,
-  Product,
   ProductQuery,
   ProductsResponse,
 } from "../services/productsService";
+import { Product } from "src/types/Products";
 
 export function useProducts(initialQuery: ProductQuery = {}) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -38,14 +38,34 @@ export function useProducts(initialQuery: ProductQuery = {}) {
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    query.page,
-    query.limit,
-    query.sortBy,
-    query.order,
-    query.category_id,
-    query.name,
-  ]);
+  }, [query]);
+
+  const goToNextPage = useCallback(() => {
+    if (page * limit < total) {
+      setQuery(prev => ({ ...prev, page: prev.page ? prev.page + 1 : 2 }));
+    }
+  }, [page, limit, total]);
+
+  const goToPreviousPage = useCallback(() => {
+    if (page > 1) {
+      setQuery(prev => ({ ...prev, page: prev.page ? prev.page - 1 : 1 }));
+    }
+  }, [page]);
+
+  const updateQuery = useCallback((newQuery: Partial<ProductQuery>) => {
+    setQuery(prev => {
+      const merged = {
+        ...prev,
+        ...newQuery,
+        page: 1,
+      };
+      // 👇 Evita el loop si el query no cambia realmente
+      if (JSON.stringify(prev) === JSON.stringify(merged)) {
+        return prev;
+      }
+      return merged;
+    });
+  }, []);
 
   return {
     products,
@@ -54,7 +74,10 @@ export function useProducts(initialQuery: ProductQuery = {}) {
     limit,
     loading,
     error,
-    setQuery,
+    query,
     fetchProducts,
+    updateQuery,
+    goToNextPage,
+    goToPreviousPage,
   };
 }

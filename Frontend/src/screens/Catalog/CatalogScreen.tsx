@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  StyleSheet,
 } from "react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { useCreateGroupStore } from "../../stores/useCreateGroupStore";
 import { ConfirmationAlert } from "../../components/ui/ConfirmationAlert";
 import { BeCoinsBalance } from "../../components/ui/BeCoinsBalance";
@@ -16,9 +17,7 @@ import * as Haptics from "expo-haptics";
 // Hooks
 import { useCatalogFilters, useCatalogModals } from "./hooks";
 import { useProducts } from "../../hooks/useProducts";
-import { productsService } from "../../services/productsService";
 import { categoryService } from "../../services/categoryService";
-import { Product } from "../../services/productsService";
 import { ProductCardType } from "./components/ProductCard";
 
 // Components
@@ -34,8 +33,6 @@ import {
 import { containerStyles } from "./styles";
 
 // Types
-
-// import { AvailableProduct, AVAILABLE_PRODUCTS } from "../../data/products";
 import { Group } from "../../types";
 
 import { useCartStore } from "../../stores/useCartStore";
@@ -43,7 +40,6 @@ import { CartBottomSheet } from "./components/CartBottomSheet";
 import { GroupSelectModal } from "./components/GroupSelectModal";
 import { useGroupAdminStore } from "../../stores/groupStores";
 import { GroupService } from "../../services/groupService";
-import { StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const CatalogScreen = () => {
@@ -52,20 +48,19 @@ export const CatalogScreen = () => {
     (navigation as any)
       .getState?.()
       ?.routes?.find?.((r: any) => r.name === "Catalog") || {};
-  // Si se navega desde la gestión de grupo, se espera groupId en params
   const groupId = route?.params?.groupId;
+
   const {
     addProduct: addProductToCart,
     products: cartProducts,
     clearCart,
   } = useCartStore();
+
   const { addProductToGroup } = useGroupAdminStore();
-  // Modal de selección de grupo
   const [showGroupSelect, setShowGroupSelect] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const { setIsCreatingGroup, isCreatingGroup } = useCreateGroupStore();
 
-  // Hooks para manejo de estado
   const {
     searchText,
     setSearchText,
@@ -73,7 +68,6 @@ export const CatalogScreen = () => {
     setFilters,
     showFilters,
     setShowFilters,
-    resetFilters,
   } = useCatalogFilters();
 
   const {
@@ -86,37 +80,23 @@ export const CatalogScreen = () => {
     closeProductAddedModal,
   } = useCatalogModals();
 
-  // Estado para el alert de confirmación
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   const [showRouteInfo, setShowRouteInfo] = useState(false);
-  // Estado para el carrito
   const [showCart, setShowCart] = useState(false);
   const [allCategories, setAllCategories] = useState<
     { id: string; name: string }[]
   >([]);
+
   const selectedCategoryId = allCategories.find(
-    (cat) => cat.name === filters.categories[0]
+    cat => cat.name === filters.categories[0]
   )?.id;
+
   const brands: string[] = [];
-  // Eliminado: const { products } = useCartStore();
 
-  // Hook para productos desde el backend
-  // ...existing code...
-
-  // Hook para productos desde el backend
-  const {
-    products,
-    total,
-    page,
-    limit,
-    loading,
-    error,
-    setQuery,
-    fetchProducts,
-  } = useProducts({
+  const { products, loading, error, updateQuery } = useProducts({
     page: 1,
-    category_id: undefined, // Se inicializa sin categoría
+    category_id: undefined,
     name: searchText,
     sortBy: filters.sortBy || undefined,
     order: filters.order || undefined,
@@ -131,32 +111,28 @@ export const CatalogScreen = () => {
       sortBy: filters.sortBy || undefined,
       order: filters.order || undefined,
     };
-    setQuery(query);
-  }, [filters, searchText, setQuery, selectedCategoryId]);
 
-  // Obtener todas las categorías posibles desde el endpoint /category
+    updateQuery(query);
+  }, [filters, searchText, selectedCategoryId]);
 
   useEffect(() => {
     (async () => {
       try {
         const categories = await categoryService.getCategories();
         setAllCategories(
-          categories.map((cat) => ({ id: cat.id, name: cat.name }))
+          categories.map(cat => ({ id: cat.id, name: cat.name }))
         );
       } catch (e: any) {
         console.error("[CATEGORIAS] Error al cargar categorías:", e);
-        // Fallback: categorías únicas de los productos
         const cats = Array.from(
-          new Set((products || []).map((p) => p.category).filter(Boolean))
-        ).map((name) => ({ id: String(name), name: String(name) }));
+          new Set((products || []).map(p => p.category).filter(Boolean))
+        ).map(name => ({ id: String(name), name: String(name) }));
         setAllCategories(cats);
       }
     })();
   }, [products]);
 
-  // Función para agregar producto
   const handleAddProduct = (product: ProductCardType) => {
-    // Solo permite agregar productos del backend (Product), no del carrito
     if ("image_url" in product) {
       addProductToCart({
         id: product.id,
@@ -169,7 +145,6 @@ export const CatalogScreen = () => {
     }
   };
 
-  // Funciones para modales
   const handleContinueAddingProducts = () => {
     closeProductAddedModal();
   };
@@ -183,16 +158,14 @@ export const CatalogScreen = () => {
 
   const handleCreateCircularGroup = () => {
     closeDeliveryModal();
-    // Mostrar modal de selección de grupo existente
     const activeGroups = GroupService.getActiveGroups();
     setGroups(activeGroups);
     setShowGroupSelect(true);
   };
 
-  // Al seleccionar un grupo, mover productos del carrito a ese grupo
   const handleSelectGroup = (group: Group) => {
     if (cartProducts && cartProducts.length > 0) {
-      cartProducts.forEach((prod) => {
+      cartProducts.forEach(prod => {
         addProductToGroup(group.id, {
           id: prod.id,
           name: prod.name,
@@ -207,7 +180,6 @@ export const CatalogScreen = () => {
       clearCart();
     }
     setShowGroupSelect(false);
-    // Navegar a la administración del grupo dentro del stack correcto
     (navigation as any).navigate("Groups", {
       screen: "GroupManagement",
       params: { groupId: group.id },
@@ -216,7 +188,6 @@ export const CatalogScreen = () => {
 
   const handleHomeDelivery = () => {
     closeDeliveryModal();
-    // Mostrar información de entrega con nuestro alert personalizado
     setShowDeliveryInfo(true);
   };
 
@@ -225,9 +196,7 @@ export const CatalogScreen = () => {
     setShowRouteInfo(true);
   };
 
-  // Funciones para navegación
   const handleBackToGroup = () => {
-    // Feedback háptico
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     (navigation as any).navigate("Groups", {
       screen: "CreateGroup",
@@ -235,14 +204,12 @@ export const CatalogScreen = () => {
   };
 
   const handleCancelGroup = () => {
-    // Feedback háptico
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowCancelConfirmation(true);
   };
 
   const confirmCancelGroup = () => {
     setIsCreatingGroup(false);
-    // Limpiar solo el estado de grupo (sin productos)
     useCreateGroupStore.getState().clearGroup();
     setShowCancelConfirmation(false);
     (navigation as any).goBack();
@@ -255,8 +222,7 @@ export const CatalogScreen = () => {
         style={[
           containerStyles.headerContainer,
           isCreatingGroup && containerStyles.headerCreatingGroup,
-        ]}
-      >
+        ]}>
         <View style={containerStyles.headerRow}>
           <View style={containerStyles.headerLeft}>
             <View style={containerStyles.headerTitles}>
@@ -282,8 +248,7 @@ export const CatalogScreen = () => {
               <TouchableOpacity
                 style={styles.headerCartBtn}
                 onPress={() => setShowCart(true)}
-                activeOpacity={0.8}
-              >
+                activeOpacity={0.8}>
                 <MaterialCommunityIcons
                   name="cart-variant"
                   size={32}
@@ -303,8 +268,7 @@ export const CatalogScreen = () => {
             <View style={containerStyles.groupActions}>
               <TouchableOpacity
                 style={containerStyles.groupActionButton}
-                onPress={handleBackToGroup}
-              >
+                onPress={handleBackToGroup}>
                 <Text style={containerStyles.groupActionIcon}>👥</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -312,8 +276,7 @@ export const CatalogScreen = () => {
                   containerStyles.groupActionButton,
                   containerStyles.cancelButton,
                 ]}
-                onPress={handleCancelGroup}
-              >
+                onPress={handleCancelGroup}>
                 <Text style={containerStyles.groupActionIcon}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -325,32 +288,26 @@ export const CatalogScreen = () => {
       <ScrollView
         style={containerStyles.container}
         contentContainerStyle={containerStyles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search Bar */}
+        showsVerticalScrollIndicator={false}>
         <SearchBar searchQuery={searchText} onSearchChange={setSearchText} />
 
-        {/* Filter Panel */}
         {showFilters && (
           <FilterPanel
             filters={filters}
             onFiltersChange={setFilters}
-            categories={allCategories.map((cat) => cat.name)}
+            categories={allCategories.map(cat => cat.name)}
             brands={brands}
           />
         )}
 
-        {/* Toggle Filters Button */}
         <TouchableOpacity
           style={{ marginBottom: 16, alignSelf: "flex-end" }}
-          onPress={() => setShowFilters(!showFilters)}
-        >
+          onPress={() => setShowFilters(!showFilters)}>
           <Text style={{ color: "#FF6B35", fontWeight: "600" }}>
             {showFilters ? "Ocultar filtros" : "Mostrar filtros"}
           </Text>
         </TouchableOpacity>
 
-        {/* Product Grid */}
         {loading ? (
           <Text style={{ textAlign: "center", marginTop: 32 }}>
             Cargando productos...
@@ -364,7 +321,6 @@ export const CatalogScreen = () => {
         )}
       </ScrollView>
 
-      {/* Bottom Sheet del carrito */}
       <CartBottomSheet
         visible={showCart}
         onClose={() => setShowCart(false)}
@@ -372,7 +328,7 @@ export const CatalogScreen = () => {
           setShowCart(false);
           if (cartProducts.length > 0) {
             const cartProd = cartProducts[0];
-            const fullProduct = products.find((p) => p.id === cartProd.id);
+            const fullProduct = products.find(p => p.id === cartProd.id);
             if (fullProduct) {
               openDeliveryModal(fullProduct);
             } else {
@@ -386,7 +342,6 @@ export const CatalogScreen = () => {
         }}
       />
 
-      {/* Delivery Modal */}
       <DeliveryModal
         visible={showDeliveryModal}
         onClose={closeDeliveryModal}
@@ -394,14 +349,12 @@ export const CatalogScreen = () => {
         onSelectDelivery={handleHomeDelivery}
       />
 
-      {/* Product Added Modal */}
       <ProductAddedModal
         visible={showProductAddedModal}
         onContinueAdding={handleContinueAddingProducts}
         onContinueGroup={handleContinueCreatingGroup}
       />
 
-      {/* Alerta de confirmación para cancelar grupo */}
       <ConfirmationAlert
         visible={showCancelConfirmation}
         title="¿Cancelar creación del grupo?"
@@ -414,7 +367,6 @@ export const CatalogScreen = () => {
         onCancel={() => setShowCancelConfirmation(false)}
       />
 
-      {/* Alerta de información de entrega */}
       <ConfirmationAlert
         visible={showDeliveryInfo}
         title="Entrega a domicilio"
@@ -427,7 +379,6 @@ export const CatalogScreen = () => {
         onCancel={() => setShowDeliveryInfo(false)}
       />
 
-      {/* Alerta de información de ruta */}
       <ConfirmationAlert
         visible={showRouteInfo}
         title="Funcionalidad en desarrollo"
@@ -439,7 +390,7 @@ export const CatalogScreen = () => {
         onConfirm={() => setShowRouteInfo(false)}
         onCancel={() => setShowRouteInfo(false)}
       />
-      {/* Modal para elegir grupo existente */}
+
       <GroupSelectModal
         visible={showGroupSelect}
         groups={groups}
@@ -465,9 +416,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 2,
   },
-  headerCartIcon: {
-    // El icono ahora es un componente, así que solo ajusta el tamaño si es necesario
-  },
+  headerCartIcon: {},
   headerBadge: {
     position: "absolute",
     top: 2,
