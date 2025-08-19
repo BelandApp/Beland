@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Payment } from 'src/payments/entities/payment.entity';
 import { Order } from 'src/orders/entities/order.entity';
 
 @Entity('payment_types')
