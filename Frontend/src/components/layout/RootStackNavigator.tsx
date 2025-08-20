@@ -9,8 +9,8 @@ import RechargeScreen from "../../screens/Wallet/RechargeScreen";
 import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { HistoryScreen, RecyclingMapScreen } from "../../screens";
-
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
+import { HomeScreen } from "../../screens/HomeScreen";
 import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
 
 export type RootStackParamList = {
@@ -89,11 +89,11 @@ export const RootStackNavigator = () => {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="UserDashboardScreen"
-        component={UserDashboardScreen}
+        name="Home"
+        component={HomeScreen}
         options={{
           headerShown: true,
-          title: "Mapa de Reciclaje",
+          title: "Beland",
         }}
       />
       <Stack.Screen

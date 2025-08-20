@@ -49,6 +49,10 @@ import { GroupInvitationsModule } from './group-invitations/group-invitations.mo
 import { ScheduleModule } from '@nestjs/schedule';
 import { GroupTypeModule } from './group-type/group-type.module';
 import { EmailModule } from './email/email.module';
+import { ResourcesModule } from './resources/resources.module';
+import { ResourcesTypesModule } from './resources-types/resources-types.module';
+import { UserResourcesModule } from './user-resources/user-resources.module';
+import { SuperadminModule } from './superadmin-config/superadmin-config.module';
 
 @Module({
   imports: [
@@ -132,6 +136,10 @@ import { EmailModule } from './email/email.module';
     GroupInvitationsModule,
     GroupTypeModule,
     EmailModule,
+    ResourcesModule,
+    ResourcesTypesModule,
+    UserResourcesModule,
+    SuperadminModule,
   ],
   controllers: [],
   providers: [

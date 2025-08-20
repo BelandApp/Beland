@@ -8,6 +8,7 @@ import preloadTS from './json/transactionState.json';
 import preloadProduct from './json/products.json';
 import preloadPaymentType from './json/paymentType.json';
 import preloadGroupType from './json/groupType.json';
+import preloadResourceType from './json/resourceType.json';
 
 // Entidades
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
@@ -18,6 +19,7 @@ import { Repository } from 'typeorm';
 import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 import { Category } from 'src/category/entities/category.entity';
 import { GroupType } from 'src/group-type/entities/group-type.entity';
+import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
@@ -38,6 +40,8 @@ export class DatabaseInitService implements OnModuleInit {
     private readonly CatRepo: Repository<Category>,
     @InjectRepository(GroupType)
     private readonly groupTypeRepo: Repository<GroupType>,
+    @InjectRepository(ResourcesType)
+    private readonly resourceTypeRepo: Repository<ResourcesType>,
   ) {}
 
   async preload<T>(
@@ -82,6 +86,7 @@ export class DatabaseInitService implements OnModuleInit {
         count++;
       }
     }
+
     console.log(`Se agregaron ${countCat} Categorias`);
     console.log(`Se agregaron ${count} Productos`);
     } catch (error) {
@@ -105,6 +110,7 @@ export class DatabaseInitService implements OnModuleInit {
       await this.preloadProd();
       await this.preload<PaymentType>(preloadPaymentType, this.payTypeRepo, 'code', 'Formas de Pago');
       await this.preload<GroupType>(preloadGroupType, this.groupTypeRepo, 'name', 'Tipos de Grupos');
+      await this.preload<ResourcesType>(preloadResourceType, this.resourceTypeRepo, 'code', 'Tipos de Recursos');
     } catch (error: any) {
 
       this.logger.error(

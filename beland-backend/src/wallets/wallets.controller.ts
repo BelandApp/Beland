@@ -29,13 +29,16 @@ import { RechargeDto } from './dto/recharge.dto';
 import { TransferDto } from './dto/transfer.dto';
 import { Request } from 'express';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 
 @ApiTags('wallets')
 @Controller('wallets')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(FlexibleAuthGuard)
 export class WalletsController {
-  constructor(private readonly service: WalletsService) {}
+  constructor(private readonly service: WalletsService,
+    private readonly superadminConfig: SuperadminConfigService,
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -104,8 +107,8 @@ export class WalletsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva recarga o compra de Beicon' })
   @ApiResponse({ status: 201, description: 'Recarga Exitosamente' })
-  async recharge(@Body() dto: RechargeDto): Promise<{wallet: Wallet}> {
-    return await this.service.recharge(dto);
+  async recharge(@Body() dto: RechargeDto, @Req() req: Request): Promise<{wallet: Wallet}> {
+    return await this.service.recharge(req.user?.id, dto);
   }
 
   /*// tenemos que resolver que hacer con este
@@ -118,14 +121,45 @@ export class WalletsController {
     return await this.service.withdraw(userId, dto);
   }*/
   
-  @Post('transfer/:wallet_id')
+  @Post('transfer')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva transferencia' })
-  @ApiParam({ name: 'wallet_id', description: 'UUID de la billetera' })
   @ApiResponse({ status: 201, description: 'Transferencia Exitosa' })
-  async transfer(@Param('wallet_id', ParseUUIDPipe) wallet_id: string, @Body() dto: TransferDto): Promise<{ wallet: Wallet }> {
-    return await this.service.transfer(wallet_id, dto);
+  async transfer(@Req() req: Request, @Body() dto: TransferDto): Promise<{ wallet: Wallet }> {
+    return await this.service.transfer(req.user?.id, dto);
   }
 
-  
+  @Post('purchase-becoin')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear una nueva compra a una entidad con becoin. Por medio de QR (debe desencriptarse u enviar el uuid de la wallet del vendedor contenido)' })
+  @ApiResponse({ status: 201, description: 'Compra Exitosamente' })
+  async purchaseBecoin(@Req() req: Request, @Body() dto: TransferDto): Promise<{wallet: Wallet}> {
+    return await this.service.transfer(
+      req.user?.id, 
+      dto,
+      'PURCHASE',
+      'SEND',
+    );
+  }
+
+  @Post('purchase-recharge/:to_wallet_id')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear una nueva compra a una entidad. Por medio de QR (debe desencriptarse u enviar el uuid de la wallet del vendedor contenido)' })
+  @ApiParam({ name: 'to_wallet_id', description: 'UUID de la billetera que compra' })
+  @ApiResponse({ status: 201, description: 'Compra Exitosamente' })
+  async purchase(
+    @Param('to_wallet_id', ParseUUIDPipe) to_wallet_id: string, 
+    @Body() dto: RechargeDto,
+    @Req() req: Request,
+  ): Promise<{wallet: Wallet}> {
+    await this.service.recharge(req.user?.id, dto);
+    const toWalletId = to_wallet_id;
+    const amountBecoin = dto.amountUsd / +this.superadminConfig.getPriceOneBecoin;
+    return await this.service.transfer(
+      req.user?.id,
+      {toWalletId, amountBecoin},
+      'PURCHASE',
+      'SEND',
+    );
+  }
 }
