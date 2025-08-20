@@ -5,7 +5,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 export class AuthVerification {
   
   @PrimaryGeneratedColumn("uuid")
-  id: string;
+  id: string; 
 
   @Column({ length: 6 })
   code: string; // código de verificación de 6 dígitos
@@ -13,14 +13,23 @@ export class AuthVerification {
   @Column({ unique: true })
   email: string;
 
-  @Column()
-  name: string;
+  @Column('varchar')
+  username: string;
+  
+  @Column('varchar', {nullable:true})
+  full_name: string;
+
+  @Column('varchar', {nullable:true})
+  profile_picture_url:string
 
   @ManyToOne(() => Role)
   @JoinColumn({name: 'role_id'})
   role: Role;
   @Column('uuid')
   role_id:string;
+ 
+  @Column('varchar')
+  role_name: string;
 
   @Column({ name: "password_hashed" })
   passwordHashed: string;

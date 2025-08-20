@@ -19,8 +19,16 @@ export class CreateResourcesTypeDto {
   code: ResourceTypeCode;
 
   @ApiProperty({
-    description: 'Description of the resource type',
+    description: 'Name of the resource type',
     example: 'Descuentos Beland',
+  })
+  @IsNotEmpty()
+  @MaxLength(150) // 👈 ojo que tu entity es varchar(150)
+  name: string;
+
+  @ApiProperty({
+    description: 'Description of the resource type',
+    example: 'Descuento aplicable en compras o servicios',
   })
   @IsNotEmpty()
   @MaxLength(150) // 👈 ojo que tu entity es varchar(150)

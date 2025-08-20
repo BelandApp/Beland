@@ -19,8 +19,11 @@ export class ResourcesType {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'enum', enum: ResourceTypeCode, unique: true })
-  code: ResourceTypeCode;
+  @Column({ type: 'varchar', unique: true })
+  code: string;
+
+  @Column({ type: 'varchar', length: 150 })
+  name: string;
 
   @Column({ type: 'varchar', length: 150 })
   description: string;
