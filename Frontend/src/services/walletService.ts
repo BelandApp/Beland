@@ -46,30 +46,53 @@ export interface PendingTransferRequest {
 }
 
 class WalletService {
+  // Recarga usando el modo API Payphone (el backend hace toda la integración)
+  async rechargeWithPayphoneAPI(data: {
+    userId: string;
+    email: string;
+    amount: number;
+    paymentMethod: string;
+  }): Promise<{ wallet: Wallet }> {
+    // Utiliza el userId si es UUID válido, si no genera uno
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const clientTransactionId = uuidRegex.test(data.userId)
+      ? data.userId
+      : typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-fake-uuid-frontend`;
+    const payload = {
+      wallet_id: data.userId,
+      amountUsd: data.amount,
+      referenceCode: `RCH-${Date.now()}`,
+      clientTransactionId,
+      payphone_transactionId: Date.now(), // Valor temporal para pruebas
+    };
+    console.log("[Recarga API] Payload enviado al backend:", payload);
+    return await apiRequest("/wallets/recharge", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
   // Obtener billetera por email de usuario
   async getWalletByUserId(userEmail: string, userId?: string): Promise<Wallet> {
     try {
-      // El backend devuelve un solo objeto wallet para el usuario autenticado
-      const wallet = await apiRequest(`/wallets`, {
+      // El backend devuelve un array de wallets para el usuario autenticado
+      const response = await apiRequest(`/wallets`, {
         method: "GET",
       });
-      if (wallet && wallet.id) {
-        return wallet;
-      } else {
-        // Si no existe, crearla automáticamente
-        const alias = userEmail.split("@")[0];
-        if (!userId) {
-          throw new Error(
-            "No se puede crear la wallet: userId es requerido por el backend."
-          );
-        }
-        const newWallet = await this.createWallet({
-          userId,
-          alias: alias,
-        });
-        console.log("✅ Billetera creada automáticamente con alias:", alias);
-        return newWallet;
+      // Si la respuesta es un array, toma la primera wallet existente
+      if (Array.isArray(response) && response[0]?.length > 0) {
+        return response[0][0];
       }
+      // Si la respuesta es un objeto único (compatibilidad)
+      if (response && response.id) {
+        return response;
+      }
+      // Si no existe ninguna wallet, lanza error (no crear automáticamente)
+      throw new Error(
+        "No existe una wallet para este usuario. Contacta soporte."
+      );
     } catch (error) {
       console.error("Error getting wallet by user email:", error);
       throw error;
@@ -151,12 +174,19 @@ class WalletService {
       // Crear la recarga con los tipos correctos
       const numericReference =
         Number(referenceCode.replace(/\D/g, "")) || Date.now();
+      // Generar UUID único para la transacción
+      let clientTransactionId;
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        clientTransactionId = crypto.randomUUID();
+      } else {
+        clientTransactionId = `${Date.now()}-tx-uuid`;
+      }
       const rechargeData = {
         wallet_id: wallet.id,
         amountUsd: amountUsd,
         referenceCode: referenceCode,
         payphone_transactionId: Date.now(), // número
-        clientTransactionId: wallet.id, // UUID string
+        clientTransactionId,
       };
 
       const result = await this.createRecharge(rechargeData);

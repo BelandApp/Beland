@@ -11,6 +11,7 @@ import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { HistoryScreen, RecyclingMapScreen } from "../../screens";
 
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
+import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   Catalog: undefined;
   Groups: undefined;
   UserDashboardScreen: undefined;
+  PayphoneSuccess: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -93,6 +95,11 @@ export const RootStackNavigator = () => {
           headerShown: true,
           title: "Mapa de Reciclaje",
         }}
+      />
+      <Stack.Screen
+        name="PayphoneSuccess"
+        component={PayphoneSuccessScreen}
+        options={{ headerShown: false, title: "Recarga Payphone" }}
       />
     </Stack.Navigator>
   );
