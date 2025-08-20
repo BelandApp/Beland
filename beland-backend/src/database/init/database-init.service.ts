@@ -86,6 +86,7 @@ export class DatabaseInitService implements OnModuleInit {
         count++;
       }
     }
+
     console.log(`Se agregaron ${countCat} Categorias`);
     console.log(`Se agregaron ${count} Productos`);
     } catch (error) {
