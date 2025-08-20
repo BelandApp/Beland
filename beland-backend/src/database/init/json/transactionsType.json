@@ -10,8 +10,13 @@
     "description": "Conversión de BECOIN a USD y transferencia a cuenta bancaria"
   },
   {
-    "code": "TRANSFER",
-    "name": "Transferencia",
+    "code": "TRANSFER_SEND",
+    "name": "Transferencia Enviada",
+    "description": "Transferencia de BECOIN entre usuarios"
+  },
+  {
+    "code": "TRANSFER_RECEIVED",
+    "name": "Transferencia Recibida",
     "description": "Transferencia de BECOIN entre usuarios"
   },
   {
@@ -20,7 +25,17 @@
     "description": "Compra de productos o servicios con BECOIN"
   },
   {
+    "code": "PURCHASE_BELAND",
+    "name": "Compra Beland",
+    "description": "Compra de productos o servicios con BECOIN en BELAND"
+  },
+  {
     "code": "SALE",
+    "name": "Venta",
+    "description": "Venta de productos o servicios y recepción de BECOIN"
+  },
+  {
+    "code": "SALE_BELAND",
     "name": "Venta",
     "description": "Venta de productos o servicios y recepción de BECOIN"
   },

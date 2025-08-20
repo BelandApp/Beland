@@ -52,6 +52,7 @@ import { EmailModule } from './email/email.module';
 import { ResourcesModule } from './resources/resources.module';
 import { ResourcesTypesModule } from './resources-types/resources-types.module';
 import { UserResourcesModule } from './user-resources/user-resources.module';
+import { SuperadminModule } from './superadmin-config/superadmin-config.module';
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { UserResourcesModule } from './user-resources/user-resources.module';
     ResourcesModule,
     ResourcesTypesModule,
     UserResourcesModule,
+    SuperadminModule,
   ],
   controllers: [],
   providers: [

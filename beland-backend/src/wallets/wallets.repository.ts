@@ -30,6 +30,18 @@ export class WalletsRepository {
     });
   }
 
+  async findByUser(user_id: string): Promise<Wallet> {
+    return this.repository.findOne({
+      where: { user_id },
+    });
+  }
+
+  async findSuperadminWallet(): Promise<Wallet> {
+    return await this.repository.findOne({
+      where: { user: {role_relation: {name: 'SUPERADMIN'}} },
+    });
+  }
+
   async create(body: Partial<Wallet>): Promise<Wallet> {
     return await this.repository.save(body);
   }
