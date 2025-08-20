@@ -1,11 +1,11 @@
-import { Module, forwardRef } from '@nestjs/common'; // Asegúrate de que forwardRef esté importado
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admin } from './entities/admin.entity';
 import { AdminsController } from './admins.controller';
 import { AdminService } from './admins.service';
 import { AdminRepository } from './admins.repository';
 import { UsersModule } from '../users/users.module';
-import { RolesModule } from '../roles/roles.module'; // Importa RolesModule
+import { RolesModule } from '../roles/roles.module';
 
 @Module({
   imports: [

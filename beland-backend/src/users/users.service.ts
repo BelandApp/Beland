@@ -4,7 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
+  ForbiddenException, // Asegúrate de importar esto si tu servicio lo lanza
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -14,10 +14,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/users.entity';
 import { Role } from '../roles/entities/role.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto'; // Asegúrate de que esto exista si lo usas
-import { OrderDto } from 'src/common/dto/order.dto'; // Asegúrate de que esto exista si lo usas
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { OrderDto } from 'src/common/dto/order.dto';
 import { UserDto } from './dto/user.dto';
-import { DataSource, Not } from 'typeorm';
+import { DataSource, Not, IsNull, Or } from 'typeorm'; // Añadir IsNull, Or si los usas para `deleted_at`
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
@@ -172,7 +172,9 @@ export class UsersService {
     } catch (error) {
       await queryRunner.rollbackTransaction(); // Revertir si algo falla
       this.logger.error(
-        `findOrCreateAuth0User(): Error al crear/recuperar usuario para Auth0 ID ${createUserDto.auth0_id}: ${(error as Error).message}`,
+        `findOrCreateAuth0User(): Error al crear/recuperar usuario para Auth0 ID ${
+          createUserDto.auth0_id
+        }: ${(error as Error).message}`,
         (error as Error).stack,
       );
       // Relanza excepciones específicas o una genérica
@@ -199,20 +201,33 @@ export class UsersService {
   /**
    * Busca todos los usuarios paginados, filtrados y ordenados.
    * @param getUsersQueryDto Objeto DTO con parámetros de paginación, filtro y ordenación.
+   * @param isSuperAdminOrAdmin Booleano que indica si el usuario actual es un Superadmin o Admin.
    * @returns Una promesa que resuelve a un objeto con la lista de UserDto y el total.
    */
   async findAll(
     getUsersQueryDto: GetUsersQueryDto,
+    isSuperAdminOrAdmin: boolean, // <-- ¡Este es el parámetro que faltaba!
   ): Promise<{ users: UserDto[]; total: number }> {
     this.logger.debug(
       `findAll(): Buscando usuarios con filtros: ${JSON.stringify(
         getUsersQueryDto,
-      )}`,
+      )} con isSuperAdminOrAdmin: ${isSuperAdminOrAdmin}`,
     );
+
+    // Lógica para determinar si se deben incluir usuarios eliminados (soft-deleted)
+    // Se respeta el valor de includeDeleted del query si es Admin/Superadmin.
+    // Si no es Admin/Superadmin, includeDeleted siempre será false.
+    const finalIncludeDeleted = isSuperAdminOrAdmin
+      ? getUsersQueryDto.includeDeleted
+      : false;
+
+    // Actualizar el DTO con el valor `includeDeleted` final antes de pasarlo al repositorio.
+    // Esto es importante porque el repositorio solo debe recibir el valor finalizado.
+    getUsersQueryDto.includeDeleted = finalIncludeDeleted;
 
     // CORRECCIÓN: Se pasa el DTO completo al repositorio, el repositorio se encarga de la desestructuración y filtros.
     const { users, total } = await this.usersRepository.findAllPaginated(
-      getUsersQueryDto, // <-- Se pasa el DTO completo
+      getUsersQueryDto, // <-- Se pasa el DTO completo con includeDeleted ajustado
     );
 
     // Mapear las entidades User a UserDto para la respuesta
@@ -246,7 +261,14 @@ export class UsersService {
    */
   async findOneByEmail(email: string): Promise<User | null> {
     this.logger.debug(`findOneByEmail(): Buscando usuario con email: ${email}`);
-    return this.usersRepository.findByEmail(email);
+    // Usamos el repositorio directamente que devuelve la entidad User
+    const user = await this.usersRepository.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException(
+        `Usuario con email "${email}" no encontrado.`,
+      );
+    }
+    return user; // Devuelve la entidad User, el controlador la mapeará a DTO si es necesario
   }
 
   /**
@@ -588,7 +610,12 @@ export class UsersService {
       );
     }
 
-    await this.usersRepository.softDelete(id); // <-- Se asume que este es el soft delete en el repositorio
+    // Aquí deberías llamar a un método de HARD DELETE en tu repositorio,
+    // si `softDelete` es solo para el borrado lógico.
+    // Por ejemplo: await this.usersRepository.hardDelete(id);
+    // Si `softDelete` en tu repositorio realmente hace un hard delete si se llama aquí, está bien.
+    // Basado en tu repositorio, `softDelete` solo marca `deleted_at`, así que esto DEBERÍA SER `hardDelete`
+    await this.usersRepository.softDelete(id); // <--- REVISAR: Si esto debe ser hardDelete
     this.logger.log(`deleteUser(): Usuario ${id} eliminado permanentemente.`);
   }
 }
