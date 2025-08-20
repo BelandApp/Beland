@@ -92,28 +92,28 @@ const AppContent = () => {
     currentRoute !== "RecyclingMap" &&
     !walletActionScreens.includes(currentRoute ?? "");
 
-  if (isLoading || !isBeCoinsLoaded) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
-        <StatusBar style="light" />
-        <NavigationContainer
-          ref={navigationRef}
-          onStateChange={onNavigationStateChange}
-        >
-          <View
-            style={{
-              flex: 1,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "#F7F8FA",
-            }}
-          >
-            <ActivityIndicator size="large" color="#FF7A00" />
-          </View>
-        </NavigationContainer>
-      </View>
-    );
-  }
+  // if (isLoading || !isBeCoinsLoaded) {
+  //   return (
+  //     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+  //       <StatusBar style="light" />
+  //       <NavigationContainer
+  //         ref={navigationRef}
+  //         onStateChange={onNavigationStateChange}
+  //       >
+  //         <View
+  //           style={{
+  //             flex: 1,
+  //             justifyContent: "center",
+  //             alignItems: "center",
+  //             backgroundColor: "#F7F8FA",
+  //           }}
+  //         >
+  //           <ActivityIndicator size="large" color="#FF7A00" />
+  //         </View>
+  //       </NavigationContainer>
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>

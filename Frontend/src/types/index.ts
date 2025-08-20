@@ -1,3 +1,5 @@
+import { Product } from "./Products";
+
 export interface Participant {
   id: string;
   name: string;
@@ -9,16 +11,7 @@ export interface Participant {
   customAmount?: number; // Monto personalizado
 }
 
-export interface Product {
-  id: string;
-  name: string;
-  quantity: number;
-  estimatedPrice: number;
-  totalPrice?: number;
-  category?: string;
-  basePrice?: number;
-  image?: string;
-}
+
 
 export interface Group {
   id: string;

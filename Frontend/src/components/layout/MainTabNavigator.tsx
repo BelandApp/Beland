@@ -8,6 +8,8 @@ import { RewardsScreen } from "../../screens/RewardsScreen";
 import { CatalogScreen } from "../../screens/CatalogScreen";
 import { HistoryScreen } from "../../screens/HistoryScreen";
 import { GroupsStackNavigator } from "./GroupsStackNavigator";
+import { HomeScreen } from "../../screens/HomeScreen";
+
 
 import {
   HomeIcon,
@@ -111,12 +113,11 @@ export const MainTabNavigator = () => {
           marginBottom: Platform.OS === "android" ? 4 : 0, // Margen inferior adicional en Android
         },
         headerShown: false,
-        tabBarHideOnKeyboard: true, // Oculta la barra cuando aparece el teclado
-      })}
-    >
+        tabBarHideOnKeyboard: true, 
+      })}>
       <Tab.Screen
         name="Home"
-        component={DashboardScreen}
+        component={HomeScreen}
         options={{ tabBarLabel: "Inicio" }}
       />
       <Tab.Screen
