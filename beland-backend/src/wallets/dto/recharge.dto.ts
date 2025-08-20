@@ -7,13 +7,6 @@ export class RechargeDto {
   amountUsd: number;
 
   @ApiProperty({
-    example: '8f03a1de-b71c-4a5a-a9ff-0d9a3a3c5b2a',
-    description: 'Wallet UUID',
-  })
-  @IsUUID()
-  wallet_id: string;
-
-  @ApiProperty({
     example: 'REF123456789',
     description: 'Reference code for tracking',
   })
