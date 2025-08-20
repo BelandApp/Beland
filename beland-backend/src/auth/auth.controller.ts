@@ -20,7 +20,7 @@ import { User } from 'src/users/entities/users.entity';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
-import { RegisterAuthDto } from './dto/register-auth.dto';
+import { ConfirmAuthDto, RegisterAuthDto } from './dto/register-auth.dto';
 import { Request } from 'express';
 import { AuthenticationGuard } from './guards/auth.guard';
 import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
@@ -145,7 +145,7 @@ export class AuthController {
     return await this.authService.signin(userLogin);
   }
 
-    @Post('signupVerification')
+  @Post('signup-verification')
   @ApiOperation({ summary: 'Envia la Verificaicon de email con el codigo' })
   @ApiBody({
     description:
@@ -227,5 +227,12 @@ export class AuthController {
   })
   async signupVerification(@Body() user: RegisterAuthDto): Promise<{ message: string }> {
     return await this.authService.signupVerification(user);
+  }
+
+  @Post('signup-register')
+  @ApiOperation({ summary: 'Realiza el registro de usuarios' })
+  @ApiBody({ description: 'Email y codigo de confirmación', type: ConfirmAuthDto })
+  async signupRegister(@Body() verification: ConfirmAuthDto): Promise<{ token: string }> {
+    return await this.authService.signupRegister(verification.code, verification.email);
   }
 }

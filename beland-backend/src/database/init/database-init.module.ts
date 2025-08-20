@@ -12,13 +12,16 @@ import { Product } from 'src/products/entities/product.entity';
 import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 import { Category } from 'src/category/entities/category.entity';
 import { GroupType } from 'src/group-type/entities/group-type.entity';
+import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
 
 @Module({
   imports: [
     RolesModule,
     UsersModule,
     ConfigModule, // Asegúrate de que ConfigModule esté importado aquí o globalmente
-    TypeOrmModule.forFeature([TransactionState, TransactionType, Product, PaymentType, Category, GroupType])
+    TypeOrmModule.forFeature([TransactionState, TransactionType, Product, PaymentType, Category, GroupType,
+      ResourcesType
+    ])
   ],
   providers: [
     DatabaseInitService,

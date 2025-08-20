@@ -18,7 +18,7 @@ export class Coupon {
   code: string;
 
   @Column({ type: 'text' })
-  type: 'DISCOUNT' | 'BONUS_COINS';
+  type: 'DISCOUNT' | 'BONUS_COINS' | 'CIRCULARES';
 
   @Column({ type: 'numeric' })
   value: number;
