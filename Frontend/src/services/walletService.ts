@@ -77,19 +77,23 @@ class WalletService {
   // Obtener billetera por email de usuario
   async getWalletByUserId(userEmail: string, userId?: string): Promise<Wallet> {
     try {
-      // El backend devuelve un array de wallets para el usuario autenticado
+      // El backend devuelve [walletsArray, total]
       const response = await apiRequest(`/wallets`, {
         method: "GET",
       });
-      // Si la respuesta es un array, toma la primera wallet existente
-      if (Array.isArray(response) && response[0]?.length > 0) {
+      if (
+        Array.isArray(response) &&
+        response.length === 2 &&
+        Array.isArray(response[0]) &&
+        response[0].length > 0
+      ) {
+        // Toma la primera wallet del array
         return response[0][0];
       }
       // Si la respuesta es un objeto único (compatibilidad)
       if (response && response.id) {
         return response;
       }
-      // Si no existe ninguna wallet, lanza error (no crear automáticamente)
       throw new Error(
         "No existe una wallet para este usuario. Contacta soporte."
       );

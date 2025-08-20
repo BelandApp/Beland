@@ -168,17 +168,8 @@ export const useWalletTransactions = () => {
         try {
           // Modo producción: intentar usar API real
 
-          // Primero obtener la billetera del usuario para tener el wallet_id
-          if (!user?.email || !user?.id)
-            throw new Error("Faltan datos de usuario");
-          const wallet = await walletService.getWalletByUserId(
-            user.email,
-            user.id
-          );
-
-          // Obtener transacciones del backend
+          // El backend ahora obtiene las transacciones por el user id del JWT
           const response = await transactionService.getTransactions({
-            wallet_id: wallet.id,
             limit: 20,
             page: 1,
           });

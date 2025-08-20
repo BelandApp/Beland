@@ -120,12 +120,16 @@ export class WalletsService {
     }
   }
 
-  async recharge(user_id:string, dto: RechargeDto): Promise<{ wallet: Wallet }> {
+  async recharge(
+    user_id: string,
+    dto: RechargeDto,
+  ): Promise<{ wallet: Wallet }> {
     const wallet = await this.repository.findByUser(user_id);
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
     // 2) Convertir USD a Becoin
 
-    const becoinAmount = +dto.amountUsd / +this.superadminConfig.getPriceOneBecoin;
+    const becoinAmount =
+      +dto.amountUsd / this.superadminConfig.getPriceOneBecoin();
     // 3) Actualizar saldo
     wallet.becoin_balance = +wallet.becoin_balance + becoinAmount;
     const type = await this.typeRepo.findOneBy({ code: 'RECHARGE' });
@@ -224,7 +228,10 @@ export class WalletsService {
 
     let type = await this.typeRepo.findOneBy({ code: code_transaction_send });
     if (!type)
-      throw new ConflictException("No se encuentra el tipo ", code_transaction_send);
+      throw new ConflictException(
+        'No se encuentra el tipo ',
+        code_transaction_send,
+      );
 
     const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
     if (!status)
@@ -239,13 +246,16 @@ export class WalletsService {
       amount: -dto.amountBecoin,
       post_balance: from.becoin_balance,
       related_wallet_id: to.id,
-      reference: `${code_transaction_send}-${dto.toWalletId}`
+      reference: `${code_transaction_send}-${dto.toWalletId}`,
     });
 
     // 2) Acreditar destino
     type = await this.typeRepo.findOneBy({ code: code_transaction_received });
     if (!type)
-      throw new ConflictException("No se encuentra el tipo ", code_transaction_received);
+      throw new ConflictException(
+        'No se encuentra el tipo ',
+        code_transaction_received,
+      );
 
     to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
     await this.repository.create(to);
@@ -257,7 +267,7 @@ export class WalletsService {
       amount: dto.amountBecoin,
       post_balance: to.becoin_balance,
       related_wallet_id: from.id,
-      reference: `${code_transaction_received}-${from.id}`
+      reference: `${code_transaction_received}-${from.id}`,
     });
 
     return { wallet: walletUpdate };
@@ -272,7 +282,8 @@ export class WalletsService {
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
     // 3) Actualizar saldo
-    if (+wallet.becoin_balance < becoinAmount) throw new ConflictException('Saldo insuficiente');
+    if (+wallet.becoin_balance < becoinAmount)
+      throw new ConflictException('Saldo insuficiente');
 
     wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
     const type = await this.typeRepo.findOneBy({ code: 'PURCHASE_BELAND' });
@@ -296,5 +307,4 @@ export class WalletsService {
     });
     return { wallet: walletUpdated };
   }
-
 }

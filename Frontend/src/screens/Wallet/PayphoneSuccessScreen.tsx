@@ -22,9 +22,7 @@ export default function PayphoneSuccessScreen() {
 
     async function confirmarTransaccion() {
       try {
-        // Obtener el token JWT del usuario (web)
         const jwtToken = localStorage.getItem("auth_token");
-        // Obtener el token de Payphone guardado en localStorage
         const payphoneToken = localStorage.getItem("payphone_token");
         if (!payphoneToken) {
           setStatus("No se encontró el token de Payphone en localStorage.");
@@ -49,56 +47,30 @@ export default function PayphoneSuccessScreen() {
         const payphoneData = await payphoneRes.json();
 
         if (payphoneData.transactionStatus === "Approved") {
-          console.log(
-            "[Payphone] Transacción aprobada, iniciando proceso de recarga..."
-          );
           setStatus("Recarga confirmada");
-          // Guardar los datos completos en localStorage y mostrar en consola
           localStorage.setItem(
             "payphone_last_success",
             JSON.stringify(payphoneData)
           );
-          console.log(
-            "[Payphone] Datos de la transacción exitosa:",
-            payphoneData
-          );
 
           // 2. Obtener el wallet_id del usuario
-          let walletId;
           if (!user?.email || !user?.id) {
-            console.error(
-              "[Payphone] Faltan datos de usuario (email o id)",
-              user
-            );
-            setStatus("Faltan datos de usuario (email o id)");
-            setLoading(false);
             return;
           }
+          let walletId;
           try {
-            console.log(
-              "[Payphone] Buscando wallet del usuario...",
-              user.email,
-              user.id
-            );
             const wallet = await walletService.getWalletByUserId(
               user.email,
               user.id
             );
             walletId = wallet?.id;
-            console.log("[Payphone] Wallet encontrada:", walletId);
           } catch (e) {
-            console.error(
-              "[Payphone] Error al obtener la wallet del usuario",
-              e
-            );
-            setStatus("No se pudo obtener la wallet del usuario");
+            setStatus("Transacción rechazada o cancelada");
             setLoading(false);
             return;
           }
 
           // 3. Recargar saldo en el backend SOLO si la transacción fue confirmada
-
-          // Generar UUID para clientTransactionId
           const generatedClientTxId = uuidv4();
           const rechargeRes = await fetch(
             `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
@@ -109,9 +81,8 @@ export default function PayphoneSuccessScreen() {
                 ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
               },
               body: JSON.stringify({
-                amountUsd: payphoneData.amount / 100, // en USD
-                wallet_id: walletId,
-                referenceCode: payphoneData.reference, // o genera uno único
+                amountUsd: payphoneData.amount / 100,
+                referenceCode: payphoneData.reference,
                 payphone_transactionId: payphoneData.transactionId,
                 clientTransactionId: generatedClientTxId,
               }),
@@ -129,7 +100,6 @@ export default function PayphoneSuccessScreen() {
 
           // 4. Guardar datos de la tarjeta SOLO si viene ctoken (cardToken)
           if (payphoneData.cardToken) {
-            // Encriptar el nombre del titular usando AES 256 CBC sin IV
             const encryptionKey =
               process.env.EXPO_PUBLIC_PAYPHONE_AES_KEY || "";
             let encryptedCardHolder = "";
@@ -144,51 +114,27 @@ export default function PayphoneSuccessScreen() {
                 CryptoJS.enc.Base64
               );
             } catch (e) {
-              console.warn("Error encriptando el nombre del titular:", e);
+              // Error encriptando el nombre del titular
             }
 
-            console.log("[Payphone] Guardando datos de tarjeta en backend...", {
-              user_id: user?.id,
-              email: user?.email,
-              phoneNumber: payphoneData.phoneNumber,
-              documentId: payphoneData.document,
-              optionalParameter4: encryptedCardHolder,
-              cardBrand: payphoneData.cardBrand,
-              cardType: payphoneData.cardType,
-              lastDigits: payphoneData.lastDigits,
-              cardToken: payphoneData.cardToken,
+            await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user-cards`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
+              },
+              body: JSON.stringify({
+                user_id: user?.id,
+                email: user?.email,
+                phoneNumber: payphoneData.phoneNumber,
+                documentId: payphoneData.document,
+                optionalParameter4: encryptedCardHolder,
+                cardBrand: payphoneData.cardBrand,
+                cardType: payphoneData.cardType,
+                lastDigits: payphoneData.lastDigits,
+                cardToken: payphoneData.cardToken,
+              }),
             });
-            const cardRes = await fetch(
-              `${process.env.EXPO_PUBLIC_API_URL}/user-cards`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
-                },
-                body: JSON.stringify({
-                  user_id: user?.id,
-                  email: user?.email,
-                  phoneNumber: payphoneData.phoneNumber,
-                  documentId: payphoneData.document,
-                  optionalParameter4: encryptedCardHolder, // nombre encriptado
-                  cardBrand: payphoneData.cardBrand,
-                  cardType: payphoneData.cardType,
-                  lastDigits: payphoneData.lastDigits,
-                  cardToken: payphoneData.cardToken,
-                }),
-              }
-            );
-            const cardResult = await cardRes.json().catch(() => null);
-            console.log(
-              "[Payphone] Respuesta guardado tarjeta backend:",
-              cardRes.status,
-              cardResult
-            );
-          } else {
-            console.log(
-              "[Payphone] No se recibió cardToken, no se guarda la tarjeta"
-            );
           }
 
           setStatus("Recarga exitosa");
@@ -211,8 +157,8 @@ export default function PayphoneSuccessScreen() {
     }
   }, [user]);
 
-  // Colores oficiales Beland
   const bgGradient = `linear-gradient(135deg, ${colors.belandOrange} 0%, ${colors.primary} 100%)`;
+
   return (
     <div
       style={{
@@ -238,27 +184,104 @@ export default function PayphoneSuccessScreen() {
           border: `2px solid ${colors.belandGreen}`,
         }}
       >
-        <img
-          src="https://payphone.com.ec/wp-content/uploads/2022/09/payphone-logo.png"
-          alt="Payphone Logo"
-          style={{
-            width: 90,
-            marginBottom: 28,
-            filter: "drop-shadow(0 2px 8px #00C6AE)",
-          }}
-        />
-        <h2
-          style={{
-            fontWeight: 800,
-            marginBottom: 18,
-            fontSize: 28,
-            color: colors.primary,
-          }}
-        >
-          {status === "Recarga exitosa"
-            ? "¡Recarga exitosa!"
-            : "Procesando recarga..."}
-        </h2>
+        {/* Estado visual según status */}
+        {loading && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginBottom: 18,
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                border: `6px solid ${colors.belandGreen}`,
+                borderTop: `6px solid ${colors.belandOrange}`,
+                borderRadius: "50%",
+                animation: "spin 1s linear infinite",
+                marginBottom: 12,
+              }}
+            ></div>
+            <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            <span
+              style={{
+                fontSize: 22,
+                color: colors.textSecondary,
+                fontWeight: 600,
+              }}
+            >
+              Procesando recarga...
+            </span>
+            <h2
+              style={{
+                fontWeight: 800,
+                marginBottom: 18,
+                fontSize: 28,
+                color: colors.primary,
+              }}
+            >
+              Pendiente
+            </h2>
+          </div>
+        )}
+        {!loading && status === "Recarga exitosa" && (
+          <h2
+            style={{
+              fontWeight: 800,
+              marginBottom: 18,
+              fontSize: 28,
+              color: colors.primary,
+            }}
+          >
+            ¡Recarga exitosa!
+          </h2>
+        )}
+        {!loading && status === "Transacción rechazada o cancelada" && (
+          <h2
+            style={{
+              fontWeight: 800,
+              marginBottom: 18,
+              fontSize: 28,
+              color: colors.error,
+            }}
+          >
+            Ocurrió un error, intenta nuevamente
+          </h2>
+        )}
+
+        {/* Estado */}
+        <div style={{ marginBottom: 28 }}>
+          <span style={{ fontWeight: 600, color: colors.belandGreen }}>
+            Estado:
+          </span>
+          <br />
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              color: loading
+                ? colors.textSecondary
+                : status === "Recarga exitosa"
+                ? colors.success
+                : status === "Transacción rechazada o cancelada"
+                ? colors.error
+                : colors.textSecondary,
+            }}
+          >
+            {loading
+              ? "Pendiente"
+              : status === "Recarga exitosa"
+              ? "Recarga exitosa"
+              : status === "Transacción rechazada o cancelada"
+              ? "Error"
+              : "Pendiente"}
+          </span>
+        </div>
+
+        {/* IDs */}
         <div style={{ marginBottom: 18 }}>
           <span style={{ fontWeight: 600, color: colors.belandGreen }}>
             ID de transacción:
@@ -277,15 +300,8 @@ export default function PayphoneSuccessScreen() {
             {clientTxId ?? "No disponible"}
           </span>
         </div>
-        <div style={{ marginBottom: 28 }}>
-          <span style={{ fontWeight: 600, color: colors.belandGreen }}>
-            Estado:
-          </span>
-          <br />
-          <span style={{ fontSize: 22, color: colors.success }}>
-            {loading ? "Procesando..." : status}
-          </span>
-        </div>
+
+        {/* Saldo actualizado */}
         {walletBalance !== null && (
           <div
             style={{
