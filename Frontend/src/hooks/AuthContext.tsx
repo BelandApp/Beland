@@ -32,7 +32,7 @@ const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
 const scheme = Constants.expoConfig?.scheme as string;
 
 const apiBaseUrl =
-  (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:8081";
+  (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:3001";
 const auth0Audience = "https://beland.onrender.com/api";
 
 if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {

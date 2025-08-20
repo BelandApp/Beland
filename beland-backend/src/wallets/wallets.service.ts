@@ -15,14 +15,15 @@ import { TransferDto } from './dto/transfer.dto';
 import { WithdrawDto } from './dto/withdraw.dto';
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
+import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 
 @Injectable()
 export class WalletsService {
   private readonly completeMessage = 'la billetera virtual';
-  private readonly priceOneBecoin = 0.05;
 
   constructor(
     private readonly repository: WalletsRepository,
+    private readonly superadminConfig: SuperadminConfigService,
     @InjectRepository(TransactionType)
     private typeRepo: Repository<TransactionType>,
     @InjectRepository(TransactionState)
@@ -50,6 +51,17 @@ export class WalletsService {
   async findOne(id: string): Promise<Wallet> {
     try {
       const res = await this.repository.findOne(id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  async findByUser(user_id: string): Promise<Wallet> {
+    try {
+      const res = await this.repository.findByUser(user_id);
       if (!res)
         throw new NotFoundException(`No se encontro ${this.completeMessage}`);
       return res;
@@ -108,12 +120,16 @@ export class WalletsService {
     }
   }
 
-  async recharge(dto: RechargeDto): Promise<{ wallet: Wallet }> {
-    const wallet = await this.repository.findOne(dto.wallet_id);
+  async recharge(
+    user_id: string,
+    dto: RechargeDto,
+  ): Promise<{ wallet: Wallet }> {
+    const wallet = await this.repository.findByUser(user_id);
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
     // 2) Convertir USD a Becoin
 
-    const becoinAmount = +dto.amountUsd / +this.priceOneBecoin;
+    const becoinAmount =
+      +dto.amountUsd / this.superadminConfig.getPriceOneBecoin();
     // 3) Actualizar saldo
     wallet.becoin_balance = +wallet.becoin_balance + becoinAmount;
     const type = await this.typeRepo.findOneBy({ code: 'RECHARGE' });
@@ -141,7 +157,34 @@ export class WalletsService {
     return { wallet: walletUpdated };
   }
 
-  async withdraw(walletId: string, dto: WithdrawDto) {
+  async withdrawBank(walletId: string, dto: WithdrawDto) {
+    /*const wallet = await this.repository.findByUserId( userId );
+    if (wallet.becoin_balance < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
+    // 1) Reservar fondos
+    wallet.becoin_balance -= dto.amountBecoin;
+    wallet.locked_balance += dto.amountBecoin;
+    await this.repository.create(wallet);
+    // 2) Llamar a PayPhone en USD
+    const usd = dto.amountBecoin * 0.05;
+    // 3) Liberar locked y registrar
+    wallet.locked_balance -= dto.amountBecoin;
+    await this.repository.create(wallet);
+    const type = await this.typeRepo.findOneBy({code:'WITHDRAW'})
+    if (!type) throw new ConflictException ("No se encuentra el tipo 'WITHDRAW'")
+    const tx = this.txRepo.create({
+      wallet_id: wallet.id,
+      type,
+      amount: -dto.amountBecoin,
+      post_balance: wallet.becoin_balance,
+      reference: payout.id,
+      created_at: new Date(),
+    });
+    await this.txRepo.save(tx);
+    return { wallet, tx };*/
+    return;
+  }
+
+  async withdrawPayphone(walletId: string, dto: WithdrawDto) {
     /*const wallet = await this.repository.findByUserId( userId );
     if (wallet.becoin_balance < dto.amountBecoin) throw new BadRequestException('Saldo insuficiente');
     // 1) Reservar fondos
@@ -169,10 +212,12 @@ export class WalletsService {
   }
 
   async transfer(
-    wallet_id: string,
+    user_id: string,
     dto: TransferDto,
+    code_transaction_send: string = 'TRANSFER_SEND',
+    code_transaction_received: string = 'TRANSFER_RECEIVED',
   ): Promise<{ wallet: Wallet }> {
-    const from = await this.repository.findOne(wallet_id);
+    const from = await this.repository.findByUser(user_id);
     if (!from) throw new NotFoundException('No se encuentra la Billetera');
     if (Number(from.becoin_balance) < dto.amountBecoin)
       throw new BadRequestException('Saldo insuficiente');
@@ -181,9 +226,12 @@ export class WalletsService {
     // 1) Debitar origen
     from.becoin_balance = +from.becoin_balance - dto.amountBecoin;
 
-    const type = await this.typeRepo.findOneBy({ code: 'TRANSFER' });
+    let type = await this.typeRepo.findOneBy({ code: code_transaction_send });
     if (!type)
-      throw new ConflictException("No se encuentra el tipo 'TRANSFER'");
+      throw new ConflictException(
+        'No se encuentra el tipo ',
+        code_transaction_send,
+      );
 
     const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
     if (!status)
@@ -198,9 +246,17 @@ export class WalletsService {
       amount: -dto.amountBecoin,
       post_balance: from.becoin_balance,
       related_wallet_id: to.id,
+      reference: `${code_transaction_send}-${dto.toWalletId}`,
     });
 
     // 2) Acreditar destino
+    type = await this.typeRepo.findOneBy({ code: code_transaction_received });
+    if (!type)
+      throw new ConflictException(
+        'No se encuentra el tipo ',
+        code_transaction_received,
+      );
+
     to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
     await this.repository.create(to);
 
@@ -211,6 +267,7 @@ export class WalletsService {
       amount: dto.amountBecoin,
       post_balance: to.becoin_balance,
       related_wallet_id: from.id,
+      reference: `${code_transaction_received}-${from.id}`,
     });
 
     return { wallet: walletUpdate };
@@ -225,10 +282,13 @@ export class WalletsService {
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
     // 3) Actualizar saldo
+    if (+wallet.becoin_balance < becoinAmount)
+      throw new ConflictException('Saldo insuficiente');
+
     wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
-    const type = await this.typeRepo.findOneBy({ code: 'PURCHASE' });
+    const type = await this.typeRepo.findOneBy({ code: 'PURCHASE_BELAND' });
     if (!type)
-      throw new ConflictException("No se encuentra el tipo 'RECHARGE'");
+      throw new ConflictException("No se encuentra el tipo 'PURCHASE_BELAND'");
 
     const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
     if (!status)

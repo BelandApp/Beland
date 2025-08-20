@@ -103,7 +103,7 @@ export class OrdersService {
     if (!itemsCreated) throw new ConflictException('No se pudiero crear los items asociados a la orden');
 
     
-    if (paymentType.code == 'FULL') {
+    if ((paymentType.code == 'FULL') || (!cart.group)) {
       await this.walletService.purchaseBeland(wallet.id, cart.total_amount, `PURCHASEBELAND-${order.id}`);
       await this.payRepo.create({
         amount_paid:order.total_amount,

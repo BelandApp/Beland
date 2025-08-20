@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 
 @Entity('bank_account_types')
