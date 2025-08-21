@@ -25,6 +25,7 @@ import { EmailService } from 'src/email/email.service';
 import { CreateEmailDto } from 'src/email/dto/create-email.dto';
 import { verificationEmailTemplate } from 'src/email/plantilla/htmlVerificacion';
 import { InjectRepository } from '@nestjs/typeorm';
+import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Injectable()
 export class AuthService {
@@ -124,12 +125,14 @@ export class AuthService {
       const randomNumber = Math.floor(Math.random() * 1000);
       const alias = `${usernamePart}.${randomNumber}`;
 
-      const walletRepo = this.dataSource.getRepository(Wallet);
+      const walletTypeRepo = this.dataSource.getRepository(WalletType);
+      const walletType = await walletTypeRepo.findOneBy({code:'USER'})
 
       // 1️⃣ Crear y guardar la wallet con user_id y alias
       const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
         user_id: userSave.id,
-        alias
+        alias,
+        walletType
       });
 
       // 2️⃣ Generar el QR con el ID ya guardado
@@ -226,13 +229,7 @@ export class AuthService {
     return { token };
   }
 
-  // No regstra... sino que manda correo de verificacion 
   async signupVerification(user: RegisterAuthDto): Promise<{ message: string }> {
-    
-    // ✅ VALIDACIÓN: Comparar password y confirmPassword here
-      if (user.password !== user.confirmPassword) {
-        throw new BadRequestException('Las contraseñas no coinciden.');
-      }
     
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -270,6 +267,7 @@ export class AuthService {
         country: user.country,
         city: user.city,
         role_id: userRole.role_id,
+        role_name: userRole.name,
         passwordHeshed: HashPassword,
         code: stringCode,
       });
@@ -306,7 +304,7 @@ export class AuthService {
     }
   }
 
-    async signupRegister(user: RegisterAuthDto): Promise<{ token: string }> {
+  async signupRegister(code: string, email: string): Promise<{ token: string }> {
     
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -315,21 +313,12 @@ export class AuthService {
 
     try {
 
-      const userDB = await this.userRepository.findByEmail(user.email);
-      if (userDB) {
+      const user = await this.authRepository.findOne({where: {code, email}});
+      if (!user) {
         throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
-          `Ya existe un usuario registrado con este email, prueba con "Olvide mi contraseña"`,
+          `Codigo Erroneo o Expirado`,
         );
       }
-
-      const userRole: Role = await this.roleRepository.findByName('USER');
-      if (!userRole) {
-        throw new InternalServerErrorException(
-          'No se pudo obtener el rol USER. Asegúrate de que el rol "USER" exista en la base de datos.',
-        );
-      }
-
-      const HashPassword = await bcrypt.hash(user.password, 10);
 
       // ✅ Crear usuario usando el manager de la transacción
       const userSave = await queryRunner.manager.getRepository(User).save({
@@ -343,9 +332,9 @@ export class AuthService {
         city: user.city,
         isBlocked: false, // Por defecto, no bloqueado
         deleted_at: null, // Por defecto, no eliminado
-        role_id: userRole.role_id,
-        role_name: userRole.name as any,
-        password: HashPassword,
+        role_id: user.role_id,
+        role_name: user.role_name as any,
+        password: user.passwordHashed,
       });
 
       const usernamePart = user.email.split('@')[0];

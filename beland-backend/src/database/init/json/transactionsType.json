@@ -10,8 +10,18 @@
     "description": "Conversión de BECOIN a USD y transferencia a cuenta bancaria"
   },
   {
-    "code": "TRANSFER",
-    "name": "Transferencia",
+    "code": "WITHDRAW_IN",
+    "name": "Ingreso por Retiro de Usuario",
+    "description": "Fondos recibidos en la wallet del superadmin por un retiro de usuario"
+  },
+  {
+    "code": "TRANSFER_SEND",
+    "name": "Transferencia Enviada",
+    "description": "Transferencia de BECOIN entre usuarios"
+  },
+  {
+    "code": "TRANSFER_RECEIVED",
+    "name": "Transferencia Recibida",
     "description": "Transferencia de BECOIN entre usuarios"
   },
   {
@@ -20,14 +30,29 @@
     "description": "Compra de productos o servicios con BECOIN"
   },
   {
+    "code": "PURCHASE_BELAND",
+    "name": "Compra Beland",
+    "description": "Compra de productos o servicios con BECOIN en BELAND"
+  },
+  {
     "code": "SALE",
     "name": "Venta",
     "description": "Venta de productos o servicios y recepción de BECOIN"
   },
   {
-    "code": "DONATION",
-    "name": "Donación",
+    "code": "SALE_BELAND",
+    "name": "Venta",
+    "description": "Venta de productos o servicios y recepción de BECOIN"
+  },
+  {
+    "code": "DONATION_SEND",
+    "name": "Donación Enviada",
     "description": "Entrega voluntaria de BECOIN a otra cuenta sin esperar nada a cambio"
+  },
+  {
+    "code": "DONATION_RECEIVED",
+    "name": "Donación Recibida",
+    "description": "Recibimiento voluntario de BECOIN de otra cuenta sin esperar nada a cambio"
   },
   {
     "code": "RECYCLE",

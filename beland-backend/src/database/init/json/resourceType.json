@@ -1,0 +1,20 @@
+[
+  {
+    "code": "DISCOUNT",
+    "name": "Descuento",
+    "description": "Descuento aplicable en compras o servicios",
+    "is_active": true
+  },
+  {
+    "code": "BONUS_COINS",
+    "name": "Monedas de Bonificación",
+    "description": "Monedas extra para usar dentro de la plataforma",
+    "is_active": true
+  },
+  {
+    "code": "EVENT_PASS",
+    "name": "Circulares Beland",
+    "description": "Pase especial que otorga acceso a eventos exclusivos",
+    "is_active": true
+  }
+]

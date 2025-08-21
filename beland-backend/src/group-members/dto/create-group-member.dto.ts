@@ -7,8 +7,15 @@ import {
   IsUUID,
   IsNumberString,
   IsIn,
+  MinLength,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+export enum GroupMemberRole {
+  LEADER = 'LEADER',
+  MEMBER = 'MEMBER',
+}
 
 // DTO for creating a GroupMember entry (used internally by service/repository)
 // This DTO expects the UUIDs for group_id and user_id.
@@ -36,46 +43,64 @@ export class CreateGroupMemberDto {
 // This DTO is used for the incoming request body from the client.
 export class InviteUserDto {
   @ApiProperty({
-    description: 'Email del usuario a invitar (opcional).',
+    description: 'ID del grupo al que se añade el miembro.',
+    format: 'uuid',
+    example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    required: true,
+  })
+  @IsUUID()
+  group_id: string;
+
+  @ApiProperty({
+    description: 'ID del usuario que se añade al grupo.',
+    format: 'uuid',
+    example: 'f9e8d7c6-b5a4-3210-fedc-ba9876543210',
+    required: false, // Opcional si se usa email/username/phone
+  })
+  @IsOptional()
+  @IsUUID()
+  user_id?: string;
+
+  @ApiProperty({
+    description: 'Email del usuario a invitar (si user_id no está presente).',
     example: 'invitado@example.com',
     required: false,
   })
   @IsOptional()
-  @IsEmail({}, { message: 'El email debe ser una dirección de correo válida.' })
+  @IsEmail()
   email?: string;
 
   @ApiProperty({
-    description: 'Nombre de usuario del usuario a invitar (opcional).',
-    example: 'john.doe',
+    description:
+      'Nombre de usuario del usuario a invitar (si user_id/email no están presentes).',
+    example: 'invitado_username',
     required: false,
   })
   @IsOptional()
-  @IsString({ message: 'El nombre de usuario debe ser una cadena de texto.' })
-  @IsNotEmpty({ message: 'El nombre de usuario no puede estar vacío.' })
+  @IsString()
+  @MinLength(3)
   username?: string;
 
   @ApiProperty({
-    description: 'Número de teléfono del usuario a invitar (opcional).',
-    example: '1234567890',
+    description:
+      'Número de teléfono del usuario a invitar (si user_id/email/username no están presentes).',
+    example: '+34600123456',
     required: false,
   })
   @IsOptional()
-  @IsNumberString(
-    {},
-    { message: 'El teléfono debe ser una cadena de números.' },
-  )
-  @IsNotEmpty({ message: 'El teléfono no puede estar vacío.' })
+  @IsString() // CORREGIDO: Asegura que el teléfono es un string
   phone?: string;
 
   @ApiProperty({
-    description: 'Rol del usuario a invitar dentro del grupo',
-    enum: ['LEADER', 'MEMBER'],
-    default: 'MEMBER',
+    description: 'Rol del miembro en el grupo.',
+    enum: GroupMemberRole,
+    example: GroupMemberRole.MEMBER,
+    default: GroupMemberRole.MEMBER,
     required: false,
   })
   @IsOptional()
-  @IsIn(['LEADER', 'MEMBER'], { message: 'El rol debe ser LEADER o MEMBER.' })
-  role?: 'LEADER' | 'MEMBER' = 'MEMBER';
+  @IsEnum(GroupMemberRole)
+  role?: GroupMemberRole;
 
   // Custom validation to ensure at least one identifier (email, username, or phone) is provided
   @IsNotEmpty({
