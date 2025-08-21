@@ -1,0 +1,22 @@
+[
+  {
+    "code": "USER",
+    "name": "Billetera de Usuario",
+    "description": "Billetera personal de un usuario normal"
+  },
+  {
+    "code": "SUPERADMIN",
+    "name": "Billetera del Superadmin",
+    "description": "Billetera global de la aplicación, utilizada para gestionar fondos generales"
+  },
+  {
+    "code": "COMMERCE",
+    "name": "Billetera de Comercio",
+    "description": "Billetera destinada a negocios que venden productos o servicios dentro de la app"
+  },
+  {
+    "code": "FUNDATION",
+    "name": "Billetera de Fundación",
+    "description": "Billetera utilizada por fundaciones u ONGs que reciben donaciones"
+  }
+]

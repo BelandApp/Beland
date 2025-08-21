@@ -36,6 +36,12 @@ export class WalletsRepository {
     });
   }
 
+  async findByAlias(alias: string): Promise<Wallet> {
+    return this.repository.findOne({
+      where: { alias },
+    });
+  }
+
   async findSuperadminWallet(): Promise<Wallet> {
     return await this.repository.findOne({
       where: { user: {role_relation: {name: 'SUPERADMIN'}} },
