@@ -25,6 +25,7 @@ import { EmailService } from 'src/email/email.service';
 import { CreateEmailDto } from 'src/email/dto/create-email.dto';
 import { verificationEmailTemplate } from 'src/email/plantilla/htmlVerificacion';
 import { InjectRepository } from '@nestjs/typeorm';
+import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Injectable()
 export class AuthService {
@@ -124,12 +125,14 @@ export class AuthService {
       const randomNumber = Math.floor(Math.random() * 1000);
       const alias = `${usernamePart}.${randomNumber}`;
 
-      const walletRepo = this.dataSource.getRepository(Wallet);
+      const walletTypeRepo = this.dataSource.getRepository(WalletType);
+      const walletType = await walletTypeRepo.findOneBy({code:'USER'})
 
       // 1️⃣ Crear y guardar la wallet con user_id y alias
       const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
         user_id: userSave.id,
-        alias
+        alias,
+        walletType
       });
 
       // 2️⃣ Generar el QR con el ID ya guardado

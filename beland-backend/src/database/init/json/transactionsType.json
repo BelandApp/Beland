@@ -45,9 +45,14 @@
     "description": "Venta de productos o servicios y recepción de BECOIN"
   },
   {
-    "code": "DONATION",
-    "name": "Donación",
+    "code": "DONATION_SEND",
+    "name": "Donación Enviada",
     "description": "Entrega voluntaria de BECOIN a otra cuenta sin esperar nada a cambio"
+  },
+  {
+    "code": "DONATION_RECEIVED",
+    "name": "Donación Recibida",
+    "description": "Recibimiento voluntario de BECOIN de otra cuenta sin esperar nada a cambio"
   },
   {
     "code": "RECYCLE",
