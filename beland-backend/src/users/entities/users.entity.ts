@@ -28,6 +28,7 @@ import { Cart } from 'src/cart/entities/cart.entity';
 import { UserAddress } from 'src/user-address/entities/user-address.entity';
 import { UserCard } from 'src/user-cards/entities/user-card.entity';
 import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
+import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
 
 // Definición de tipo para todos los roles válidos (importante para consistencia)
 export type ValidRoleNames =
@@ -164,4 +165,8 @@ export class User {
 
   @OneToMany(() => UserCard, (card) => card.user, { cascade: true })
   cards: UserCard[];
+
+    // 🔹 Un usuario puede tener varias cuentas de retiro
+  @OneToMany(() => WithdrawAccount, (withdrawAccount) => withdrawAccount.user)
+  withdraw_accounts: WithdrawAccount[];
 }

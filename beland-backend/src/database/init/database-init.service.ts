@@ -9,6 +9,7 @@ import preloadProduct from './json/products.json';
 import preloadPaymentType from './json/paymentType.json';
 import preloadGroupType from './json/groupType.json';
 import preloadResourceType from './json/resourceType.json';
+import preloadWithdrawAccountType from './json/withdrawAccountType.json';
 
 // Entidades
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
@@ -20,6 +21,7 @@ import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 import { Category } from 'src/category/entities/category.entity';
 import { GroupType } from 'src/group-type/entities/group-type.entity';
 import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
+import { WithdrawAccountType } from 'src/withdraw-account-type/entities/withdraw-account-type.entity';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
@@ -42,6 +44,8 @@ export class DatabaseInitService implements OnModuleInit {
     private readonly groupTypeRepo: Repository<GroupType>,
     @InjectRepository(ResourcesType)
     private readonly resourceTypeRepo: Repository<ResourcesType>,
+    @InjectRepository(WithdrawAccountType)
+    private readonly WATypeRepo: Repository<WithdrawAccountType>,
   ) {}
 
   async preload<T>(
@@ -111,6 +115,7 @@ export class DatabaseInitService implements OnModuleInit {
       await this.preload<PaymentType>(preloadPaymentType, this.payTypeRepo, 'code', 'Formas de Pago');
       await this.preload<GroupType>(preloadGroupType, this.groupTypeRepo, 'name', 'Tipos de Grupos');
       await this.preload<ResourcesType>(preloadResourceType, this.resourceTypeRepo, 'code', 'Tipos de Recursos');
+      await this.preload<WithdrawAccountType>(preloadWithdrawAccountType, this.WATypeRepo, 'code', 'Tipos de Cuentas para Retiros');
     } catch (error: any) {
 
       this.logger.error(
