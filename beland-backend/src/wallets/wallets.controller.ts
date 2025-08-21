@@ -29,13 +29,18 @@ import { RechargeDto } from './dto/recharge.dto';
 import { TransferDto } from './dto/transfer.dto';
 import { Request } from 'express';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
+import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
+import { WithdrawDto, WithdrawResponseDto } from './dto/withdraw.dto';
+import { TransactionCode } from 'src/transactions/enum/transaction-code';
 
 @ApiTags('wallets')
 @Controller('wallets')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(FlexibleAuthGuard)
 export class WalletsController {
-  constructor(private readonly service: WalletsService) {}
+  constructor(private readonly service: WalletsService,
+    private readonly superadminConfig: SuperadminConfigService,
+  ) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -52,6 +57,17 @@ export class WalletsController {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
     return await this.service.findAll(req.user.id, pageNumber, limitNumber);
+  }
+
+  @Get('alias/:alias')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener una billetera por su Alias' })
+  @ApiParam({ name: 'alias', description: 'alias buscado de la billetera' })
+  @ApiResponse({ status: 200, description: 'Billetera encontrada' })
+  @ApiResponse({ status: 404, description: 'No se encontró la billetera' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async findByAlias(@Param('alias') alias: string): Promise<Wallet> {
+    return await this.service.findByAlias(alias);
   }
 
   @Get(':id')
@@ -99,33 +115,81 @@ export class WalletsController {
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.service.remove(id);
   }
-
+  
+  // RECARGA DE BECOIN EN CUENTA
   @Post('recharge')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva recarga o compra de Beicon' })
   @ApiResponse({ status: 201, description: 'Recarga Exitosamente' })
-  async recharge(@Body() dto: RechargeDto): Promise<{wallet: Wallet}> {
-    return await this.service.recharge(dto);
+  async recharge(@Body() dto: RechargeDto, @Req() req: Request): Promise<{wallet: Wallet}> {
+    return await this.service.recharge(req.user?.id, dto);
   }
 
-  /*// tenemos que resolver que hacer con este
+  // ENPOINT PARA EXTRACCIONES MANUALES
+     // SOLICITA RETIRO, QUEDA EN PENDIENTE
   @Post('withdraw')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear un nuevo Retiro' })
-  @ApiParam({ name: 'userId', description: 'UUID del usuario' })
+  @ApiOperation({ summary: 'Crear una Solicitud de Retiro' })
+  @ApiResponse({ status: 201, description: 'Solicita Retira exitosamente' })
+  async withdraw(@Req() req: Request, @Body() dto: WithdrawDto): Promise<{wallet: Wallet}> {
+    return await this.service.withdraw(req.user?.id, dto);
+  }
+    // SI LA TRANSFERENCIA FALLA LLAMA ESTE ENDPOINT
+  @Post('withdraw-failed')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Completa el Flujo de retiro para una transaccion fallida en la cuenta del usuario' })
+  @ApiResponse({ status: 201, description: 'Se registro el Fallo y se reestablecieron los saldos' })
+  async withdrawFailed( @Body() dto: WithdrawResponseDto): Promise<{wallet: Wallet}> {
+    return await this.service.withdrawFailed( dto );
+  }
+    // SI LA TRANSFERENCIA SALE BIEN LLAMA ESTE ENDPOINT
+  @Post('withdraw-completed')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Completa el Flujo de retiro para una transaccion exitosa en la cuenta del usuario' })
   @ApiResponse({ status: 201, description: 'Retira exitosamente' })
-  async withdraw(@Param('userId', ParseUUIDPipe) userId: string, @Body() dto: WithdrawDto): Promise<void> {
-    return await this.service.withdraw(userId, dto);
-  }*/
+  async withdrawCompleted(@Body() dto: WithdrawResponseDto): Promise<{wallet: Wallet}> {
+    return await this.service.withdrawCompleted(dto);
+  }
+  // FIN DE ENPOINT PARA EXTRACCIONES
   
-  @Post('transfer/:wallet_id')
+  // TRANSFERENCIAS ENTRE USUARIOS
+  @Post('transfer')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear una nueva transferencia' })
-  @ApiParam({ name: 'wallet_id', description: 'UUID de la billetera' })
   @ApiResponse({ status: 201, description: 'Transferencia Exitosa' })
-  async transfer(@Param('wallet_id', ParseUUIDPipe) wallet_id: string, @Body() dto: TransferDto): Promise<{ wallet: Wallet }> {
-    return await this.service.transfer(wallet_id, dto);
+  async transfer(@Req() req: Request, @Body() dto: TransferDto): Promise<{ wallet: Wallet }> {
+    return await this.service.transfer(req.user?.id, dto, TransactionCode.TRANSFER_SEND, TransactionCode.TRANSFER_RECEIVED);
   }
 
-  
+  // COMPRAS CON BECOIN EN WALLET
+  @Post('purchase-becoin')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear una nueva compra a una entidad con becoin. Por medio de QR (debe desencriptarse u enviar el uuid de la wallet del vendedor contenido)' })
+  @ApiResponse({ status: 201, description: 'Compra Exitosamente' })
+  async purchaseBecoin(@Req() req: Request, @Body() dto: TransferDto): Promise<{wallet: Wallet}> {
+    return await this.service.transfer(
+      req.user?.id,
+      dto
+    );
+  }
+
+  //COMPRAS DIRECTO CON TARJETA O PAYPHONE.
+  @Post('purchase-recharge/:to_wallet_id')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear una nueva compra a una entidad. Por medio de QR (debe desencriptarse y enviar el uuid de la wallet contenido de la entidad)' })
+  @ApiParam({ name: 'to_wallet_id', description: 'UUID de la billetera que compra' })
+  @ApiResponse({ status: 201, description: 'Compra Exitosamente' })
+  async purchase(
+    @Param('to_wallet_id', ParseUUIDPipe) to_wallet_id: string, 
+    @Body() dto: RechargeDto,
+    @Req() req: Request,
+  ): Promise<{wallet: Wallet}> {
+    await this.service.recharge(req.user?.id, dto);
+    const toWalletId = to_wallet_id;
+    const amountBecoin = +dto.amountUsd / +this.superadminConfig.getPriceOneBecoin;
+    return await this.service.transfer(
+      req.user?.id,
+      {toWalletId, amountBecoin}
+    );
+  }
 }

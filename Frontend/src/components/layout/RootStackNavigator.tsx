@@ -14,8 +14,13 @@ import {
   RecyclingMapScreen,
 } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
+
 import { useAuth } from "src/hooks/AuthContext";
 import HomeView from "src/screens/Home/HomePage";
+
+import { HomeScreen } from "../../screens/HomeScreen";
+import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
+
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -35,6 +40,7 @@ export type RootStackParamList = {
   Catalog: undefined;
   Groups: undefined;
   UserDashboardScreen: undefined;
+  PayphoneSuccess: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -115,7 +121,13 @@ export const RootStackNavigator = () => {
           title: "Beland",
         }}
       />
-     
+
+      <Stack.Screen
+        name="PayphoneSuccess"
+        component={PayphoneSuccessScreen}
+        options={{ headerShown: false, title: "Recarga Payphone" }}
+      />
+
     </Stack.Navigator>
   );
 };

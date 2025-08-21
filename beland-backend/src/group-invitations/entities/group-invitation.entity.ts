@@ -3,59 +3,90 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  Unique,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
 import { Group } from 'src/groups/entities/group.entity';
+import { User } from 'src/users/entities/users.entity';
+
+// Definición de la enumeración para el estado de la invitación
+export enum GroupInvitationStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  CANCELED = 'CANCELED',
+  EXPIRED = 'EXPIRED',
+}
 
 @Entity('group_invitations')
-@Unique(['group', 'invited_user']) // Ensures a user can only have one pending invitation per group
 export class GroupInvitation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ type: 'uuid' })
+  group_id: string;
+
+  @Column({ type: 'uuid' })
+  sender_id: string; // El usuario que envía la invitación
+
+  @Column({ type: 'uuid', nullable: true })
+  invited_user_id: string; // El usuario invitado (si ya existe en la BD)
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string; // Email del invitado (puede ser para usuarios no registrados aún)
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  username: string; // Nombre de usuario del invitado (si se conoce o se usa para identificar)
+
+  @Column({ type: 'varchar', length: 20, nullable: true }) // Cambiado a varchar para números de teléfono
+  phone: string; // Número de teléfono del invitado
+
+  @Column({
+    type: 'enum',
+    enum: ['LEADER', 'MEMBER'], // Rol que tendrá el usuario en el grupo si acepta
+    default: 'MEMBER',
+  })
+  role: 'LEADER' | 'MEMBER';
+
+  @Column({
+    type: 'enum',
+    enum: GroupInvitationStatus, // Usamos la enumeración definida
+    default: GroupInvitationStatus.PENDING,
+  })
+  status: GroupInvitationStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  expires_at: Date; // Fecha y hora de expiración de la invitación (como Date en la entidad)
+
+  @Column({ type: 'timestamp', nullable: true })
+  reminder_sent_at: Date; // Fecha y hora del último recordatorio enviado
+
+  @CreateDateColumn({ type: 'timestamp' })
+  created_at: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updated_at: Date;
+
+  @DeleteDateColumn({ type: 'timestamp', nullable: true })
+  deleted_at: Date; // Para soft-delete
+
+  // Relaciones
   @ManyToOne(() => Group, (group) => group.invitations, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'group_id', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'group_id' })
   group: Group;
-  @Column('uuid')
-  group_id: string; // Columna para la FK explícita
 
   @ManyToOne(() => User, (user) => user.sent_invitations, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'sender_id', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'sender_id' })
   sender: User;
-  @Column('uuid')
-  sender_id: string; // Columna para la FK explícita del remitente
 
   @ManyToOne(() => User, (user) => user.received_invitations, {
-    onDelete: 'CASCADE',
+    onDelete: 'SET NULL',
   })
-  @JoinColumn({ name: 'invited_user_id', referencedColumnName: 'id' })
+  @JoinColumn({ name: 'invited_user_id' })
   invited_user: User;
-  @Column('uuid')
-  invited_user_id: string; // Columna para la FK explícita del usuario invitado
-
-  @Column({
-    type: 'text',
-    default: 'PENDING',
-    enum: ['PENDING', 'ACCEPTED', 'REJECTED', 'CANCELED', 'EXPIRED'],
-  })
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELED' | 'EXPIRED';
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  created_at: Date;
-
-  @UpdateDateColumn({ type: 'timestamptz' })
-  updated_at: Date;
-
-  @Column({ type: 'timestamptz', nullable: true })
-  expires_at: Date | null; // Optional: for invitations with an expiration time
-
-  @Column({ type: 'timestamptz', nullable: true }) // <-- NUEVA COLUMNA PARA SOFT DELETE
-  deleted_at: Date | null;
 }

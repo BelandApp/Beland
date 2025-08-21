@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
 
 @Entity('bank_account_types')
@@ -24,7 +23,4 @@ export class BankAccountType {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
-
-  @OneToMany(() => BankAccount, (account) => account.account_type)
-  bank_accounts: BankAccount[];
 }

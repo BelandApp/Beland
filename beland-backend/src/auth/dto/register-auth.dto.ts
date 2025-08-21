@@ -5,6 +5,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsOptional,
+  IsEmail,
 } from 'class-validator';
 
 // RegisterAuthDto define los campos necesarios para el registro directo (signup).
@@ -51,4 +52,24 @@ export class RegisterAuthDto extends PickType(CreateUserDto, [
   // Los campos email, password, confirmPassword, address, phone, country, city
   // son ahora requeridos porque están en el PickType array y en CreateUserDto
   // no están marcados como opcionales. Sus validaciones se heredan.
+}
+
+export class ConfirmAuthDto {
+
+  @ApiProperty({
+    description: 'Codigo de verificación',
+    example: '365793',
+    required: true, 
+  })
+  @IsString()
+  code: string; 
+
+  @ApiProperty({
+    description: 'Email a Verificar',
+    example: 'example@gmail.com',
+    required: true, 
+  })
+  @IsEmail()
+  email: string; 
+
 }

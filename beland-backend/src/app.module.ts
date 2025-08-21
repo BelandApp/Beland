@@ -49,6 +49,14 @@ import { GroupInvitationsModule } from './group-invitations/group-invitations.mo
 import { ScheduleModule } from '@nestjs/schedule';
 import { GroupTypeModule } from './group-type/group-type.module';
 import { EmailModule } from './email/email.module';
+import { ResourcesModule } from './resources/resources.module';
+import { ResourcesTypesModule } from './resources-types/resources-types.module';
+import { UserResourcesModule } from './user-resources/user-resources.module';
+import { SuperadminModule } from './superadmin-config/superadmin-config.module';
+import { WithdrawAccountModule } from './withdraw-account/withdraw-account.module';
+import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-account-type.module';
+import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
+import { WalletTypesModule } from './wallet-types/wallet-types.module';
 
 @Module({
   imports: [
@@ -132,6 +140,14 @@ import { EmailModule } from './email/email.module';
     GroupInvitationsModule,
     GroupTypeModule,
     EmailModule,
+    ResourcesModule,
+    ResourcesTypesModule,
+    UserResourcesModule,
+    SuperadminModule,
+    WithdrawAccountModule,
+    WithdrawAccountTypeModule,
+    UserWithdrawModule,
+    WalletTypesModule,
   ],
   controllers: [],
   providers: [
