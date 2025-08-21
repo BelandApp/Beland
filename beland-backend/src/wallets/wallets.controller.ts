@@ -30,7 +30,7 @@ import { TransferDto } from './dto/transfer.dto';
 import { Request } from 'express';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
-import { WithdrawDto } from './dto/withdraw.dto';
+import { WithdrawDto, WithdrawResponseDto } from './dto/withdraw.dto';
 
 @ApiTags('wallets')
 @Controller('wallets')
@@ -119,6 +119,22 @@ export class WalletsController {
   @ApiResponse({ status: 201, description: 'Retira exitosamente' })
   async withdraw(@Req() req: Request, @Body() dto: WithdrawDto): Promise<{wallet: Wallet}> {
     return await this.service.withdraw(req.user?.id, dto);
+  }
+
+  @Post('withdrawFailed')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear un nuevo Retiro' })
+  @ApiResponse({ status: 201, description: 'Retira exitosamente' })
+  async withdrawFailed( @Body() dto: WithdrawResponseDto): Promise<{wallet: Wallet}> {
+    return await this.service.withdrawFailed( dto );
+  }
+
+  @Post('withdrawCompleted')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear un nuevo Retiro' })
+  @ApiResponse({ status: 201, description: 'Retira exitosamente' })
+  async withdrawCompleted(@Body() dto: WithdrawResponseDto): Promise<{wallet: Wallet}> {
+    return await this.service.withdrawCompleted(dto);
   }
   
   @Post('transfer')

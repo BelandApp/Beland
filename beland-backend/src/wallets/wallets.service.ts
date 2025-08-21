@@ -12,7 +12,7 @@ import { DataSource, Repository } from 'typeorm';
 import { RechargeDto } from './dto/recharge.dto';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
-import { WithdrawDto } from './dto/withdraw.dto';
+import { WithdrawDto, WithdrawResponseDto } from './dto/withdraw.dto';
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
@@ -233,6 +233,131 @@ export class WalletsService {
 
       // 8) Retornar la wallet actualizada
       return { wallet: walletUpdated };
+    } catch (error) {
+      // ❌ Deshago todo si algo falla
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Cierro el queryRunner
+      await queryRunner.release();
+    }
+  }
+
+  async withdrawFailed (dto: WithdrawResponseDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    const {user_withdraw_id, observation, reference} = dto;
+    try {
+      // 0) Buscar el retiro del usuario
+      const userWithdraw = await queryRunner.manager.findOne(UserWithdraw, { where: { id: user_withdraw_id } });
+      if (!userWithdraw) throw new NotFoundException('No se encuentra el retiro del usuario');
+      
+      // 1) Buscar la wallet del usuario
+      const wallet = await queryRunner.manager.findOne(Wallet, { where: { user_id: userWithdraw.user_id } });
+      if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+
+      // 2) Busco el registro de la transacción
+      const transaction = await queryRunner.manager.findOne(Transaction, { where: { id: userWithdraw.transaction_id } });
+      if (!transaction) throw new ConflictException("No se encuentra la transaccion del retiro");
+
+      // 3) Obtener estado 'FAILED'
+      const status = await queryRunner.manager.findOne(TransactionState, { where: { code: 'FAILED' } });
+      if (!status) throw new ConflictException("No se encuentra el estado 'FAILED'");
+
+      // 4) Regresar fondos: acreditar el saldo y descontar del saldo bloqueado
+      wallet.becoin_balance = +wallet.becoin_balance + +userWithdraw.amount_becoin;
+      wallet.locked_balance = +wallet.locked_balance - +userWithdraw.amount_becoin;
+      const walletUpdated = await queryRunner.manager.save(wallet);
+
+      // 5) actualizo la transacción a estado FAILED
+      transaction.status_id = status.id;
+      transaction.reference = reference;
+      await queryRunner.manager.save(transaction);
+
+      // 6) actualizo el retiro de usuario a estado FAILED
+      userWithdraw.status_id= status.id;
+      userWithdraw.observation= observation ?? '';
+      await queryRunner.manager.save(userWithdraw);
+    
+      // ✅ Confirmo la transacción
+      await queryRunner.commitTransaction();
+
+      // 7) Retornar la wallet actualizada
+      return { wallet: walletUpdated };
+    } catch (error) {
+      // ❌ Deshago todo si algo falla
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Cierro el queryRunner
+      await queryRunner.release();
+    }
+  }
+
+  async withdrawCompleted (dto: WithdrawResponseDto ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    const {user_withdraw_id, observation, reference} = dto;
+    try {
+      // 0) Buscar el retiro del usuario
+      const userWithdraw = await queryRunner.manager.findOne(UserWithdraw, { where: { id: user_withdraw_id } });
+      if (!userWithdraw) throw new NotFoundException('No se encuentra el retiro del usuario');
+      
+      // 1) Buscar la wallet del usuario
+      const userWallet = await queryRunner.manager.findOne(Wallet, { where: { user_id: userWithdraw.user_id } });
+      if (!userWallet) throw new NotFoundException('No se encuentra la billetera del usuario');
+
+      // 1 Bis) Buscar la wallet del superAdmin
+      const adminWallet = await queryRunner.manager.findOne(Wallet, { where: { user_id: this.superadminConfig.getWalletId() } });
+      if (!adminWallet) throw new NotFoundException('No se encuentra la billetera Beland');
+
+      // 2) Busco el registro de la transacción
+      const transaction = await queryRunner.manager.findOne(Transaction, { where: { id: userWithdraw.transaction_id } });
+      if (!transaction) throw new ConflictException("No se encuentra la transaccion del retiro");
+
+      // 3) Obtener estado 'COMPLETED'
+      const status = await queryRunner.manager.findOne(TransactionState, { where: { code: 'COMPLETED' } });
+      if (!status) throw new ConflictException("No se encuentra el estado 'COMPLETED'");
+
+      // 4) Descuento Definitivo: Descontar del saldo bloqueado
+      userWallet.locked_balance = +userWallet.locked_balance - +userWithdraw.amount_becoin;
+      await queryRunner.manager.save(userWallet);
+
+      // 5) actualizo la transacción a estado COMPLETED
+      transaction.status_id = status.id;
+      await queryRunner.manager.save(transaction);
+
+      // 6) actualizo el retiro de usuario a estado COMPLETED
+      userWithdraw.status_id= status.id;
+      userWithdraw.observation= observation ?? '';
+      await queryRunner.manager.save(userWithdraw);
+    
+      // 7) actualizo la billetera del superAdmin 
+      adminWallet.becoin_balance = +adminWallet.becoin_balance + +userWithdraw.amount_becoin;
+      const adminWalletUpdated = await queryRunner.manager.save(adminWallet);
+
+      // 3) Obtener tipo de transacción 'USER_WITHDRAW_IN'
+      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: 'WITHDRAW_IN' } });
+      if (!type) throw new ConflictException("No se encuentra el tipo 'WITHDRAW_IN'");
+    
+      // 8) Genero una transaccion para la wallet del super admin 
+      const tx = await queryRunner.manager.save(Transaction, {
+        wallet_id: adminWallet.id,
+        type,
+        status,
+        amount: +userWithdraw.amount_becoin,
+        post_balance: adminWallet.becoin_balance,
+        reference,
+      });
+
+
+      // ✅ Confirmo la transacción
+      await queryRunner.commitTransaction();
+
+      // 9) Retornar la wallet actualizada
+      return { wallet: adminWalletUpdated };
     } catch (error) {
       // ❌ Deshago todo si algo falla
       await queryRunner.rollbackTransaction();
