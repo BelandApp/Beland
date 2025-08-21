@@ -19,6 +19,9 @@ export class UserWithdraw {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column('text', {nullable:true})
+  observation: string;
+
   // 🔹 Usuario que solicita el retiro
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
