@@ -6,10 +6,15 @@ import {
   DataSource,
   DeleteResult,
   LessThanOrEqual,
-  IsNull, // <-- ¡IMPORTADO IsNull!
+  IsNull,
   Not,
 } from 'typeorm';
-import { GroupInvitation } from './entities/group-invitation.entity';
+import {
+  GroupInvitation,
+  GroupInvitationStatus,
+} from './entities/group-invitation.entity'; // Importar el enum también
+import { Group } from 'src/groups/entities/group.entity';
+import { User } from 'src/users/entities/users.entity';
 
 @Injectable()
 export class GroupInvitationsRepository extends Repository<GroupInvitation> {
@@ -65,6 +70,7 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
    * @returns La entidad GroupInvitation PENDIENTE o null si no se encuentra.
    */
   async findPendingInvitation(
+    // Renombrado de findExistingInvitation
     groupId: string,
     invitedUserId: string,
   ): Promise<GroupInvitation | null> {
@@ -73,7 +79,28 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
       .andWhere('invitation.invited_user_id = :invitedUserId', {
         invitedUserId,
       })
-      .andWhere('invitation.status = :status', { status: 'PENDING' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.PENDING,
+      })
+      .getOne();
+  }
+
+  /**
+   * Busca CUALQUIER invitación para un usuario específico en un grupo específico, sin importar su estado.
+   * Esto es útil para verificar la existencia de una relación de invitación única.
+   * @param groupId El ID del grupo.
+   * @param invitedUserId El ID del usuario invitado.
+   * @returns La entidad GroupInvitation existente (cualquier estado) o null si no se encuentra.
+   */
+  async findOneByGroupAndInvitedUserAnyStatus(
+    groupId: string,
+    invitedUserId: string,
+  ): Promise<GroupInvitation | null> {
+    return this.createQueryBuilderWithRelations(true) // Incluye soft-deleted por si acaso
+      .andWhere('invitation.group_id = :groupId', { groupId })
+      .andWhere('invitation.invited_user_id = :invitedUserId', {
+        invitedUserId,
+      })
       .getOne();
   }
 
@@ -89,7 +116,9 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
       .andWhere('invitation.invited_user_id = :invitedUserId', {
         invitedUserId,
       })
-      .andWhere('invitation.status = :status', { status: 'PENDING' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.PENDING,
+      })
       .orderBy('invitation.created_at', 'ASC')
       .getMany();
   }
@@ -104,7 +133,9 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
   ): Promise<GroupInvitation[]> {
     return this.createQueryBuilderWithRelations()
       .andWhere('invitation.invited_user_id = :userId', { userId })
-      .andWhere('invitation.status = :status', { status: 'ACCEPTED' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.ACCEPTED,
+      })
       .orderBy('invitation.updated_at', 'DESC')
       .getMany();
   }
@@ -119,7 +150,9 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
   ): Promise<GroupInvitation[]> {
     return this.createQueryBuilderWithRelations()
       .andWhere('invitation.invited_user_id = :userId', { userId })
-      .andWhere('invitation.status = :status', { status: 'REJECTED' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.REJECTED,
+      })
       .orderBy('invitation.updated_at', 'DESC')
       .getMany();
   }
@@ -134,7 +167,9 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
   ): Promise<GroupInvitation[]> {
     return this.createQueryBuilderWithRelations()
       .andWhere('invitation.invited_user_id = :userId', { userId })
-      .andWhere('invitation.status = :status', { status: 'CANCELED' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.CANCELED,
+      })
       .orderBy('invitation.updated_at', 'DESC')
       .getMany();
   }
@@ -149,7 +184,9 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
   ): Promise<GroupInvitation[]> {
     return this.createQueryBuilderWithRelations()
       .andWhere('invitation.invited_user_id = :userId', { userId })
-      .andWhere('invitation.status = :status', { status: 'EXPIRED' })
+      .andWhere('invitation.status = :status', {
+        status: GroupInvitationStatus.EXPIRED,
+      })
       .orderBy('invitation.updated_at', 'DESC')
       .getMany();
   }
@@ -179,9 +216,8 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
       `findExpiredPendingInvitations(): Buscando invitaciones expiradas con fecha de comparación: ${comparisonDate.toISOString()}`,
     );
     return this.groupInvitationORMRepository.find({
-      // Usamos find aquí para simplificar, no necesitamos relaciones ansiosas para el cron job
       where: {
-        status: 'PENDING',
+        status: GroupInvitationStatus.PENDING,
         expires_at: LessThanOrEqual(comparisonDate),
         deleted_at: IsNull(), // Solo procesar las que no han sido soft-deleted ya
       },
@@ -216,7 +252,7 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
   async softDeleteInvitation(id: string): Promise<any> {
     const result = await this.groupInvitationORMRepository.update(
       { id },
-      { deleted_at: new Date(), status: 'CANCELED' }, // También puedes cambiar el status a 'DELETED' si lo agregas al enum
+      { deleted_at: new Date(), status: GroupInvitationStatus.CANCELED },
     );
     this.logger.log(
       `softDeleteInvitation(): Invitación ${id} soft-deleted. Filas afectadas: ${result.affected}`,
@@ -230,7 +266,6 @@ export class GroupInvitationsRepository extends Repository<GroupInvitation> {
    * @returns DeleteResult indicando el resultado de la operación de eliminación.
    */
   async hardDeleteInvitation(id: string): Promise<DeleteResult> {
-    // <-- Renombrado para claridad
     const result = await this.groupInvitationORMRepository.delete(id);
     this.logger.log(
       `hardDeleteInvitation(): Invitación ${id} eliminada permanentemente. Filas afectadas: ${result.affected}`,

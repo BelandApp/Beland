@@ -39,6 +39,7 @@ import {
 } from '@nestjs/swagger';
 import { IsBoolean, IsNotEmpty } from 'class-validator';
 import { PickType } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer'; // Import plainToInstance
 
 // Importar los guardias y decoradores de autorización
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
@@ -255,11 +256,13 @@ export class UsersController {
       `GET /users/by-email: Solicitud de búsqueda por email "${email}" por Admin ID: ${adminUserId}.`,
     );
     try {
-      const user = await this.usersService.findOneByEmail(email);
+      // Usar findUserEntityByEmail y transformar a DTO
+      const userEntity = await this.usersService.findUserEntityByEmail(email);
+      const userDto = plainToInstance(UserDto, userEntity); // Transformar entidad a DTO
       this.logger.log(
         `Usuario con email "${email}" encontrado exitosamente por Admin ID: ${adminUserId}.`,
       );
-      return user;
+      return userDto;
     } catch (error) {
       this.handleError(error, 'buscar usuario por email');
     }

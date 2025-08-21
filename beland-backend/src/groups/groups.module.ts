@@ -7,27 +7,27 @@ import { Group } from './entities/group.entity';
 import { GroupsRepository } from './groups.repository';
 import { GroupMember } from '../group-members/entities/group-member.entity';
 import { GroupMembersRepository } from '../group-members/group-members.repository';
-import { UsersModule } from 'src/users/users.module'; // Import UsersModule for UsersService dependency
-import { User } from 'src/users/entities/users.entity'; // Import User entity for TypeOrmModule.forFeature
-import { AuthModule } from 'src/auth/auth.module'; // Import AuthModule for authentication/authorization guards
-import { AdminsModule } from 'src/admins/admins.module'; // Import AdminsModule
+import { UsersModule } from 'src/users/users.module'; // Importar UsersModule para la dependencia de UsersService
+import { User } from 'src/users/entities/users.entity'; // Importar la entidad User para TypeOrmModule.forFeature
+import { AuthModule } from 'src/auth/auth.module'; // Importar AuthModule para los guards de autenticación/autorización
+import { AdminsModule } from 'src/admins/admins.module'; // Importar AdminsModule
 import { GroupMembersModule } from 'src/group-members/group-members.module';
 import { GroupInvitationsModule } from 'src/group-invitations/group-invitations.module';
 
 @Module({
   imports: [
-    // Register TypeORM entities for this module. GroupMember and User are needed for relationships.
+    // Registrar entidades de TypeORM para este módulo. GroupMember y User son necesarios para las relaciones.
     TypeOrmModule.forFeature([Group, GroupMember, User]),
-    // Use forwardRef to resolve circular dependencies if UsersModule or AuthModule also import GroupsModule.
+    // Usar forwardRef para resolver dependencias circulares si UsersModule o AuthModule también importan GroupsModule.
     forwardRef(() => UsersModule),
     forwardRef(() => AuthModule),
     forwardRef(() => AdminsModule),
-    forwardRef(() => GroupMembersModule), // <-- ADDED THIS LINE to resolve PermissionsGuard dependency
+    forwardRef(() => GroupMembersModule),
     forwardRef(() => GroupInvitationsModule),
   ],
-  controllers: [GroupsController], // Register controllers handled by this module
-  providers: [GroupsService, GroupsRepository, GroupMembersRepository], // Register services and repositories as providers
-  // Export services and repositories so other modules can inject them.
+  controllers: [GroupsController], // Registrar controladores manejados por este módulo
+  providers: [GroupsService, GroupsRepository, GroupMembersRepository], // Registrar servicios y repositorios como proveedores
+  // Exportar servicios y repositorios para que otros módulos puedan inyectarlos.
   exports: [
     GroupsService,
     GroupsRepository,

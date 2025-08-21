@@ -4,7 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
-  ForbiddenException, // Asegúrate de importar esto si tu servicio lo lanza
+  ForbiddenException,
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -17,7 +17,7 @@ import { Role } from '../roles/entities/role.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
 import { UserDto } from './dto/user.dto';
-import { DataSource, Not, IsNull, Or } from 'typeorm'; // Añadir IsNull, Or si los usas para `deleted_at`
+import { DataSource, Not, IsNull, Or } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
@@ -257,42 +257,56 @@ export class UsersService {
   /**
    * Busca un usuario por su email.
    * @param email El email del usuario.
-   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   * @returns Una promesa que resuelve a la entidad User o lanza NotFoundException.
    */
-  async findOneByEmail(email: string): Promise<User | null> {
-    this.logger.debug(`findOneByEmail(): Buscando usuario con email: ${email}`);
-    // Usamos el repositorio directamente que devuelve la entidad User
+  async findUserEntityByEmail(email: string): Promise<User> {
+    this.logger.debug(
+      `findUserEntityByEmail(): Buscando usuario con email: ${email}`,
+    );
     const user = await this.usersRepository.findByEmail(email);
     if (!user) {
       throw new NotFoundException(
         `Usuario con email "${email}" no encontrado.`,
       );
     }
-    return user; // Devuelve la entidad User, el controlador la mapeará a DTO si es necesario
+    return user;
   }
 
   /**
    * Busca un usuario por su nombre de usuario.
    * @param username El nombre de usuario.
-   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   * @returns Una promesa que resuelve a la entidad User o lanza NotFoundException.
    */
-  async findOneByUsername(username: string): Promise<User | null> {
+  async findUserEntityByUsername(username: string): Promise<User> {
     this.logger.debug(
-      `findOneByUsername(): Buscando usuario con username: ${username}`,
+      `findUserEntityByUsername(): Buscando usuario con username: ${username}`,
     );
-    return this.usersRepository.findByUsername(username);
+    const user = await this.usersRepository.findByUsername(username);
+    if (!user) {
+      throw new NotFoundException(
+        `Usuario con username "${username}" no encontrado.`,
+      );
+    }
+    return user;
   }
 
   /**
    * Busca un usuario por su número de teléfono.
    * @param phone El número de teléfono.
-   * @returns Una promesa que resuelve a la entidad User o null si no se encuentra.
+   * @returns Una promesa que resuelve a la entidad User o lanza NotFoundException.
    */
-  async findOneByPhone(phone: number): Promise<User | null> {
+  async findUserEntityByPhone(phone: string): Promise<User> {
+    // Cambiado a string
     this.logger.debug(
-      `findOneByPhone(): Buscando usuario con teléfono: ${phone}`,
+      `findUserEntityByPhone(): Buscando usuario con teléfono: ${phone}`,
     );
-    return this.usersRepository.findByPhone(phone);
+    const user = await this.usersRepository.findByPhone(phone);
+    if (!user) {
+      throw new NotFoundException(
+        `Usuario con teléfono "${phone}" no encontrado.`,
+      );
+    }
+    return user;
   }
 
   /**
@@ -312,6 +326,18 @@ export class UsersService {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
     }
     return user;
+  }
+
+  /**
+   * Comprueba si un usuario es un administrador o superadministrador.
+   * @param userId El ID del usuario a verificar.
+   * @returns `true` si el usuario es un ADMIN o SUPERADMIN, `false` en caso contrario.
+   */
+  async isAdmin(userId: string): Promise<boolean> {
+    const user = await this.usersRepository.findOne(userId);
+    return (
+      user?.role_name === ROLE_ADMIN || user?.role_name === ROLE_SUPERADMIN
+    );
   }
 
   /**
@@ -545,7 +571,7 @@ export class UsersService {
    */
   async softDeleteUser(id: string): Promise<void> {
     this.logger.debug(`softDeleteUser(): Desactivando usuario con ID: ${id}.`);
-    const user = await this.usersRepository.findOne(id); // Eliminar 'true' si findOne ya maneja la inclusión de eliminados por defecto o si es un método separado.
+    const user = await this.usersRepository.findOne(id);
     if (!user) {
       throw new NotFoundException(`Usuario con ID "${id}" no encontrado.`);
     }
