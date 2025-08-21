@@ -13,6 +13,7 @@ import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
 import { Category } from 'src/category/entities/category.entity';
 import { GroupType } from 'src/group-type/entities/group-type.entity';
 import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
+import { WithdrawAccountType } from 'src/withdraw-account-type/entities/withdraw-account-type.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { ResourcesType } from 'src/resources-types/entities/resources-type.entit
     UsersModule,
     ConfigModule, // Asegúrate de que ConfigModule esté importado aquí o globalmente
     TypeOrmModule.forFeature([TransactionState, TransactionType, Product, PaymentType, Category, GroupType,
-      ResourcesType
+      ResourcesType, WithdrawAccountType
     ])
   ],
   providers: [
