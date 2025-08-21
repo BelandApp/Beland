@@ -23,7 +23,4 @@ export class BankAccountType {
 
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at: Date;
-
-  @OneToMany(() => BankAccount, (account) => account.account_type)
-  bank_accounts: BankAccount[];
 }

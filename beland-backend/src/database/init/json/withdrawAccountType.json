@@ -1,0 +1,10 @@
+[
+  {
+    "code": "BANK",
+    "name": "Cuenta Bancaria"
+  },
+  {
+    "code": "WALLET",
+    "name": "Billetera Virtual"
+  }
+]

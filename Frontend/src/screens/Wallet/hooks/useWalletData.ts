@@ -26,7 +26,11 @@ export const useWalletData = () => {
       // Convertir el balance del backend (string) a número
       const backendBalance =
         typeof wallet.becoin_balance === "string"
-          ? parseFloat(wallet.becoin_balance)
+          ? isNaN(parseFloat(wallet.becoin_balance))
+            ? 0
+            : parseFloat(wallet.becoin_balance)
+          : isNaN(wallet.becoin_balance)
+          ? 0
           : wallet.becoin_balance || 0;
 
       console.log(
