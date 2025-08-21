@@ -328,7 +328,8 @@ export class WalletsService {
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
     // 3) Actualizar saldo
-    if (+wallet.becoin_balance < becoinAmount) throw new ConflictException('Saldo insuficiente');
+    if (+wallet.becoin_balance < becoinAmount)
+      throw new ConflictException('Saldo insuficiente');
 
     wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
     const type = await this.typeRepo.findOneBy({ code: 'PURCHASE_BELAND' });
@@ -352,5 +353,4 @@ export class WalletsService {
     });
     return { wallet: walletUpdated };
   }
-
 }

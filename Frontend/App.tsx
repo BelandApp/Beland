@@ -15,6 +15,7 @@ import { RootStackNavigator } from "./src/components/layout/RootStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { useAuth } from "src/hooks/AuthContext";
 import { AuthProvider } from "src/hooks/AuthContext";
+import PayphoneSuccessScreen from "./src/screens/Wallet/PayphoneSuccessScreen";
 
 const AppContent = () => {
   // Declarar todos los hooks al inicio, sin condicionales
@@ -115,12 +116,43 @@ const AppContent = () => {
   //   );
   // }
 
+  const isPayphoneSuccess =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/payphone-success");
+
+  if (isPayphoneSuccess) {
+    return <PayphoneSuccessScreen />;
+  }
+
+  // Configuración de linking para rutas web
+  const linking = {
+    prefixes: ["http://localhost:8081", "https://tudominio.com"],
+    config: {
+      screens: {
+        PayphoneSuccess: "payphone-success",
+        MainTabs: "",
+        CanjearScreen: "canjear",
+        SendScreen: "send",
+        ReceiveScreen: "receive",
+        WalletHistoryScreen: "wallet-history",
+        RechargeScreen: "recharge",
+        WalletSettingsScreen: "wallet-settings",
+        QR: "qr",
+        RecyclingMap: "recycling-map",
+        HistoryScreen: "history",
+        UserDashboardScreen: "user-dashboard",
+        // Agrega aquí todas las rutas que tienes en RootStackParamList
+      },
+    },
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <StatusBar style="light" />
       <NavigationContainer
         ref={navigationRef}
         onStateChange={onNavigationStateChange}
+        linking={linking}
       >
         <View
           style={{

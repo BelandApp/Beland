@@ -11,7 +11,7 @@ import { RolesModule } from '../roles/roles.module';
   imports: [
     TypeOrmModule.forFeature([Admin]),
     forwardRef(() => UsersModule),
-    RolesModule,
+    forwardRef(() => RolesModule),
   ],
   controllers: [AdminsController],
   providers: [AdminService, AdminRepository],
