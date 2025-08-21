@@ -1,7 +1,12 @@
 // src/groups/groups.repository.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
+import {
+  Repository,
+  DataSource,
+  FindOptionsWhere,
+  DeleteResult,
+} from 'typeorm'; // Importar DeleteResult
 import { Group } from './entities/group.entity';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { OrderDto } from 'src/common/dto/order.dto';
@@ -193,9 +198,14 @@ export class GroupsRepository extends Repository<Group> {
    * NOTA: Esto realiza un borrado físico. Úsalo con precaución.
    * La lógica de la API debe preferir softDeleteGroup.
    * @param id El ID del grupo a eliminar.
+   * @returns DeleteResult indicando el resultado de la operación de eliminación.
    */
-  async hardDeleteGroup(id: string): Promise<void> {
-    await this.groupORMRepository.delete(id);
-    this.logger.log(`hardDeleteGroup(): Grupo ${id} physically deleted.`);
+  async hardDeleteGroup(id: string): Promise<DeleteResult> {
+    // CORREGIDO: Retorna DeleteResult
+    const result = await this.groupORMRepository.delete(id);
+    this.logger.log(
+      `hardDeleteGroup(): Grupo ${id} physically deleted. Affected rows: ${result.affected}`,
+    );
+    return result;
   }
 }
