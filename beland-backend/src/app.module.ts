@@ -53,6 +53,9 @@ import { ResourcesModule } from './resources/resources.module';
 import { ResourcesTypesModule } from './resources-types/resources-types.module';
 import { UserResourcesModule } from './user-resources/user-resources.module';
 import { SuperadminModule } from './superadmin-config/superadmin-config.module';
+import { WithdrawAccountModule } from './withdraw-account/withdraw-account.module';
+import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-account-type.module';
+import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
 
 @Module({
   imports: [
@@ -140,6 +143,9 @@ import { SuperadminModule } from './superadmin-config/superadmin-config.module';
     ResourcesTypesModule,
     UserResourcesModule,
     SuperadminModule,
+    WithdrawAccountModule,
+    WithdrawAccountTypeModule,
+    UserWithdrawModule,
   ],
   controllers: [],
   providers: [
