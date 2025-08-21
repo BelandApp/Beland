@@ -8,12 +8,18 @@ import WalletHistoryScreen from "../../screens/Wallet/WalletHistoryScreen";
 import RechargeScreen from "../../screens/Wallet/RechargeScreen";
 import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
-import { HistoryScreen, RecyclingMapScreen } from "../../screens";
+import {
+  DashboardScreen,
+  HistoryScreen,
+  RecyclingMapScreen,
+} from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
-import { HomeScreen } from "../../screens/HomeScreen";
+import { useAuth } from "src/hooks/AuthContext";
+import HomeView from "src/screens/Home/HomePage";
 
 export type RootStackParamList = {
   MainTabs: undefined;
+  Dashboard: undefined;
   Home: undefined;
   Wallet: undefined;
   Rewards: undefined;
@@ -34,66 +40,82 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStackNavigator = () => {
+  const { user } = useAuth();
+  const initialRouteName = user ? "Dashboard" : "Home";
+
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
-    >
-      <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      initialRouteName={initialRouteName}>
+       <Stack.Screen name="Home" component={HomeView} />
+     <Stack.Screen name="Dashboard" component={DashboardScreen} />
+       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+     
       <Stack.Screen
         name="CanjearScreen"
         component={CanjearScreen}
         options={{ headerShown: false, title: "Canjear" }}
       />
+      
       <Stack.Screen
         name="SendScreen"
         component={SendScreen}
         options={{ headerShown: false, title: "Enviar" }}
       />
+      
       <Stack.Screen
         name="ReceiveScreen"
         component={ReceiveScreen}
         options={{ headerShown: false, title: "Recibir" }}
       />
+   
       <Stack.Screen
         name="WalletHistoryScreen"
         component={WalletHistoryScreen}
         options={{ headerShown: false }}
       />
+   
       <Stack.Screen
         name="RechargeScreen"
         component={RechargeScreen}
         options={{ headerShown: false }}
       />
+    
       <Stack.Screen
         name="WalletSettingsScreen"
         component={WalletSettingsScreen}
         options={{ headerShown: false }}
       />
+    
       <Stack.Screen
         name="QR"
         component={QRScannerScreen}
         options={{ presentation: "modal" }}
       />
+  
       <Stack.Screen
         name="RecyclingMap"
         component={RecyclingMapScreen}
         options={{ headerShown: true, title: "Mapa de Reciclaje" }}
       />
+ 
       <Stack.Screen
         name="HistoryScreen"
         component={HistoryScreen}
         options={{ headerShown: false }}
       />
+     
       <Stack.Screen
-        name="Home"
-        component={HomeScreen}
+        name="UserDashboardScreen"
+        component={UserDashboardScreen}
         options={{
           headerShown: true,
           title: "Beland",
         }}
       />
+     
     </Stack.Navigator>
   );
 };
