@@ -10,6 +10,11 @@
     "description": "Conversión de BECOIN a USD y transferencia a cuenta bancaria"
   },
   {
+    "code": "WITHDRAW_IN",
+    "name": "Ingreso por Retiro de Usuario",
+    "description": "Fondos recibidos en la wallet del superadmin por un retiro de usuario"
+  },
+  {
     "code": "TRANSFER_SEND",
     "name": "Transferencia Enviada",
     "description": "Transferencia de BECOIN entre usuarios"
