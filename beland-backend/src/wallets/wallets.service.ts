@@ -17,6 +17,7 @@ import { TransactionType } from 'src/transaction-type/entities/transaction-type.
 import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 import { UserWithdraw } from 'src/user-withdraw/entities/user-withdraw.entity';
+import { TransactionCode } from 'src/transactions/enum/transaction-code';
 
 @Injectable()
 export class WalletsService {
@@ -64,6 +65,17 @@ export class WalletsService {
   async findByUser(user_id: string): Promise<Wallet> {
     try {
       const res = await this.repository.findByUser(user_id);
+      if (!res)
+        throw new NotFoundException(`No se encontro ${this.completeMessage}`);
+      return res;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  async findByAlias(alias: string): Promise<Wallet> {
+    try {
+      const res = await this.repository.findByAlias(alias);
       if (!res)
         throw new NotFoundException(`No se encontro ${this.completeMessage}`);
       return res;
@@ -136,8 +148,8 @@ export class WalletsService {
       if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
       // 2) Certificar que exista el tipo de transacción 'RECHARGE'
-      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: 'RECHARGE' } });
-      if (!type) throw new ConflictException("No se encuentra el tipo 'RECHARGE'");
+      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: TransactionCode.RECHARGE } });
+      if (!type) throw new ConflictException("No se encuentra el tipo ", TransactionCode.RECHARGE);
 
       // 3) Certificar que exista el estado 'COMPLETED'
       const status = await queryRunner.manager.findOne(TransactionState, { where: { code: 'COMPLETED' } });
@@ -196,8 +208,8 @@ export class WalletsService {
         throw new BadRequestException('Saldo insuficiente');
 
       // 3) Obtener tipo de transacción 'WITHDRAW'
-      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: 'WITHDRAW' } });
-      if (!type) throw new ConflictException("No se encuentra el tipo 'WITHDRAW'");
+      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: TransactionCode.WITHDRAW } });
+      if (!type) throw new ConflictException("No se encuentra el tipo ", TransactionCode.WITHDRAW);
 
       // 4) Obtener estado 'PENDING'
       const status = await queryRunner.manager.findOne(TransactionState, { where: { code: 'PENDING' } });
@@ -339,8 +351,8 @@ export class WalletsService {
       const adminWalletUpdated = await queryRunner.manager.save(adminWallet);
 
       // 3) Obtener tipo de transacción 'USER_WITHDRAW_IN'
-      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: 'WITHDRAW_IN' } });
-      if (!type) throw new ConflictException("No se encuentra el tipo 'WITHDRAW_IN'");
+      const type = await queryRunner.manager.findOne(TransactionType, { where: { code: TransactionCode.WITHDRAW_IN } });
+      if (!type) throw new ConflictException("No se encuentra el tipo ", TransactionCode.WITHDRAW_IN);
     
       // 8) Genero una transaccion para la wallet del super admin 
       const tx = await queryRunner.manager.save(Transaction, {
@@ -371,8 +383,8 @@ export class WalletsService {
   async transfer(
     user_id: string,
     dto: TransferDto,
-    code_transaction_send = 'TRANSFER_SEND',
-    code_transaction_received = 'TRANSFER_RECEIVED',
+    code_transaction_send?: string,
+    code_transaction_received?: string,
   ): Promise<{ wallet: Wallet }> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -388,6 +400,32 @@ export class WalletsService {
       // 2) certifico que exista la wallet de destino
       const to = await queryRunner.manager.findOne(Wallet, { where: { id: dto.toWalletId } });
       if (!to) throw new NotFoundException('Billetera destino no existe');
+      
+      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de wallet
+      if (!code_transaction_send) {
+        switch (to.type.code) {
+          case 'COMMERCE':
+            code_transaction_send = TransactionCode.PURCHASE;
+            code_transaction_received = TransactionCode.SALE;
+            break;
+
+          case 'FUNDATION':
+            code_transaction_send = TransactionCode.DONATION_SEND;
+            code_transaction_received = TransactionCode.DONATION_RECEIVED;
+            break;
+
+          case 'SUPERADMIN':
+            code_transaction_send = TransactionCode.PURCHASE_BELAND;
+            code_transaction_received = TransactionCode.SALE_BELAND;
+            break;
+
+          default:
+            code_transaction_send = TransactionCode.TRANSFER_SEND;
+            code_transaction_received = TransactionCode.TRANSFER_RECEIVED;
+            break;
+        }
+        
+      }
 
       // 3) chequeo que exista el estado y el tipo de transaccion necesarios
       let type = await queryRunner.manager.findOne(TransactionType, { where: { code: code_transaction_send } });
