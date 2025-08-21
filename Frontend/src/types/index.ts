@@ -3,12 +3,7 @@ import { Product } from "./Products";
 export interface Participant {
   id: string;
   name: string;
-  instagramUsername?: string; // Usuario de Instagram
-  instagramProfilePic?: string; // URL de la foto de perfil
-  instagramFullName?: string; // Nombre completo desde Instagram
-  isVerified?: boolean; // Si está verificado en Instagram
-  isPayingForAll?: boolean; // Si paga por todos
-  customAmount?: number; // Monto personalizado
+  consumption: number;
 }
 
 
@@ -20,25 +15,21 @@ export interface Group {
   description: string;
   location: string;
   deliveryTime: string;
-  participantsList: Participant[];
-  participants: number; // Para compatibilidad con mock data
+  leader: string;
   products: Product[];
-  totalParticipants: number;
+  participants: Participant[]; 
   totalAmount: number;
-  myConsumption: number;
   costPerPerson: number;
-  status: GroupStatus;
-  beCoinsGenerated: number;
-  createdAt: string;
-  createdBy: string;
-  paymentMode: PaymentMode;
-  payingUserId?: string; // ID del usuario que paga por todos (cuando paymentMode es 'single_payer')
+  beCoinsEarned: number;
+  myConsumption: number;
+  status: GroupStatus; 
 }
 
 export type GroupStatus =
   | "active"
   | "pending_payment"
   | "completed"
+  | "pending"
   | "cancelled";
 
 export type PaymentMode =
@@ -62,3 +53,5 @@ export interface AlertConfig {
   message: string;
   type: "success" | "error" | "info";
 }
+
+export { Product };
