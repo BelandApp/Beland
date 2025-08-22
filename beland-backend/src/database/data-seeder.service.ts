@@ -10,6 +10,8 @@ export class DataSeederService implements OnApplicationBootstrap {
     { name: 'LEADER', description: 'Usuario con privilegios de líder' },
     { name: 'ADMIN', description: 'Administrador del sistema' },
     { name: 'SUPERADMIN', description: 'Superadministrador con control total' },
+    { name: 'COMMERCE', description: 'Rol de usuario para comercios' },
+    { name: 'FUNDATION', description: 'Rol de usuario para fundaciones sin fines de lucro' },
   ];
 
   constructor(
@@ -26,7 +28,7 @@ export class DataSeederService implements OnApplicationBootstrap {
 
     for (const roleData of this.DEFAULT_ROLES) {
       const existingRole = await this.rolesRepository.findByName(
-        roleData.name as 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN',
+        roleData.name as 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION',
       );
 
       if (!existingRole) {
@@ -35,7 +37,7 @@ export class DataSeederService implements OnApplicationBootstrap {
           // y que se use 'await' para la creación
           const newRole = await this.rolesRepository.save(
             await this.rolesRepository.create({
-              name: roleData.name as 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN',
+              name: roleData.name as 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION',
               description: roleData.description,
               is_active: true, // Ahora la entidad Role tiene esta propiedad
             }),

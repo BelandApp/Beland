@@ -54,7 +54,7 @@ export class UserDto {
   })
   // Mapea directamente la columna 'role_name' de la entidad User
   // ¡Añadido 'EMPRESA' aquí!
-  role_name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA'; // Tipo literal para los roles
+  role_name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION'; // Tipo literal para los roles
 
   @ApiProperty({
     description: 'ID del rol del usuario (clave foránea)',

@@ -4,19 +4,18 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
   JoinColumn,
   OneToOne,
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity'; 
 
-@Entity('merchants')
-export class Merchant {
+@Entity('organizations')
+export class Organization {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar', length: 150 })
-  business_name: string; // Nombre comercial
+  name: string; // Nombre comercial
 
   @Column({ type: 'varchar', length: 150, nullable: true })
   legal_name?: string; // Razón social (opcional)
@@ -60,7 +59,7 @@ export class Merchant {
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
 
-  @OneToOne(() => User, (user) => user.merchant, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.organization, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;
   @Column({ type: 'uuid' })

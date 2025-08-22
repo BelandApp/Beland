@@ -11,7 +11,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateMerchantDto {
+export class CreateOrganizationDto {
   @ApiProperty({
     description: 'Nombre comercial del negocio',
     example: 'Tienda La Buena Compra',
@@ -20,7 +20,7 @@ export class CreateMerchantDto {
   })
   @IsString()
   @Length(2, 150)
-  business_name: string;
+  name: string;
 
   @ApiPropertyOptional({
     description: 'Nombre legal del negocio',

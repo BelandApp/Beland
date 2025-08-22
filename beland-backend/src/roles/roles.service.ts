@@ -18,7 +18,7 @@ import { Role } from './entities/role.entity'; // Importar la entidad Role
 import { plainToInstance } from 'class-transformer';
 
 // Definición de tipo para todos los roles válidos
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 @Injectable()
 export class RolesService {
@@ -147,7 +147,8 @@ export class RolesService {
       'LEADER',
       'ADMIN',
       'SUPERADMIN',
-      'EMPRESA',
+      'COMMERCE',
+      'FUNDATION'
     ];
 
     if (CRITICAL_ROLES.includes(roleToDelete.name)) {

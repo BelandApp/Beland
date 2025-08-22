@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -25,7 +26,6 @@ import { EmailService } from 'src/email/email.service';
 import { CreateEmailDto } from 'src/email/dto/create-email.dto';
 import { verificationEmailTemplate } from 'src/email/plantilla/htmlVerificacion';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Injectable()
 export class AuthService {
@@ -125,14 +125,10 @@ export class AuthService {
       const randomNumber = Math.floor(Math.random() * 1000);
       const alias = `${usernamePart}.${randomNumber}`;
 
-      const walletTypeRepo = this.dataSource.getRepository(WalletType);
-      const walletType = await walletTypeRepo.findOneBy({code:'USER'})
-
       // 1️⃣ Crear y guardar la wallet con user_id y alias
       const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
         user_id: userSave.id,
         alias,
-        walletType
       });
 
       // 2️⃣ Generar el QR con el ID ya guardado
@@ -398,5 +394,19 @@ export class AuthService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+    async forgotPassword(email: string): Promise<{ token: string }> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new NotFoundException("Todavia no es usuario. Debe registrarse primero");
+    const userPayload = {
+      user_id: user.id
+    }
+    const token = this.jwtService.sign(userPayload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
+    });
+    
+    return { token };
   }
 }
