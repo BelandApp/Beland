@@ -12,6 +12,8 @@ import { HistoryScreen, RecyclingMapScreen } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
 import { HomeScreen } from "../../screens/HomeScreen";
 import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
+import { useAuth } from "src/hooks/AuthContext";
+import { CatalogScreen } from "src/screens/Catalog";
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -36,13 +38,15 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStackNavigator = () => {
+  const { user } = useAuth(); 
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {user ? (
+        <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+      ) : (
+        <Stack.Screen name="Home" component={HomeScreen} />
+      )}
       <Stack.Screen
         name="CanjearScreen"
         component={CanjearScreen}
@@ -53,9 +57,10 @@ export const RootStackNavigator = () => {
         component={SendScreen}
         options={{ headerShown: false, title: "Enviar" }}
       />
+      
       <Stack.Screen
-        name="ReceiveScreen"
-        component={ReceiveScreen}
+        name="Catalog"
+        component={CatalogScreen}
         options={{ headerShown: false, title: "Recibir" }}
       />
       <Stack.Screen
@@ -88,18 +93,16 @@ export const RootStackNavigator = () => {
         component={HistoryScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          headerShown: true,
-          title: "Beland",
-        }}
-      />
+     
       <Stack.Screen
         name="PayphoneSuccess"
         component={PayphoneSuccessScreen}
-        options={{ headerShown: false, title: "Recarga Payphone" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="UserDashboardScreen"
+        component={UserDashboardScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
