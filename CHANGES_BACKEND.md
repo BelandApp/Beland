@@ -11,7 +11,7 @@
 - **Archivos:** DTOs y entidades de `Transaction`, `Wallet`, `Category`, `Product`.
 - **Cambio:** Se ajustaron los tipos y propiedades para que coincidan con los datos que espera el frontend (por ejemplo, uso de UUID en `category_id`, campos como `amount_beicon`, `becoin_balance`, etc).
 - **Motivo:** Evitar errores de tipo y asegurar que el frontend pueda mostrar los datos directamente del backend sin cálculos adicionales ni conversiones.
-
+ 
 ## 3. Validación y respuesta de endpoints
 
 - **Archivos:** Controladores y servicios de categorías y productos.
