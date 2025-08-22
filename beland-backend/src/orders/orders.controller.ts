@@ -101,28 +101,4 @@ export class OrdersController {
   return await this.service.createOrderByCart(body);
   }
 
-  @Put(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Actualizar una orden existente' })
-  @ApiParam({ name: 'id', description: 'UUID de la orden' })
-  @ApiResponse({ status: 200, description: 'Orden actualizado correctamente' })
-  @ApiResponse({ status: 404, description: 'No se encontró la orden a actualizar' })
-  @ApiResponse({ status: 500, description: 'Error al actualizar la orden' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateOrderDto,
-  ) {
-    return this.service.update(id, body);
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar una orden por su ID' })
-  @ApiParam({ name: 'id', description: 'UUID de la orden' })
-  @ApiResponse({ status: 204, description: 'Orden eliminado correctamente' })
-  @ApiResponse({ status: 404, description: 'No se encontró la orden a eliminar' })
-  @ApiResponse({ status: 409, description: 'No se puede eliminar la orden (conflicto)' })
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
-    await this.service.remove(id);
-  }
 }

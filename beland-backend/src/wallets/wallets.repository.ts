@@ -44,7 +44,7 @@ export class WalletsRepository {
 
   async findSuperadminWallet(): Promise<Wallet> {
     return await this.repository.findOne({
-      where: { user: {role_relation: {name: 'SUPERADMIN'}} },
+      where: { user: {role: {name: 'SUPERADMIN'}} },
     });
   }
 

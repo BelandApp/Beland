@@ -31,10 +31,9 @@ import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware
 import { TransactionsModule } from './transactions/transactions.module';
 import { RecyclePricesModule } from './recycle_prices/recycle_prices.module';
 import { BankAccountModule } from './bank-account/bank-account.module';
-import { MerchantsModule } from './merchants/merchants.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { TransactionTypeModule } from './transaction-type/transaction-type.module';
 import { TransactionStateModule } from './transaction-state/transaction-state.module';
-import { CharityModule } from './charity/charity.module';
 import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
 import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
@@ -56,7 +55,6 @@ import { SuperadminModule } from './superadmin-config/superadmin-config.module';
 import { WithdrawAccountModule } from './withdraw-account/withdraw-account.module';
 import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-account-type.module';
 import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
-import { WalletTypesModule } from './wallet-types/wallet-types.module';
 
 @Module({
   imports: [
@@ -125,10 +123,9 @@ import { WalletTypesModule } from './wallet-types/wallet-types.module';
     TransactionsModule,
     RecyclePricesModule,
     BankAccountModule,
-    MerchantsModule,
+    OrganizationsModule,
     TransactionTypeModule,
     TransactionStateModule,
-    CharityModule,
     BankAccountTypeModule,
     AdminsModule,
     CartModule,
@@ -147,7 +144,6 @@ import { WalletTypesModule } from './wallet-types/wallet-types.module';
     WithdrawAccountModule,
     WithdrawAccountTypeModule,
     UserWithdrawModule,
-    WalletTypesModule,
   ],
   controllers: [],
   providers: [

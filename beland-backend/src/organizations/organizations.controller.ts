@@ -20,18 +20,18 @@ import {
   ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { Merchant } from './entities/merchant.entity';
-import { MerchantsService } from './merchants.service';
-import { CreateMerchantDto } from './dto/create-merchant.dto';
-import { UpdateMerchantDto } from './dto/update-merchant.dto';
+import { Organization } from './entities/organization.entity';
+import { OrganizationsService } from './organizations.service';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 
-@ApiTags('merchants')
-@Controller('merchants')
+@ApiTags('organizations')
+@Controller('organizations')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(FlexibleAuthGuard)
-export class MerchantsController {
-  constructor(private readonly service: MerchantsService) {}
+export class OrganizationsController {
+  constructor(private readonly service: OrganizationsService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -45,7 +45,7 @@ export class MerchantsController {
     @Query('page') page = '1',
     @Query('limit') limit = '10',
     @Query('user_id') user_id = '',
-  ): Promise<[Merchant[], number]> {
+  ): Promise<[Organization[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
     return await this.service.findAll(user_id, pageNumber, limitNumber);
@@ -58,7 +58,7 @@ export class MerchantsController {
   @ApiResponse({ status: 200, description: 'Comercio encontrado' })
   @ApiResponse({ status: 404, description: 'No se encontró el comercio' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
-  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Merchant> {
+  async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<Organization> {
     return await this.service.findOne(id);
   }
 
@@ -68,7 +68,7 @@ export class MerchantsController {
   @ApiResponse({ status: 201, description: 'Comercio creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos para crear el comercio' })
   @ApiResponse({ status: 500, description: 'No se pudo crear el comercio' })
-  async create(@Body() body: CreateMerchantDto): Promise<Merchant> {
+  async create(@Body() body: CreateOrganizationDto): Promise<Organization> {
     return await this.service.create(body);
   }
 
@@ -81,7 +81,7 @@ export class MerchantsController {
   @ApiResponse({ status: 500, description: 'Error al actualizar el comercio' })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() body: UpdateMerchantDto,
+    @Body() body: UpdateOrganizationDto,
   ) {
     return this.service.update(id, body);
   }
@@ -95,5 +95,5 @@ export class MerchantsController {
   @ApiResponse({ status: 409, description: 'No se puede eliminar el comercio (conflicto)' })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.service.remove(id);
-  }
+  }M
 }

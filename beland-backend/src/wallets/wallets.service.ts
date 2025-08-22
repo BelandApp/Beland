@@ -18,6 +18,8 @@ import { TransactionState } from 'src/transaction-state/entities/transaction-sta
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 import { UserWithdraw } from 'src/user-withdraw/entities/user-withdraw.entity';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
+import { User } from 'src/users/entities/users.entity';
+import { Role } from 'src/roles/entities/role.entity';
 
 @Injectable()
 export class WalletsService {
@@ -400,10 +402,13 @@ export class WalletsService {
       // 2) certifico que exista la wallet de destino
       const to = await queryRunner.manager.findOne(Wallet, { where: { id: dto.toWalletId } });
       if (!to) throw new NotFoundException('Billetera destino no existe');
+
+      const user: User = await queryRunner.manager.findOne(User, { where: { id: user_id } });
+      if (!user) throw new NotFoundException('Usuario destino no existe');
       
       // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de wallet
       if (!code_transaction_send) {
-        switch (to.type.code) {
+        switch (user.role.name) {
           case 'COMMERCE':
             code_transaction_send = TransactionCode.PURCHASE;
             code_transaction_received = TransactionCode.SALE;
@@ -483,37 +488,67 @@ export class WalletsService {
   }
 
   async purchaseBeland(
-    wallet_id: string,
-    becoinAmount: number,
-    referenceCode: string,
-  ) {
-    const wallet = await this.repository.findOne(wallet_id);
-    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+  wallet_id: string,
+  becoinAmount: number,
+  referenceCode: string,
+  ): Promise<Transaction> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 3) Actualizar saldo
-    if (+wallet.becoin_balance < becoinAmount)
-      throw new ConflictException('Saldo insuficiente');
+    try {
+      // 1) Chequear que exista la billetera con FOR UPDATE (para evitar race conditions)
+      const wallet: Wallet = await queryRunner.manager.findOne(Wallet, {
+        where: { id: wallet_id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
-    wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
-    const type = await this.typeRepo.findOneBy({ code: 'PURCHASE_BELAND' });
-    if (!type)
-      throw new ConflictException("No se encuentra el tipo 'PURCHASE_BELAND'");
+      // 2) Buscar tipo y estado
+      const type: TransactionType = await queryRunner.manager.findOne(TransactionType, {
+        where: { code: 'PURCHASE_BELAND' },
+      });
+      if (!type)
+        throw new ConflictException("No se encuentra el tipo 'PURCHASE_BELAND'");
 
-    const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
-    if (!status)
-      throw new ConflictException("No se encuentra el estado 'COMPLETED'");
+      const status: TransactionState = await queryRunner.manager.findOne(TransactionState, {
+        where: { code: 'COMPLETED' },
+      });
+      if (!status)
+        throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
-    const walletUpdated: Wallet = await this.repository.create(wallet);
+      // 3) Validar saldo
+      if (+wallet.becoin_balance < becoinAmount)
+        throw new ConflictException('Saldo insuficiente');
 
-    // 4) Registrar transacción
-    await this.txRepo.save({
-      wallet_id: wallet.id,
-      type_id: type.id,
-      status_id: status.id,
-      amount: becoinAmount,
-      post_balance: wallet.becoin_balance,
-      reference: referenceCode,
-    });
-    return { wallet: walletUpdated };
+      wallet.becoin_balance = +wallet.becoin_balance - +becoinAmount;
+
+      // 4) Actualizar billetera
+      await queryRunner.manager.save(wallet);
+
+      // 5) Registrar transacción
+      const tx: Transaction = queryRunner.manager.create(Transaction, {
+        wallet_id: wallet.id,
+        type_id: type.id,
+        status_id: status.id,
+        amount: becoinAmount,
+        post_balance: wallet.becoin_balance,
+        reference: referenceCode,
+      });
+      const txSaved = await queryRunner.manager.save(tx);
+
+      // 6) Confirmar transacción
+      await queryRunner.commitTransaction();
+      return txSaved;
+
+    } catch (error) {
+      // Si algo falla, revertimos todo
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Liberar el queryRunner
+      await queryRunner.release();
+    }
   }
+
 }
