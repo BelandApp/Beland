@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
-import { Charity } from './entities/charity.entity';
+import { Organization } from './entities/organization.entity';
 
 @Injectable()
-export class CharitiesRepository {
+export class OrganizationsRepository {
   constructor(
-    @InjectRepository(Charity)
-    private repository: Repository<Charity>,
+    @InjectRepository(Organization)
+    private repository: Repository<Organization>,
   ) {}
 
   async findAll(
     user_id: string,
     page: number,
     limit: number,
-  ): Promise<[Charity[], number]> {
+  ): Promise<[Organization[], number]> {
     const where = user_id ? { user_id } : {};
 
     return this.repository.findAndCount({
@@ -26,18 +26,17 @@ export class CharitiesRepository {
     });
   }
 
-  async findOne(id: string): Promise<Charity> {
+  async findOne(id: string): Promise<Organization> {
     return this.repository.findOne({
       where: { id },
-      relations: ['user'],
     });
   }
 
-  async create(body: Partial<Charity>): Promise<Charity> {
+  async create(body: Partial<Organization>): Promise<Organization> {
     return await this.repository.save(body);
   }
 
-  async update(id: string, body: Partial<Charity>): Promise<UpdateResult> {
+  async update(id: string, body: Partial<Organization>): Promise<UpdateResult> {
     return await this.repository.update(id, body);
   }
 

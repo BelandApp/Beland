@@ -2,12 +2,10 @@ import { Repository, Not } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/users.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { OrderDto } from 'src/common/dto/order.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService)
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 @Injectable()
 export class UsersRepository {
@@ -46,7 +44,7 @@ export class UsersRepository {
   async findById(id: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { id },
-      relations: { wallet: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role: true },
     });
   }
 
@@ -72,7 +70,7 @@ export class UsersRepository {
   async findByEmail(email: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { email },
-      relations: { wallet: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role: true },
     });
     /*return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')

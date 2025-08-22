@@ -9,10 +9,10 @@ export class RoleDto {
 
   @ApiProperty({
     description: 'Nombre del rol',
-    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN, EMPRESA
+    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN, COMMERCE, FUNDATION
   })
   // ¡ACTUALIZADO para incluir EMPRESA!
-  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
   @ApiProperty({
     description: 'Descripción del rol',

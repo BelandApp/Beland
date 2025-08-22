@@ -14,8 +14,7 @@ export class Role {
   role_id: string;
 
   @Column({ type: 'text', unique: true })
-  // ¡ACTUALIZADO para incluir 'EMPRESA' en la entidad!
-  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
   @Column({ type: 'text', nullable: true })
   description: string | null; // Cambiado a string | null para coincidir con nullable: true
@@ -30,6 +29,6 @@ export class Role {
   updated_at: Date;
 
   // Relación OneToMany con la entidad User
-  @OneToMany(() => User, (user) => user.role_relation)
+  @OneToMany(() => User, (user) => user.role)
   users: User[];
 }

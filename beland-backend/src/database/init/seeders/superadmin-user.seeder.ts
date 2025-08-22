@@ -55,7 +55,7 @@ export class SuperAdminUserSeeder {
       full_name: superAdminFullName,
       username: superAdminUsername,
       oauth_provider: null,
-      role: 'SUPERADMIN',
+      role_name: 'SUPERADMIN',
       password: superAdminPassword,
       confirmPassword: superAdminPassword,
       address: superAdminAddress,

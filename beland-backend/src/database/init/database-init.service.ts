@@ -13,7 +13,6 @@ import preloadPaymentType from './json/paymentType.json';
 import preloadGroupType from './json/groupType.json';
 import preloadResourceType from './json/resourceType.json';
 import preloadWithdrawAccountType from './json/withdrawAccountType.json';
-import preloadWalletType from './json/walletType.json';
 
 // Entidades
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
@@ -24,7 +23,6 @@ import { Category } from 'src/category/entities/category.entity';
 import { GroupType } from 'src/group-type/entities/group-type.entity';
 import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
 import { WithdrawAccountType } from 'src/withdraw-account-type/entities/withdraw-account-type.entity';
-import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {
@@ -139,12 +137,6 @@ export class DatabaseInitService implements OnModuleInit {
         WithdrawAccountType,
         'code',
         'Tipos de Cuentas para Retiros',
-      );
-      await this.preload<WalletType>(
-        preloadWalletType,
-        WalletType,
-        'code',
-        'Tipos de Wallets',
       );
 
       await this.defaultRolesSeeder.seed();

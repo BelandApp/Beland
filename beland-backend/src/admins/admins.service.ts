@@ -20,7 +20,7 @@ import { User } from '../users/entities/users.entity';
 import { plainToInstance } from 'class-transformer';
 
 // Definición de tipo para todos los roles válidos
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 @Injectable()
 export class AdminService {

@@ -10,6 +10,7 @@ import {
 import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/users.entity';
 import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
+import { Transaction } from 'src/transactions/entities/transaction.entity';
 
 @Entity('payments')
 export class Payment {
@@ -36,6 +37,12 @@ export class Payment {
   payment_type: PaymentType;
   @Column('uuid')
   payment_type_id: string;
+
+  @ManyToOne(() => Transaction)
+  @JoinColumn({name:'transaction_id'})
+  transaction: Transaction;
+  @Column('uuid')
+  transaction_id: string;
 
   @ManyToOne(() => User, (user) => user.payments)
   @JoinColumn({name:'user_id'})

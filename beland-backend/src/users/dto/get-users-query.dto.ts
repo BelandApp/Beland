@@ -12,7 +12,7 @@ import {
 import { Type } from 'class-transformer';
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService y Role Entity)
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 export class GetUsersQueryDto {
   @ApiPropertyOptional({
