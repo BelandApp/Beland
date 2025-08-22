@@ -1,85 +1,109 @@
+import React, { useState } from "react";
 import { AppHeader } from "src/components/layout";
 import SectionCard from "./components/SectionCard";
 import TestimonialsSection from "./components/TestimonialsSection";
-import { StyleSheet, SafeAreaView, ScrollView, Dimensions } from "react-native";
+import {
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Dimensions,
+  View,
+} from "react-native";
 import CarouselBanner from "./components/BannerSection";
 import Footer from "./components/Footer";
 import ProductsSection from "./components/ProductsSection";
+import { GroupsSection } from "./components/GroupsSection";
+import { useAuth } from "src/hooks/AuthContext";
+import AuthRequiredModal from "./components/AuthRequiredModal";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// Hoja de Estilos Centralizada y Unificada
+const HomePage = () => {
+  const { user, loginWithAuth0, loginAsDemo } = useAuth();
+  const [isModalVisible, setModalVisible] = useState(false);
 
+  const handleAuthRequiredPress = () => {
+    if (!user) {
+      setModalVisible(true);
+    }
+  };
 
-const HomeView = () => {
-  const handleEventsPress = () => console.log("Ir a la página de eventos");
-  const handleIncentivesPress = () => console.log("Ir a la página de registro");
-  const handleProductsPress = () => console.log("Ir a la página de compras");
-  const handleJuntadaPress = () => console.log("Ir a la página de juntadas");
-  const handleReloadPress = () => console.log("Ir a la página de recargas");
+  const handleLogin = () => {
+    setModalVisible(false);
+    loginWithAuth0();
+  };
+
+  const handleCancel = () => {
+    setModalVisible(false);
+  };
 
   return (
     <SafeAreaView style={allStyles.safeArea}>
-      <AppHeader />
-      <ScrollView contentContainerStyle={allStyles.mainContainer}>
-        <CarouselBanner />
+        <ScrollView contentContainerStyle={allStyles.mainContainer}>
+      <View style={allStyles.container}>
+        <AppHeader />
+          <CarouselBanner />
 
-        {/* Sección 1: Eventos Circulares */}
-        <SectionCard
-          title="Eventos Circulares"
-          subtitle="Ven a nuestros eventos y recicla con nosotros."
-          buttonText="Reserva tu lugar"
-          onButtonPress={handleEventsPress}
-        />
+          <SectionCard
+            title="Eventos Circulares"
+            subtitle="Ven a nuestros eventos y recicla con nosotros."
+            buttonText="Reserva tu lugar"
+            onButtonPress={handleAuthRequiredPress}
+          />
 
-        <ProductsSection/>
+          <ProductsSection />
+          <GroupsSection />
 
-        {/* Sección 2: Recibe incentivos por reciclar */}
-        <SectionCard
-          title="Recibe incentivos por reciclar"
-          subtitle="Empieza a ganar con Beland."
-          buttonText="Regístrate"
-          onButtonPress={handleIncentivesPress}
-        />
+          <SectionCard
+            title="Recibe incentivos por reciclar"
+            subtitle="Empieza a ganar con Beland."
+            buttonText="Regístrate"
+            onButtonPress={handleAuthRequiredPress}
+          />
 
-        {/* Sección 3: Compra productos desde tu casa */}
-        <SectionCard
-          title="Compra productos desde tu casa"
-          subtitle="Nosotros te los llevamos y reciclamos todos tus residuos."
-          buttonText="Empieza a comprar"
-          onButtonPress={handleProductsPress}
-        />
+          <SectionCard
+            title="Compra productos desde tu casa"
+            subtitle="Nosotros te los llevamos y reciclamos todos tus residuos."
+            buttonText="Empieza a comprar"
+            onButtonPress={handleAuthRequiredPress}
+          />
 
-        {/* Sección 4: Juntada Circular */}
-        <SectionCard
-          title="Juntada Circular"
-          subtitle="Organiza tu juntada. Nosotros te lo llevamos y reciclamos."
-          buttonText="Organiza tu juntada"
-          onButtonPress={handleJuntadaPress}
-        />
+          <SectionCard
+            title="Juntada Circular"
+            subtitle="Organiza tu juntada. Nosotros te lo llevamos y reciclamos."
+            buttonText="Organiza tu juntada"
+            onButtonPress={handleAuthRequiredPress}
+          />
 
-        {/* Sección 5: Recarga monedas */}
-        <SectionCard
-          title="Recarga monedas"
-          subtitle="Paga sin comisiones, en tiempo real, sin importar tu institución financiera."
-          buttonText="Empieza a recargar"
-          onButtonPress={handleReloadPress}
-        />
+          <SectionCard
+            title="Recarga monedas"
+            subtitle="Paga sin comisiones, en tiempo real, sin importar tu institución financiera."
+            buttonText="Empieza a recargar"
+            onButtonPress={handleAuthRequiredPress}
+          />
 
-        {/* Sección de Testimonios */}
-        <TestimonialsSection />
-      </ScrollView>
-      <Footer />
+          <TestimonialsSection />
+        <Footer />
+      </View>
+        </ScrollView>
+      <AuthRequiredModal
+        isVisible={isModalVisible}
+        onCancel={handleCancel}
+        onConfirm={handleLogin}
+      />
     </SafeAreaView>
   );
 };
 
-export default HomeView;
+export default HomePage;
 
 const allStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#F5F5F5",
+  },
+  scrollView: {
+    flex: 1, // <--- Añade esta línea
   },
   mainContainer: {
     flexGrow: 1,
@@ -142,6 +166,12 @@ const allStyles = StyleSheet.create({
   carouselSubtitle: {
     fontSize: 14,
     color: "#E0E0E0",
+  },
+  container: {
+    padding: 16,
+    gap: 16,
+    flexDirection: "column",
+    paddingBottom: 86,
   },
   sectionCard: {
     backgroundColor: "#FFFFFF",

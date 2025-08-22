@@ -1,4 +1,4 @@
-import { Repository, Not } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/users.entity';
@@ -72,10 +72,6 @@ export class UsersRepository {
       where: { email },
       relations: { wallet: true, cart: true, role: true },
     });
-    /*return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
-      .where('user.email = :email', { email })
-      .getOne();*/
   }
 
   /**
@@ -95,7 +91,8 @@ export class UsersRepository {
    * @param phone El número de teléfono.
    * @returns La entidad User o null si no se encuentra.
    */
-  async findByPhone(phone: number): Promise<User | null> {
+  async findByPhone(phone: string): Promise<User | null> {
+    // Cambiado a string
     return this.createQueryBuilder('user')
       .leftJoinAndSelect('user.role_relation', 'role')
       .where('user.phone = :phone', { phone })

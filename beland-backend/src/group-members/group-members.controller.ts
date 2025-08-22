@@ -172,7 +172,8 @@ export class GroupMembersController {
       }
     }
 
-    return this.groupMembersService.update(id, updateGroupMemberDto);
+    // CORRECCIÓN: Renombrado de 'update' a 'updateGroupMember'
+    return this.groupMembersService.updateGroupMember(id, updateGroupMemberDto);
   }
 
   @Delete(':id')
@@ -241,6 +242,7 @@ export class GroupMembersController {
       }
     }
 
-    await this.groupMembersService.remove(id);
+    // CORRECCIÓN: Renombrado de 'remove' a 'deleteGroupMember'
+    await this.groupMembersService.deleteGroupMember(id);
   }
 }
