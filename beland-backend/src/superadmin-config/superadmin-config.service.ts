@@ -15,7 +15,6 @@ export class SuperadminConfigService implements OnModuleInit {
       throw new Error('No se encontró la wallet del superadmin');
     }
     this.superadminWalletId = superadminWallet.id;
-    console.log(`[SuperadminConfig] Wallet cargada: ${this.superadminWalletId}`);
   }
 
   getWalletId(): string {
