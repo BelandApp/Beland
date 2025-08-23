@@ -55,6 +55,8 @@ import { SuperadminModule } from './superadmin-config/superadmin-config.module';
 import { WithdrawAccountModule } from './withdraw-account/withdraw-account.module';
 import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-account-type.module';
 import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
+import { AmountToPaymentModule } from './amount-to-payment/amount-to-payment.module';
+import { PresetAmountModule } from './preset-amount/preset-amount.module';
 
 @Module({
   imports: [
@@ -144,6 +146,8 @@ import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
     WithdrawAccountModule,
     WithdrawAccountTypeModule,
     UserWithdrawModule,
+    AmountToPaymentModule,
+    PresetAmountModule,
   ],
   controllers: [],
   providers: [

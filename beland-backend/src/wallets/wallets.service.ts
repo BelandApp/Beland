@@ -20,6 +20,9 @@ import { UserWithdraw } from 'src/user-withdraw/entities/user-withdraw.entity';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
 import { User } from 'src/users/entities/users.entity';
 import { Role } from 'src/roles/entities/role.entity';
+import { AmountToPayment } from 'src/amount-to-payment/entities/amount-to-payment.entity';
+import { resourceResp, RespCobroDto } from './dto/resp-cobro.dto';
+import { UserResource } from 'src/user-resources/entities/user-resource.entity';
 
 @Injectable()
 export class WalletsService {
@@ -84,6 +87,47 @@ export class WalletsService {
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
+  }
+
+  async dataPayment(wallet_id: string, user_id: string): Promise<RespCobroDto> {
+    const respPayment: RespCobroDto = {};
+
+    // 1) Buscar la wallet del usuario
+    const wallet = await this.dataSource.getRepository(Wallet).findOne({ where: { id: wallet_id } });
+    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+
+    respPayment.Wallet_id = wallet.id;
+
+    // 2) Montos creados a cobrar
+    const amountPayment = await this.dataSource.getRepository(AmountToPayment).findOne({
+      where: { user_commerce_id: wallet.user_id },
+      order: { created_at: 'DESC' },
+    });
+
+    if (!amountPayment) {
+      respPayment.amount = 0;
+    } else {
+      respPayment.amount = amountPayment.amount;
+      respPayment.amount_to_payment_id = amountPayment.id;
+      respPayment.message = amountPayment.message;
+    }
+
+    // 3) Recursos del usuario
+    const resources: UserResource[] = await this.dataSource.getRepository(UserResource).find({
+      where: { user_id, is_redeemed: false, resource: { user_commerce_id: wallet.user_id, is_expired:false } },
+      relations: { resource: true },
+    });
+
+    respPayment.resource = resources.map(res => ({
+      id: res.id,
+      resource_name: res.resource.name,
+      resource_desc: res.resource.description,
+      resource_quanity: res.quantity,
+      resource_image_url: res.resource.url_image,
+      resource_discount: res.resource.discount,
+    }));
+
+    return respPayment;
   }
 
   async create(body: Partial<Wallet>): Promise<Wallet> {
@@ -440,7 +484,7 @@ export class WalletsService {
       if (!status) throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
       // 4) Debitar origen
-      from.becoin_balance = +from.becoin_balance - dto.amountBecoin;
+      from.becoin_balance = +from.becoin_balance - +dto.amountBecoin;
       const walletUpdate = await queryRunner.manager.save(from);
 
       // 5) registro egreso del origen
@@ -456,10 +500,10 @@ export class WalletsService {
 
       // 6) Chequeo que exista el tipo de transaccion necesario
       type = await queryRunner.manager.findOne(TransactionType, { where: { code: code_transaction_received } });
-      if (!type) throw new ConflictException(`No se encuentra el tipo ${code_transaction_received}`);
+      if (!type) throw new ConflictException(`No se encuentra el tipo ${code_transaction_received}`); 
 
       // 7) Acreditar destino
-      to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
+      to.becoin_balance = +to.becoin_balance + +dto.amountBecoin;
       await queryRunner.manager.save(to);
 
       // 8) registro ingreso del destino
@@ -473,8 +517,26 @@ export class WalletsService {
         reference: `${code_transaction_received}-${from.id}`,
       });
 
+      // 9) Si vino amountID enotnces elimino el monto creado.
+      if (dto.amount_payment_id) 
+        await queryRunner.manager.delete(AmountToPayment, { where: { id: dto.amount_payment_id } });
+      
+      // 10) Si vino user_resource enotnces doy de baja el recurso.
+      if (dto.amount_payment_id) 
+        await queryRunner.manager.update(
+        UserResource,
+        { id: dto.user_resource_id }, // criterio
+        { 
+          is_redeemed: true,
+          redeemed_at: new Date(),
+        }, // campos a actualizar
+      );
+
+
       // ✅ Confirmo la transacción
       await queryRunner.commitTransaction();
+
+      // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };
 
     } catch (error) {
