@@ -15,6 +15,10 @@ import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
 import { useAuth } from "src/hooks/AuthContext";
 import { CatalogScreen } from "src/screens/Catalog";
 
+import HomeView from "src/screens/Home/HomePage";
+
+
+
 export type RootStackParamList = {
   MainTabs: undefined;
   Home: undefined;
@@ -95,15 +99,20 @@ export const RootStackNavigator = () => {
       />
      
       <Stack.Screen
+        name="UserDashboardScreen"
+        component={UserDashboardScreen}
+        options={{
+          headerShown: true,
+          title: "Beland",
+        }}
+      />
+
+      <Stack.Screen
         name="PayphoneSuccess"
         component={PayphoneSuccessScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen
-        name="UserDashboardScreen"
-        component={UserDashboardScreen}
-        options={{ headerShown: false }}
-      />
+    
     </Stack.Navigator>
   );
 };

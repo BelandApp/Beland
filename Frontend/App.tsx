@@ -14,7 +14,11 @@ import {
   RootStackParamList,
 } from "./src/components/layout/RootStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
-import { useAuth, AuthProvider } from "src/hooks/AuthContext";
+
+import { useAuth } from "src/hooks/AuthContext";
+import { AuthProvider } from "src/hooks/AuthContext";
+import PayphoneSuccessScreen from "./src/screens/Wallet/PayphoneSuccessScreen";
+
 
 const AppContent = () => {
   // Declarar todos los hooks al inicio, sin condicionales
