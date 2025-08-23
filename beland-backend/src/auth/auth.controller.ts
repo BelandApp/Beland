@@ -8,6 +8,7 @@ import {
   Post,
   Body,
   Param,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,7 +19,6 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { User } from 'src/users/entities/users.entity';
-// Import CreateUserDto and RegisterAuthDto as they define the schemas
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
@@ -29,6 +29,8 @@ import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @UseGuards(FlexibleAuthGuard)
@@ -50,6 +52,11 @@ export class AuthController {
     description: 'No autenticado o usuario bloqueado/desactivado.',
   })
   getProfile(@Req() req: Request): Omit<User, 'password'> {
+    this.logger.log(
+      `GET /auth/me: Solicitud de perfil para usuario ID: ${
+        (req.user as User)?.id
+      }`,
+    );
     const { password, ...userReturn } = req.user;
     return userReturn;
   }
@@ -59,7 +66,6 @@ export class AuthController {
   @ApiBody({
     description:
       'Ingrese todos los datos requeridos para el registro de usuario',
-    // --- START: Explicitly define schema for Swagger UI example ---
     schema: {
       type: 'object',
       properties: {
@@ -121,7 +127,6 @@ export class AuthController {
           nullable: true,
         },
       },
-      // --- IMPORTANT: List all REQUIRED fields here ---
       required: [
         'email',
         'password',
@@ -132,9 +137,11 @@ export class AuthController {
         'city',
       ],
     },
-    // --- END: Explicitly define schema ---
   })
   async signup(@Body() user: RegisterAuthDto): Promise<{ token: string }> {
+    this.logger.log(
+      `POST /auth/signup: Solicitud de registro para email: ${user.email}`,
+    );
     return await this.authService.signup(user);
   }
 
@@ -142,6 +149,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Realiza el Login de usuarios' })
   @ApiBody({ description: 'Las credenciales', type: LoginAuthDto })
   async signin(@Body() userLogin: LoginAuthDto): Promise<{ token: string }> {
+    this.logger.log(
+      `POST /auth/signin: Solicitud de inicio de sesión para email: ${userLogin.email}`,
+    );
     return await this.authService.signin(userLogin);
   }
 
@@ -150,7 +160,6 @@ export class AuthController {
   @ApiBody({
     description:
       'Ingrese todos los datos requeridos para el registro de usuario',
-    // --- START: Explicitly define schema for Swagger UI example ---
     schema: {
       type: 'object',
       properties: {
@@ -212,7 +221,6 @@ export class AuthController {
           nullable: true,
         },
       },
-      // --- IMPORTANT: List all REQUIRED fields here ---
       required: [
         'email',
         'password',
@@ -223,23 +231,43 @@ export class AuthController {
         'city',
       ],
     },
-    // --- END: Explicitly define schema ---
   })
-  async signupVerification(@Body() user: RegisterAuthDto): Promise<{ message: string }> {
+  async signupVerification(
+    @Body() user: RegisterAuthDto,
+  ): Promise<{ message: string }> {
+    this.logger.log(
+      `POST /auth/signup-verification: Solicitud de verificación para email: ${user.email}`,
+    );
     return await this.authService.signupVerification(user);
   }
 
   @Post('signup-register')
   @ApiOperation({ summary: 'Realiza el registro de usuarios' })
-  @ApiBody({ description: 'Email y codigo de confirmación', type: ConfirmAuthDto })
-  async signupRegister(@Body() verification: ConfirmAuthDto): Promise<{ token: string }> {
-    return await this.authService.signupRegister(verification.code, verification.email);
+  @ApiBody({
+    description: 'Email y codigo de confirmación',
+    type: ConfirmAuthDto,
+  })
+  async signupRegister(
+    @Body() verification: ConfirmAuthDto,
+  ): Promise<{ token: string }> {
+    this.logger.log(
+      `POST /auth/signup-register: Solicitud de registro final para email: ${verification.email}`,
+    );
+    return await this.authService.signupRegister(
+      verification.code,
+      verification.email,
+    );
   }
 
   @Post('forgot-password/:email')
   @ApiOperation({ summary: 'Realiza el registro de usuarios' })
   @ApiParam({ name: 'email', description: 'UUID de la fundación' })
-  async forgotPassword(@Param('email') email: string): Promise<{ token: string }> {
+  async forgotPassword(
+    @Param('email') email: string,
+  ): Promise<{ token: string }> {
+    this.logger.log(
+      `POST /auth/forgot-password: Solicitud de restablecimiento de contraseña para email: ${email}`,
+    );
     return await this.authService.forgotPassword(email);
   }
 }
