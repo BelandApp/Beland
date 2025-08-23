@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Post,
   Body,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import { User } from 'src/users/entities/users.entity';
 // Import CreateUserDto and RegisterAuthDto as they define the schemas
@@ -22,9 +24,7 @@ import { LoginAuthDto } from './dto/login-auth.dto';
 import { AuthService } from './auth.service';
 import { ConfirmAuthDto, RegisterAuthDto } from './dto/register-auth.dto';
 import { Request } from 'express';
-import { AuthenticationGuard } from './guards/auth.guard';
 import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -234,5 +234,12 @@ export class AuthController {
   @ApiBody({ description: 'Email y codigo de confirmación', type: ConfirmAuthDto })
   async signupRegister(@Body() verification: ConfirmAuthDto): Promise<{ token: string }> {
     return await this.authService.signupRegister(verification.code, verification.email);
+  }
+
+  @Post('forgot-password/:email')
+  @ApiOperation({ summary: 'Realiza el registro de usuarios' })
+  @ApiParam({ name: 'email', description: 'UUID de la fundación' })
+  async forgotPassword(@Param('email') email: string): Promise<{ token: string }> {
+    return await this.authService.forgotPassword(email);
   }
 }

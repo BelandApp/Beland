@@ -32,6 +32,8 @@ import { FlexibleAuthGuard } from 'src/auth/guards/flexible-auth.guard';
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 import { WithdrawDto, WithdrawResponseDto } from './dto/withdraw.dto';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
+import { RespCobroDto } from './dto/resp-cobro.dto';
+import { PaymentWithRechargeDto } from './dto/payment-with-recharge.dto';
 
 @ApiTags('wallets')
 @Controller('wallets')
@@ -68,6 +70,20 @@ export class WalletsController {
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findByAlias(@Param('alias') alias: string): Promise<Wallet> {
     return await this.service.findByAlias(alias);
+  }
+
+  @Get('data-Payment/:wallet_id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener información para generar el pago' })
+  @ApiParam({ name: 'wallet_id', description: 'UUID de la wallet del comercio en el qr escaneado' })
+  @ApiResponse({ status: 200, description: 'Informacion de Pago exitosa' })
+  @ApiResponse({ status: 404, description: 'Wallet no encontrada' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async dataPayment(
+    @Param('wallet_id') wallet_id: string,
+    @Req() req: Request,
+  ): Promise<RespCobroDto> {
+    return await this.service.dataPayment(wallet_id, req.user.id);
   }
 
   @Get(':id')
@@ -181,15 +197,17 @@ export class WalletsController {
   @ApiResponse({ status: 201, description: 'Compra Exitosamente' })
   async purchase(
     @Param('to_wallet_id', ParseUUIDPipe) to_wallet_id: string, 
-    @Body() dto: RechargeDto,
+    @Body() dto: PaymentWithRechargeDto,
     @Req() req: Request,
   ): Promise<{wallet: Wallet}> {
     await this.service.recharge(req.user?.id, dto);
     const toWalletId = to_wallet_id;
     const amountBecoin = +dto.amountUsd / +this.superadminConfig.getPriceOneBecoin;
+    const amount_payment_id = dto.amount_payment_id;
+    const user_resource_id = dto.user_resource_id;
     return await this.service.transfer(
       req.user?.id,
-      {toWalletId, amountBecoin}
+      {toWalletId, amountBecoin, amount_payment_id, user_resource_id}
     );
   }
 }

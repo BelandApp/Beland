@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -16,7 +17,7 @@ import { RolesRepository } from 'src/roles/roles.repository';
 import { Role } from 'src/roles/entities/role.entity';
 import * as bcrypt from 'bcrypt';
 import * as QRCode from 'qrcode';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { RegisterAuthDto } from './dto/register-auth.dto';
 import { Cart } from 'src/cart/entities/cart.entity';
@@ -25,7 +26,6 @@ import { EmailService } from 'src/email/email.service';
 import { CreateEmailDto } from 'src/email/dto/create-email.dto';
 import { verificationEmailTemplate } from 'src/email/plantilla/htmlVerificacion';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Injectable()
 export class AuthService {
@@ -121,36 +121,7 @@ export class AuthService {
         password: HashPassword,
       });
 
-      const usernamePart = user.email.split('@')[0];
-      const randomNumber = Math.floor(Math.random() * 1000);
-      const alias = `${usernamePart}.${randomNumber}`;
-
-      const walletTypeRepo = this.dataSource.getRepository(WalletType);
-      const walletType = await walletTypeRepo.findOneBy({code:'USER'})
-
-      // 1️⃣ Crear y guardar la wallet con user_id y alias
-      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
-        user_id: userSave.id,
-        alias,
-        walletType
-      });
-
-      // 2️⃣ Generar el QR con el ID ya guardado
-      const qr = await QRCode.toDataURL(savedWallet.id);
-
-      // 3️⃣ Actualizar la wallet con el QR
-      savedWallet.qr = qr;
-      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
-
-      if (!savedWallet)
-        throw new InternalServerErrorException(
-          'Error al crear la billetera. Intente registrarse Nuevamente',
-        );
-
-      // ✅ Crear carrito usando el mismo manager
-      const cart = await queryRunner.manager.getRepository(Cart).save({
-        user_id: userSave.id,
-      });
+      this.createWalletAndCart (queryRunner, userSave);
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
@@ -203,6 +174,39 @@ export class AuthService {
 
     //Crea el Token con todos los datos de usuario
     return await this.createToken(userDB);
+  }
+
+  // JOHN ESTA ES LA FUNCION PARA CREAR LA WALLET Y EL CART... 
+  //SUMALA EN LA LOGICA DEL AUTH0 DESPUES DE CREAR EL USUARIO.
+  // tene en cuenta que deberias hacer la creacion del usuario 
+  // usando queryRunner para que se cree todo o no se cree nada.. fijate como hace el signup y deberias hacer lo mismo.
+  async createWalletAndCart (queryRunner: QueryRunner, user: User): Promise<void> {
+    const usernamePart = user.email.split('@')[0];
+      const randomNumber = Math.floor(Math.random() * 1000);
+      const alias = `${usernamePart}.${randomNumber}`;
+
+      // 1️⃣ Crear y guardar la wallet con user_id y alias
+      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
+        user_id: user.id,
+        alias,
+      });
+
+      // 2️⃣ Generar el QR con el ID ya guardado
+      const qr = await QRCode.toDataURL(savedWallet.id);
+
+      // 3️⃣ Actualizar la wallet con el QR
+      savedWallet.qr = qr;
+      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
+
+      if (!savedWallet)
+        throw new InternalServerErrorException(
+          'Error al crear la billetera. Intente registrarse Nuevamente',
+        );
+
+      // ✅ Crear carrito usando el mismo manager
+      const cart = await queryRunner.manager.getRepository(Cart).save({
+        user_id: user.id,
+      });
   }
 
   async createToken(user: User): Promise<{ token: string }> {
@@ -337,34 +341,7 @@ export class AuthService {
         password: user.passwordHashed,
       });
 
-      const usernamePart = user.email.split('@')[0];
-      const randomNumber = Math.floor(Math.random() * 1000);
-      const alias = `${usernamePart}.${randomNumber}`;
-
-      const walletRepo = this.dataSource.getRepository(Wallet);
-
-      // 1️⃣ Crear y guardar la wallet con user_id y alias
-      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
-        user_id: userSave.id,
-        alias
-      });
-
-      // 2️⃣ Generar el QR con el ID ya guardado
-      const qr = await QRCode.toDataURL(savedWallet.id);
-
-      // 3️⃣ Actualizar la wallet con el QR
-      savedWallet.qr = qr;
-      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
-
-      if (!savedWallet)
-        throw new InternalServerErrorException(
-          'Error al crear la billetera. Intente registrarse Nuevamente',
-        );
-
-      // ✅ Crear carrito usando el mismo manager
-      const cart = await queryRunner.manager.getRepository(Cart).save({
-        user_id: userSave.id,
-      });
+      this.createWalletAndCart (queryRunner, userSave);
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
 
@@ -398,5 +375,19 @@ export class AuthService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+    async forgotPassword(email: string): Promise<{ token: string }> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new NotFoundException("Todavia no es usuario. Debe registrarse primero");
+    const userPayload = {
+      user_id: user.id
+    }
+    const token = this.jwtService.sign(userPayload, {
+      secret: this.configService.get<string>('JWT_SECRET'),
+      expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
+    });
+    
+    return { token };
   }
 }

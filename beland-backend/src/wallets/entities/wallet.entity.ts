@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/entities/users.entity';
 import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
-import { WalletType } from 'src/wallet-types/entities/wallet-type.entity';
 
 @Entity('wallets')
 export class Wallet {
@@ -57,10 +56,4 @@ export class Wallet {
   @Column('uuid', {nullable:true})
   withdraw_account_id:string
 
-  /** Relación con WalletType */
-  @ManyToOne(() => WalletType, (type) => type.wallets, { eager: true })
-  @JoinColumn({ name: 'type_id' })
-  type: WalletType;
-  @Column('uuid', {nullable:true})
-  type_id: string;
 } 

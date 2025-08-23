@@ -32,7 +32,7 @@ const ROLE_SUPERADMIN = 'SUPERADMIN';
 const ROLE_EMPRESA = 'EMPRESA';
 
 // Definición de tipo para todos los roles válidos
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 @Injectable()
 export class UsersService {

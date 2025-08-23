@@ -18,6 +18,11 @@ import { TransactionState } from 'src/transaction-state/entities/transaction-sta
 import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config.service';
 import { UserWithdraw } from 'src/user-withdraw/entities/user-withdraw.entity';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
+import { User } from 'src/users/entities/users.entity';
+import { Role } from 'src/roles/entities/role.entity';
+import { AmountToPayment } from 'src/amount-to-payment/entities/amount-to-payment.entity';
+import { resourceResp, RespCobroDto } from './dto/resp-cobro.dto';
+import { UserResource } from 'src/user-resources/entities/user-resource.entity';
 
 @Injectable()
 export class WalletsService {
@@ -82,6 +87,47 @@ export class WalletsService {
     } catch (error) {
       throw new InternalServerErrorException(error);
     }
+  }
+
+  async dataPayment(wallet_id: string, user_id: string): Promise<RespCobroDto> {
+    const respPayment: RespCobroDto = {};
+
+    // 1) Buscar la wallet del usuario
+    const wallet = await this.dataSource.getRepository(Wallet).findOne({ where: { id: wallet_id } });
+    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+
+    respPayment.Wallet_id = wallet.id;
+
+    // 2) Montos creados a cobrar
+    const amountPayment = await this.dataSource.getRepository(AmountToPayment).findOne({
+      where: { user_commerce_id: wallet.user_id },
+      order: { created_at: 'DESC' },
+    });
+
+    if (!amountPayment) {
+      respPayment.amount = 0;
+    } else {
+      respPayment.amount = amountPayment.amount;
+      respPayment.amount_to_payment_id = amountPayment.id;
+      respPayment.message = amountPayment.message;
+    }
+
+    // 3) Recursos del usuario
+    const resources: UserResource[] = await this.dataSource.getRepository(UserResource).find({
+      where: { user_id, is_redeemed: false, resource: { user_commerce_id: wallet.user_id, is_expired:false } },
+      relations: { resource: true },
+    });
+
+    respPayment.resource = resources.map(res => ({
+      id: res.id,
+      resource_name: res.resource.name,
+      resource_desc: res.resource.description,
+      resource_quanity: res.quantity,
+      resource_image_url: res.resource.url_image,
+      resource_discount: res.resource.discount,
+    }));
+
+    return respPayment;
   }
 
   async create(body: Partial<Wallet>): Promise<Wallet> {
@@ -400,10 +446,13 @@ export class WalletsService {
       // 2) certifico que exista la wallet de destino
       const to = await queryRunner.manager.findOne(Wallet, { where: { id: dto.toWalletId } });
       if (!to) throw new NotFoundException('Billetera destino no existe');
+
+      const user: User = await queryRunner.manager.findOne(User, { where: { id: user_id } });
+      if (!user) throw new NotFoundException('Usuario destino no existe');
       
       // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de wallet
       if (!code_transaction_send) {
-        switch (to.type.code) {
+        switch (user.role.name) {
           case 'COMMERCE':
             code_transaction_send = TransactionCode.PURCHASE;
             code_transaction_received = TransactionCode.SALE;
@@ -435,7 +484,7 @@ export class WalletsService {
       if (!status) throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
       // 4) Debitar origen
-      from.becoin_balance = +from.becoin_balance - dto.amountBecoin;
+      from.becoin_balance = +from.becoin_balance - +dto.amountBecoin;
       const walletUpdate = await queryRunner.manager.save(from);
 
       // 5) registro egreso del origen
@@ -451,10 +500,10 @@ export class WalletsService {
 
       // 6) Chequeo que exista el tipo de transaccion necesario
       type = await queryRunner.manager.findOne(TransactionType, { where: { code: code_transaction_received } });
-      if (!type) throw new ConflictException(`No se encuentra el tipo ${code_transaction_received}`);
+      if (!type) throw new ConflictException(`No se encuentra el tipo ${code_transaction_received}`); 
 
       // 7) Acreditar destino
-      to.becoin_balance = +to.becoin_balance + dto.amountBecoin;
+      to.becoin_balance = +to.becoin_balance + +dto.amountBecoin;
       await queryRunner.manager.save(to);
 
       // 8) registro ingreso del destino
@@ -468,8 +517,26 @@ export class WalletsService {
         reference: `${code_transaction_received}-${from.id}`,
       });
 
+      // 9) Si vino amountID enotnces elimino el monto creado.
+      if (dto.amount_payment_id) 
+        await queryRunner.manager.delete(AmountToPayment, { where: { id: dto.amount_payment_id } });
+      
+      // 10) Si vino user_resource enotnces doy de baja el recurso.
+      if (dto.amount_payment_id) 
+        await queryRunner.manager.update(
+        UserResource,
+        { id: dto.user_resource_id }, // criterio
+        { 
+          is_redeemed: true,
+          redeemed_at: new Date(),
+        }, // campos a actualizar
+      );
+
+
       // ✅ Confirmo la transacción
       await queryRunner.commitTransaction();
+
+      // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };
 
     } catch (error) {
@@ -483,37 +550,67 @@ export class WalletsService {
   }
 
   async purchaseBeland(
-    wallet_id: string,
-    becoinAmount: number,
-    referenceCode: string,
-  ) {
-    const wallet = await this.repository.findOne(wallet_id);
-    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+  wallet_id: string,
+  becoinAmount: number,
+  referenceCode: string,
+  ): Promise<Transaction> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // 3) Actualizar saldo
-    if (+wallet.becoin_balance < becoinAmount)
-      throw new ConflictException('Saldo insuficiente');
+    try {
+      // 1) Chequear que exista la billetera con FOR UPDATE (para evitar race conditions)
+      const wallet: Wallet = await queryRunner.manager.findOne(Wallet, {
+        where: { id: wallet_id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
-    wallet.becoin_balance = +wallet.becoin_balance - becoinAmount;
-    const type = await this.typeRepo.findOneBy({ code: 'PURCHASE_BELAND' });
-    if (!type)
-      throw new ConflictException("No se encuentra el tipo 'PURCHASE_BELAND'");
+      // 2) Buscar tipo y estado
+      const type: TransactionType = await queryRunner.manager.findOne(TransactionType, {
+        where: { code: 'PURCHASE_BELAND' },
+      });
+      if (!type)
+        throw new ConflictException("No se encuentra el tipo 'PURCHASE_BELAND'");
 
-    const status = await this.stateRepo.findOneBy({ code: 'COMPLETED' });
-    if (!status)
-      throw new ConflictException("No se encuentra el estado 'COMPLETED'");
+      const status: TransactionState = await queryRunner.manager.findOne(TransactionState, {
+        where: { code: 'COMPLETED' },
+      });
+      if (!status)
+        throw new ConflictException("No se encuentra el estado 'COMPLETED'");
 
-    const walletUpdated: Wallet = await this.repository.create(wallet);
+      // 3) Validar saldo
+      if (+wallet.becoin_balance < becoinAmount)
+        throw new ConflictException('Saldo insuficiente');
 
-    // 4) Registrar transacción
-    await this.txRepo.save({
-      wallet_id: wallet.id,
-      type_id: type.id,
-      status_id: status.id,
-      amount: becoinAmount,
-      post_balance: wallet.becoin_balance,
-      reference: referenceCode,
-    });
-    return { wallet: walletUpdated };
+      wallet.becoin_balance = +wallet.becoin_balance - +becoinAmount;
+
+      // 4) Actualizar billetera
+      await queryRunner.manager.save(wallet);
+
+      // 5) Registrar transacción
+      const tx: Transaction = queryRunner.manager.create(Transaction, {
+        wallet_id: wallet.id,
+        type_id: type.id,
+        status_id: status.id,
+        amount: becoinAmount,
+        post_balance: wallet.becoin_balance,
+        reference: referenceCode,
+      });
+      const txSaved = await queryRunner.manager.save(tx);
+
+      // 6) Confirmar transacción
+      await queryRunner.commitTransaction();
+      return txSaved;
+
+    } catch (error) {
+      // Si algo falla, revertimos todo
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Liberar el queryRunner
+      await queryRunner.release();
+    }
   }
+
 }

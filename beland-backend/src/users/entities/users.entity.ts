@@ -23,7 +23,7 @@ import { Role } from '../../roles/entities/role.entity';
 import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
 import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
-import { Merchant } from 'src/merchants/entities/merchant.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
 import { UserAddress } from 'src/user-address/entities/user-address.entity';
 import { UserCard } from 'src/user-cards/entities/user-card.entity';
@@ -36,7 +36,8 @@ export type ValidRoleNames =
   | 'LEADER'
   | 'ADMIN'
   | 'SUPERADMIN'
-  | 'EMPRESA';
+  | 'COMMERCE'
+  | 'FUNDATION';
 
 @Entity('users')
 export class User {
@@ -66,9 +67,6 @@ export class User {
 
   @Column({ type: 'text', default: 'USER' })
   role_name: ValidRoleNames; // Nombre del rol (ej. 'USER', 'ADMIN')
-
-  @Column({ type: 'uuid', nullable: true })
-  role_id: string | null; // ID del rol (FK)
 
   @Column({ type: 'text', nullable: true })
   address: string | null;
@@ -101,12 +99,12 @@ export class User {
 
   // Relación ManyToOne con la entidad Role
   @ManyToOne(() => Role, (role) => role.users, {
-    eager: false,
-    onDelete: 'SET NULL',
-    nullable: true,
+    eager: true,
   })
   @JoinColumn({ name: 'role_id', referencedColumnName: 'role_id' })
-  role_relation: Role | null;
+  role: Role ;
+  @Column({ type: 'uuid'})
+  role_id: string; // ID del rol (FK)
 
   // ¡NUEVA RELACIÓN OneToOne con Admin!
   @OneToOne(() => Admin, (admin) => admin.user)
@@ -157,8 +155,8 @@ export class User {
   @OneToMany(() => BankAccount, (account) => account.user)
   bank_accounts: BankAccount[];
 
-  @OneToOne(() => Merchant, (merchant) => merchant.user)
-  merchant: Merchant;
+  @OneToOne(() => Organization, (org) => org.user)
+  organization: Organization;
 
   @OneToMany(() => UserAddress, (address) => address.user, { cascade: true })
   addresses: UserAddress[];
