@@ -1,5 +1,5 @@
-import { IsNumber, IsString, IsUUID, IsOptional } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsString, IsUUID } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RechargeDto {
   @ApiProperty({ example: 50.0, description: 'Amount in USD to recharge' })

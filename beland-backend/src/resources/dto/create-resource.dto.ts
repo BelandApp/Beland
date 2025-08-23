@@ -10,30 +10,8 @@ import {
   MaxLength,
   Min,
   Max,
-  Validate,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  ValidationArguments,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-
-@ValidatorConstraint({ name: 'BecoinOrDiscount', async: false })
-export class BecoinOrDiscountRule implements ValidatorConstraintInterface {
-  validate(_: any, args: ValidationArguments) {
-    const obj = args.object as any;
-    const becoin = obj.becoin_value ?? 0;
-    const discount = obj.discount ?? 0;
-
-    // regla: uno de los dos debe ser > 0 y el otro debe ser 0 o ausente
-    if (becoin > 0 && discount === 0) return true;
-    if (discount > 0 && becoin === 0) return true;
-    return false;
-  }
-
-  defaultMessage(args: ValidationArguments) {
-    return 'You must provide either a positive becoin_value or a discount (1-100), but not both.';
-  }
-}
 
 export class CreateResourceDto {
   @ApiProperty({
@@ -72,7 +50,7 @@ export class CreateResourceDto {
 
   @ApiProperty({
     description: 'Becoin value assigned to this resource (must be >0 if discount is 0)',
-    example: 100,
+    example: 3500,
     minimum: 0,
   })
   @IsNumber({ allowNaN: false, allowInfinity: false })
@@ -91,6 +69,36 @@ export class CreateResourceDto {
   @Min(0)
   @Max(100)
   discount: number;
+
+  @ApiProperty({
+    description: 'Cantidad limite que un usuario puede adquirir el cupon entre activos y no activos (por defecto 1. Valor 0 es sin limite)',
+    example: 3,
+    minimum: 0,
+  })
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Type(() => Number)
+  @Min(0)
+  limit_user: number;
+
+  @ApiProperty({
+    description: 'Cantidad limite que un usuario puede adquirir de cupones activos sin usar (por defecto 1. Valor 0 es sin limite)',
+    example: 3,
+    minimum: 0,
+  })
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Type(() => Number)
+  @Min(0)
+  limit_user_active: number;
+
+  @ApiProperty({
+    description: 'Cantidad limite que Beland puede ofrecer a sus usuarios (por defecto es 0, significa sin limites)',
+    example: 500,
+    minimum:0,
+  })
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Type(() => Number)
+  @Min(0)
+  limit_app: number;
 
   @ApiProperty({
     description: 'Indicates if the resource is expired',
@@ -119,7 +127,4 @@ export class CreateResourceDto {
   @IsNotEmpty()
   resource_type_id: string;
 
-  // aplicamos el validador custom al DTO completo
-  @Validate(BecoinOrDiscountRule)
-  _becoinOrDiscountValidation: boolean;
 }
