@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
+  Logger, // Importa Logger
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -29,6 +30,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name); // Instancia del logger
+
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
@@ -38,7 +41,7 @@ export class AuthService {
     private authRepository: Repository<AuthVerification>,
     private readonly roleRepository: RolesRepository,
     private readonly jwtService: JwtService,
-    private readonly dataSource: DataSource,
+    public readonly dataSource: DataSource, // Hacemos dataSource público para acceso desde JwtStrategy
   ) {}
 
   // Puedes implementar este método si necesitas obtener token de Management API de Auth0
@@ -64,7 +67,8 @@ export class AuthService {
 
       return response.data.access_token;
     } catch (error: any) {
-      console.error(
+      this.logger.error(
+        // Usamos el logger
         'Error getting Auth0 Management API token:',
         error.response?.data || error.message,
       );
@@ -75,19 +79,17 @@ export class AuthService {
   }
 
   async signup(user: RegisterAuthDto): Promise<{ token: string }> {
-    
     // ✅ VALIDACIÓN: Comparar password y confirmPassword here
-      if (user.password !== user.confirmPassword) {
-        throw new BadRequestException('Las contraseñas no coinciden.');
-      }
-    
+    if (user.password !== user.confirmPassword) {
+      throw new BadRequestException('Las contraseñas no coinciden.');
+    }
+
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-
       const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
         throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
@@ -121,10 +123,9 @@ export class AuthService {
         password: HashPassword,
       });
 
-      this.createWalletAndCart (queryRunner, userSave);
+      await this.createWalletAndCart(queryRunner, userSave); // Asegúrate de esperar esta operación
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
-
 
       const userSavePayload = await this.userRepository.findOne(userSave.id);
 
@@ -141,14 +142,13 @@ export class AuthService {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
 
       if (
-        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof UnauthorizedException ||
         error instanceof ConflictException ||
         error instanceof BadRequestException
       ) {
         throw error; // Re-lanza excepciones específicas
       }
-      // Log the unexpected error before throwing a generic one
-      console.error('Error durante el registro de usuario:', error);
+      this.logger.error('Error durante el registro de usuario:', error); // Usamos el logger
       throw new InternalServerErrorException(
         'No se pudo registrar el usuario debido a un error interno.',
       );
@@ -176,37 +176,49 @@ export class AuthService {
     return await this.createToken(userDB);
   }
 
-  // JOHN ESTA ES LA FUNCION PARA CREAR LA WALLET Y EL CART... 
+  // JOHN ESTA ES LA FUNCION PARA CREAR LA WALLET Y EL CART...
   //SUMALA EN LA LOGICA DEL AUTH0 DESPUES DE CREAR EL USUARIO.
-  // tene en cuenta que deberias hacer la creacion del usuario 
+  // tene en cuenta que deberias hacer la creacion del usuario
   // usando queryRunner para que se cree todo o no se cree nada.. fijate como hace el signup y deberias hacer lo mismo.
-  async createWalletAndCart (queryRunner: QueryRunner, user: User): Promise<void> {
+  async createWalletAndCart(
+    queryRunner: QueryRunner,
+    user: User,
+  ): Promise<void> {
+    this.logger.debug(
+      `createWalletAndCart(): Iniciando creación de Wallet y Cart para usuario ID: ${user.id}`,
+    );
     const usernamePart = user.email.split('@')[0];
-      const randomNumber = Math.floor(Math.random() * 1000);
-      const alias = `${usernamePart}.${randomNumber}`;
+    const randomNumber = Math.floor(Math.random() * 1000);
+    const alias = `${usernamePart}.${randomNumber}`;
 
-      // 1️⃣ Crear y guardar la wallet con user_id y alias
-      const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
-        user_id: user.id,
-        alias,
-      });
+    // 1️⃣ Crear y guardar la wallet con user_id y alias
+    const savedWallet = await queryRunner.manager.getRepository(Wallet).save({
+      user_id: user.id,
+      alias,
+    });
 
-      // 2️⃣ Generar el QR con el ID ya guardado
-      const qr = await QRCode.toDataURL(savedWallet.id);
+    // 2️⃣ Generar el QR con el ID ya guardado
+    const qr = await QRCode.toDataURL(savedWallet.id);
 
-      // 3️⃣ Actualizar la wallet con el QR
-      savedWallet.qr = qr;
-      await queryRunner.manager.getRepository(Wallet).save(savedWallet);
+    // 3️⃣ Actualizar la wallet con el QR
+    savedWallet.qr = qr;
+    await queryRunner.manager.getRepository(Wallet).save(savedWallet);
 
-      if (!savedWallet)
-        throw new InternalServerErrorException(
-          'Error al crear la billetera. Intente registrarse Nuevamente',
-        );
+    if (!savedWallet)
+      throw new InternalServerErrorException(
+        'Error al crear la billetera. Intente registrarse Nuevamente',
+      );
+    this.logger.debug(
+      `createWalletAndCart(): Wallet creada para usuario ID: ${user.id}, Alias: ${alias}`,
+    );
 
-      // ✅ Crear carrito usando el mismo manager
-      const cart = await queryRunner.manager.getRepository(Cart).save({
-        user_id: user.id,
-      });
+    // ✅ Crear carrito usando el mismo manager
+    const cart = await queryRunner.manager.getRepository(Cart).save({
+      user_id: user.id,
+    });
+    this.logger.debug(
+      `createWalletAndCart(): Cart creado para usuario ID: ${user.id}`,
+    );
   }
 
   async createToken(user: User): Promise<{ token: string }> {
@@ -229,19 +241,18 @@ export class AuthService {
       expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
     });
 
-
     return { token };
   }
 
-  async signupVerification(user: RegisterAuthDto): Promise<{ message: string }> {
-    
+  async signupVerification(
+    user: RegisterAuthDto,
+  ): Promise<{ message: string }> {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-
       const userDB = await this.userRepository.findByEmail(user.email);
       if (userDB) {
         throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
@@ -261,45 +272,48 @@ export class AuthService {
       const stringCode = String(numero);
 
       // ✅ Crear usuario usando el manager de la transacción
-      const userVerificationSave = await queryRunner.manager.getRepository(AuthVerification).save({
-        full_name: user.full_name || null, // Ensure nullable fields can be null
-        email: user.email,
-        username: user.username, // Ensure nullable fields can be null
-        profile_picture_url: user.profile_picture_url || null, // Ensure nullable fields can be null
-        address: user.address,
-        phone: user.phone,
-        country: user.country,
-        city: user.city,
-        role_id: userRole.role_id,
-        role_name: userRole.name,
-        passwordHeshed: HashPassword,
-        code: stringCode,
-      });
+      const userVerificationSave = await queryRunner.manager
+        .getRepository(AuthVerification)
+        .save({
+          full_name: user.full_name || null, // Ensure nullable fields can be null
+          email: user.email,
+          username: user.username, // Ensure nullable fields can be null
+          profile_picture_url: user.profile_picture_url || null, // Ensure nullable fields can be null
+          address: user.address,
+          phone: user.phone,
+          country: user.country,
+          city: user.city,
+          role_id: userRole.role_id,
+          role_name: userRole.name,
+          passwordHeshed: HashPassword,
+          code: stringCode,
+        });
 
-     await queryRunner.commitTransaction(); // ✅ Confirma todo
+      await queryRunner.commitTransaction(); // ✅ Confirma todo
 
-     const email: CreateEmailDto = {
-           to: user.email,
-           subject: 'Beland - Verificación de cuenta',
-           text: '¡Aqui tu codigo de verificación! Estas cerca de tener tu cuenta',
-           html: verificationEmailTemplate(user.username, stringCode),
-         }
+      const email: CreateEmailDto = {
+        to: user.email,
+        subject: 'Beland - Verificación de cuenta',
+        text: '¡Aqui tu codigo de verificación! Estas cerca de tener tu cuenta',
+        html: verificationEmailTemplate(user.username, stringCode),
+      };
 
       await this.emailService.sendMail(email);
-      
-      return {message: 'Codigo enviado correctamente al Email para verificacion'};
+
+      return {
+        message: 'Codigo enviado correctamente al Email para verificacion',
+      };
     } catch (error: any) {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
 
       if (
-        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof UnauthorizedException ||
         error instanceof ConflictException ||
         error instanceof BadRequestException
       ) {
         throw error; // Re-lanza excepciones específicas
       }
-      // Log the unexpected error before throwing a generic one
-      console.error('Error durante el registro de usuario:', error);
+      this.logger.error('Error durante el registro de usuario:', error); // Usamos el logger
       throw new InternalServerErrorException(
         'No se pudo registrar el usuario debido a un error interno.',
       );
@@ -308,16 +322,19 @@ export class AuthService {
     }
   }
 
-  async signupRegister(code: string, email: string): Promise<{ token: string }> {
-    
+  async signupRegister(
+    code: string,
+    email: string,
+  ): Promise<{ token: string }> {
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-
-      const user = await this.authRepository.findOne({where: {code, email}});
+      const user = await this.authRepository.findOne({
+        where: { code, email },
+      });
       if (!user) {
         throw new ConflictException( // Changed to ConflictException as it's more semantically correct for existing resource
           `Codigo Erroneo o Expirado`,
@@ -341,10 +358,9 @@ export class AuthService {
         password: user.passwordHashed,
       });
 
-      this.createWalletAndCart (queryRunner, userSave);
+      await this.createWalletAndCart(queryRunner, userSave); // Asegúrate de esperar esta operación
 
       await queryRunner.commitTransaction(); // ✅ Confirma todo
-
 
       const userSavePayload = await this.userRepository.findOne(userSave.id);
 
@@ -361,14 +377,13 @@ export class AuthService {
       await queryRunner.rollbackTransaction(); // 🔄 Reversión total
 
       if (
-        error instanceof UnauthorizedException || // Keeping this although ConflictException is more precise now
+        error instanceof UnauthorizedException ||
         error instanceof ConflictException ||
         error instanceof BadRequestException
       ) {
         throw error; // Re-lanza excepciones específicas
       }
-      // Log the unexpected error before throwing a generic one
-      console.error('Error durante el registro de usuario:', error);
+      this.logger.error('Error durante el registro de usuario:', error); // Usamos el logger
       throw new InternalServerErrorException(
         'No se pudo registrar el usuario debido a un error interno.',
       );
@@ -377,17 +392,20 @@ export class AuthService {
     }
   }
 
-    async forgotPassword(email: string): Promise<{ token: string }> {
+  async forgotPassword(email: string): Promise<{ token: string }> {
     const user = await this.userRepository.findByEmail(email);
-    if (!user) throw new NotFoundException("Todavia no es usuario. Debe registrarse primero");
+    if (!user)
+      throw new NotFoundException(
+        'Todavia no es usuario. Debe registrarse primero',
+      );
     const userPayload = {
-      user_id: user.id
-    }
+      user_id: user.id,
+    };
     const token = this.jwtService.sign(userPayload, {
       secret: this.configService.get<string>('JWT_SECRET'),
       expiresIn: '1h', // Tiempo de expiración para tokens locales (se usa en JwtModule también)
     });
-    
+
     return { token };
   }
 }
