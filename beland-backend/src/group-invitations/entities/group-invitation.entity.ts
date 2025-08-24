@@ -9,8 +9,8 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { Group } from 'src/groups/entities/group.entity';
-import { User } from 'src/users/entities/users.entity';
+import { Group } from '../../groups/entities/group.entity';
+import { User } from '../../users/entities/users.entity';
 
 // Definición de la enumeración para el estado de la invitación
 export enum GroupInvitationStatus {

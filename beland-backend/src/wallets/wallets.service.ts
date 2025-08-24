@@ -7,8 +7,7 @@ import {
 } from '@nestjs/common';
 import { WalletsRepository } from './wallets.repository';
 import { Wallet } from './entities/wallet.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { RechargeDto } from './dto/recharge.dto';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
 import { TransferDto } from './dto/transfer.dto';
@@ -19,10 +18,11 @@ import { SuperadminConfigService } from 'src/superadmin-config/superadmin-config
 import { UserWithdraw } from 'src/user-withdraw/entities/user-withdraw.entity';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
 import { User } from 'src/users/entities/users.entity';
-import { Role } from 'src/roles/entities/role.entity';
 import { AmountToPayment } from 'src/amount-to-payment/entities/amount-to-payment.entity';
-import { resourceResp, RespCobroDto } from './dto/resp-cobro.dto';
+import { RespCobroDto } from './dto/resp-cobro.dto';
 import { UserResource } from 'src/user-resources/entities/user-resource.entity';
+//import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
+import { RespTransferResult } from './dto/resp-tranfer-result.dto';
 
 @Injectable()
 export class WalletsService {
@@ -32,24 +32,15 @@ export class WalletsService {
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
     private readonly dataSource: DataSource, // 👈 acá lo inyectás
-    @InjectRepository(TransactionType)
-    private typeRepo: Repository<TransactionType>,
-    @InjectRepository(TransactionState)
-    private stateRepo: Repository<TransactionState>,
-    @InjectRepository(Transaction) private txRepo: Repository<Transaction>,
-  ) {}
+  ) // private readonly notificationsGateway: NotificationsGateway,
+  {}
 
   async findAll(
-    user_id: string,
     pageNumber: number,
     limitNumber: number,
   ): Promise<[Wallet[], number]> {
     try {
-      const response = await this.repository.findAll(
-        user_id,
-        pageNumber,
-        limitNumber,
-      );
+      const response = await this.repository.findAll(pageNumber, limitNumber);
       return response;
     } catch (error) {
       throw new InternalServerErrorException(error);
@@ -98,7 +89,7 @@ export class WalletsService {
       .findOne({ where: { id: wallet_id } });
     if (!wallet) throw new NotFoundException('No se encuentra la billetera');
 
-    respPayment.Wallet_id = wallet.id;
+    respPayment.wallet_id = wallet.id;
 
     // 2) Montos creados a cobrar
     const amountPayment = await this.dataSource
@@ -149,9 +140,9 @@ export class WalletsService {
       }
       // Buscar si ya existe una wallet para ese usuario
       if (body.user_id) {
-        const existing = await this.repository.findAll(body.user_id, 1, 1);
-        if (existing[0].length > 0) {
-          return existing[0][0]; // Retorna la primera wallet encontrada
+        const existing = await this.repository.findByUser(body.user_id);
+        if (existing) {
+          return existing; // Retorna la primera wallet encontrada
         }
       }
       // Si no existe, crearla
@@ -622,25 +613,38 @@ export class WalletsService {
         reference: `${code_transaction_received}-${from.id}`,
       });
 
-      // 9) Si vino amountID enotnces elimino el monto creado.
-      if (dto.amount_payment_id)
+      // 9) Si vino amountID entonces elimino el monto creado.
+      if (dto.amount_payment_id) {
         await queryRunner.manager.delete(AmountToPayment, {
-          where: { id: dto.amount_payment_id },
-        });
+          id: dto.amount_payment_id,
+        }); // <- FIX
+      }
 
-      // 10) Si vino user_resource enotnces doy de baja el recurso.
-      if (dto.amount_payment_id)
+      // 10) Si vino user_resource_id entonces doy de baja el recurso.
+      if (dto.user_resource_id) {
         await queryRunner.manager.update(
           UserResource,
-          { id: dto.user_resource_id }, // criterio
-          {
-            is_redeemed: true,
-            redeemed_at: new Date(),
-          }, // campos a actualizar
+          { id: dto.user_resource_id },
+          { is_redeemed: true, redeemed_at: new Date() },
         );
+      }
 
-      // ✅ Confirmo la transacción
+      // COMMIT
       await queryRunner.commitTransaction();
+
+      // === EMITIR EVENTO AL COMERCIO (post-commit) ===
+      // Identificá al comercio: según tu código, 'to' es la wallet del comercio:
+      // const to = ... (ya lo tenías arriba)
+      // const payload:RespTransferResult = {
+      //   walletId: to.id,
+      //   success: true,
+      //   newBalance: to.becoin_balance,
+      //   message: 'Se acreditó tu pago',
+      //   amountPaymentIdDeleted: dto.amount_payment_id || null,
+      // };
+
+      // // Room por userId del comercio (recomendado)
+      // this.notificationsGateway.notifyCommerceByUserId(to.user_id, payload);
 
       // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };

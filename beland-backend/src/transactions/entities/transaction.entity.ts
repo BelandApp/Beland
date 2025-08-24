@@ -1,6 +1,6 @@
-import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
-import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
-import { Wallet } from 'src/wallets/entities/wallet.entity';
+import { TransactionState } from '../../transaction-state/entities/transaction-state.entity';
+import { TransactionType } from '../../transaction-type/entities/transaction-type.entity';
+import { Wallet } from '../../wallets/entities/wallet.entity';
 import {
   Column,
   CreateDateColumn,

@@ -9,11 +9,11 @@ import {
   JoinColumn,
   UpdateDateColumn, // <-- Correctly imported
 } from 'typeorm';
-import { GroupMember } from 'src/group-members/entities/group-member.entity';
-import { Order } from 'src/orders/entities/order.entity';
-import { User } from 'src/users/entities/users.entity';
-import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
-import { GroupType } from 'src/group-type/entities/group-type.entity';
+import { GroupMember } from '../../group-members/entities/group-member.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { User } from '../../users/entities/users.entity';
+import { GroupInvitation } from '../../group-invitations/entities/group-invitation.entity';
+import { GroupType } from '../../group-type/entities/group-type.entity';
 
 @Entity('groups')
 export class Group {

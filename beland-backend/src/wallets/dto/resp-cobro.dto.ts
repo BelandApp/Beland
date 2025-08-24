@@ -1,45 +1,71 @@
-import { IsArray, IsNumber, IsUUID } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export interface resourceResp {
-    id: string;
-    resource_name: string;
-    resource_desc: string;
-    resource_quanity: number;
-    resource_image_url: string;
-    resource_discount:number;
+export class ResourceResp {
+  @ApiProperty({
+    description: 'ID del recurso',
+    example: 'res-12345',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre del recurso',
+    example: 'Botella de plástico',
+  })
+  resource_name: string;
+
+  @ApiProperty({
+    description: 'Descripción del recurso',
+    example: 'Botella PET reciclada de 1.5L',
+  })
+  resource_desc: string;
+
+  @ApiProperty({
+    description: 'Cantidad disponible del recurso',
+    example: 50,
+  })
+  resource_quanity: number;
+
+  @ApiProperty({
+    description: 'URL de la imagen del recurso',
+    example: 'https://example.com/botella.jpg',
+  })
+  resource_image_url: string;
+
+  @ApiProperty({
+    description: 'Descuento aplicado al recurso (%)',
+    example: 10,
+  })
+  resource_discount: number;
 }
 
 export class RespCobroDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'ID de la wallet de destino',
     example: 'de305d54-75b4-431b-adb2-eb6b9e546014',
   })
-  @IsUUID()
-  Wallet_id?: string;
+  wallet_id?: string;
 
-  @ApiProperty({
-    description: 'ID del monto a pagar para posterior eliminacion',
+  @ApiPropertyOptional({
+    description: 'ID del monto a pagar para posterior eliminación',
     example: 'de305d54-75b4-431b-adb2-eb6b9e546014',
   })
-  @IsUUID()
   amount_to_payment_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Cantidad a transferir',
     example: 150.75,
   })
-  @IsNumber()
   amount?: number;
 
-  @ApiProperty({
-    description: 'Mesaje para el usuario que paga',
+  @ApiPropertyOptional({
+    description: 'Mensaje para el usuario que paga',
     example: '¡Gracias por reciclar con nosotros!',
   })
-  @IsUUID()
   message?: string;
 
-  @IsArray()
-  resource?: resourceResp[]
-
+  @ApiPropertyOptional({
+    description: 'Lista de recursos asociados al cobro',
+    type: [ResourceResp],
+  })
+  resource?: ResourceResp[];
 }

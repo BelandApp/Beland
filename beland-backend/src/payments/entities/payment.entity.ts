@@ -7,10 +7,10 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Order } from 'src/orders/entities/order.entity';
-import { User } from 'src/users/entities/users.entity';
-import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
-import { Transaction } from 'src/transactions/entities/transaction.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { User } from '../../users/entities/users.entity';
+import { PaymentType } from '../../payment-types/entities/payment-type.entity';
+import { Transaction } from '../../transactions/entities/transaction.entity';
 
 @Entity('payments')
 export class Payment {

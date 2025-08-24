@@ -70,11 +70,31 @@ export class WalletsController {
   async findAll(
     @Query('page') page = '1',
     @Query('limit') limit = '10',
-    @Req() req: Request,
   ): Promise<[Wallet[], number]> {
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
-    return await this.service.findAll(req.user.id, pageNumber, limitNumber);
+    return await this.service.findAll(pageNumber, limitNumber);
+  }
+
+  @Get('user')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener una billetera por su Usuario' })
+  @ApiResponse({ status: 200, description: 'Billetera encontrada' })
+  @ApiResponse({ status: 404, description: 'No se encontró la billetera' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async findByUser(@Req() req: Request): Promise<Wallet> {
+    return await this.service.findByUser(req.user.id);
+  }
+
+  @Get('qr')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Obtener una billetera por su Usuario' })
+  @ApiResponse({ status: 200, description: 'Billetera encontrada' })
+  @ApiResponse({ status: 404, description: 'No se encontró la billetera' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async findQRByUser(@Req() req: Request): Promise<{ qr: string }> {
+    const wallet = await this.service.findByUser(req.user.id);
+    return { qr: wallet.qr };
   }
 
   @Get('alias/:alias')

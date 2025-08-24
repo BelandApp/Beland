@@ -7,7 +7,7 @@ import {
   JoinColumn,
   OneToOne,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity'; 
+import { User } from '../../users/entities/users.entity'; 
 
 @Entity('organizations')
 export class Organization {
