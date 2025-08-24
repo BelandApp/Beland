@@ -22,13 +22,12 @@ import { Coupon } from '../../coupons/entities/coupon.entity';
 import { Role } from '../../roles/entities/role.entity';
 import { Admin } from '../../admins/entities/admin.entity';
 import { Exclude } from 'class-transformer';
-import { BankAccount } from 'src/bank-account/entities/bank-account.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
-import { Cart } from 'src/cart/entities/cart.entity';
-import { UserAddress } from 'src/user-address/entities/user-address.entity';
-import { UserCard } from 'src/user-cards/entities/user-card.entity';
-import { GroupInvitation } from 'src/group-invitations/entities/group-invitation.entity';
-import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
+import { Organization } from '../../organizations/entities/organization.entity';
+import { Cart } from '../../cart/entities/cart.entity';
+import { UserAddress } from '../../user-address/entities/user-address.entity';
+import { UserCard } from '../../user-cards/entities/user-card.entity';
+import { GroupInvitation } from '../../group-invitations/entities/group-invitation.entity';
+import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
 
 // Definición de tipo para todos los roles válidos (importante para consistencia)
 export type ValidRoleNames =
@@ -151,9 +150,6 @@ export class User {
 
   @OneToMany(() => Coupon, (coupon) => coupon.redeemed_by_user)
   redeemed_coupons: Coupon[];
-
-  @OneToMany(() => BankAccount, (account) => account.user)
-  bank_accounts: BankAccount[];
 
   @OneToOne(() => Organization, (org) => org.user)
   organization: Organization;

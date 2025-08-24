@@ -8,8 +8,8 @@ import {
   JoinColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
+import { User } from '../../users/entities/users.entity';
+import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
 
 @Entity('wallets')
 export class Wallet {

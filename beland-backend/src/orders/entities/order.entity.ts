@@ -8,12 +8,12 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { Group } from 'src/groups/entities/group.entity';
-import { User } from 'src/users/entities/users.entity';
-import { OrderItem } from 'src/order-items/entities/order-item.entity';
-import { Payment } from 'src/payments/entities/payment.entity';
-import { UserAddress } from 'src/user-address/entities/user-address.entity';
-import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
+import { Group } from '../../groups/entities/group.entity';
+import { User } from '../../users/entities/users.entity';
+import { OrderItem } from '../../order-items/entities/order-item.entity';
+import { Payment } from '../../payments/entities/payment.entity';
+import { UserAddress } from '../../user-address/entities/user-address.entity';
+import { PaymentType } from '../../payment-types/entities/payment-type.entity';
 
 @Entity('orders')
 export class Order {

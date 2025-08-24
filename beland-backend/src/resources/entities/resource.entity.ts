@@ -6,8 +6,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
-import { User } from 'src/users/entities/users.entity';
+import { ResourcesType } from '../../resources-types/entities/resources-type.entity';
+import { User } from '../../users/entities/users.entity';
 
 @Entity('resources')
 export class Resource {

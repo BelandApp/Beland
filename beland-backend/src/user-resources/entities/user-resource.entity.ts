@@ -8,8 +8,8 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { Resource } from 'src/resources/entities/resource.entity';
+import { User } from '../../users/entities/users.entity';
+import { Resource } from '../../resources/entities/resource.entity';
 
 @Entity('user_resources')
 export class UserResource {
