@@ -16,6 +16,7 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { Cart } from 'src/cart/entities/cart.entity';
+import { Request } from 'express'; // Importar Request de express
 
 interface Auth0Payload {
   sub: string;
@@ -44,13 +45,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const auth0Namespace = configService.get<string>('AUTH0_NAMESPACE');
 
     if (!auth0Domain) {
-      // Este error debe lanzarse antes de super() si es crítico
       throw new InternalServerErrorException(
-        'AUTH0_DOMAIN no está configurado.',
+        'AUTH0_DOMAIN no está configurado en las variables de entorno. Por favor, revísalo.',
       );
     }
-    // NOTA: Los logs de 'this.logger' deben ir DESPUÉS de super()
 
+    // Llama a super() antes de cualquier uso de 'this'
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       audience: auth0Audience,
@@ -65,24 +65,45 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       passReqToCallback: true,
     });
 
-    // Ahora podemos usar this.logger después de la llamada a super()
-    this.logger.debug(`[JwtStrategy Init] AUTH0_DOMAIN: ${auth0Domain}`);
-    this.logger.debug(`[JwtStrategy Init] AUTH0_AUDIENCE: ${auth0Audience}`);
+    // Ahora puedes usar 'this'
     this.logger.debug(
-      `[JwtStrategy Init] AUTH0_NAMESPACE: ${auth0Namespace || 'No definido'}`,
+      `[JwtStrategy Init] Raw AUTH0_DOMAIN: ${configService.get<string>(
+        'AUTH0_DOMAIN',
+      )}`,
     );
     this.logger.debug(
-      `[JwtStrategy Init] Expected Issuer: https://${auth0Domain}/`,
+      `[JwtStrategy Init] Raw AUTH0_AUDIENCE: ${configService.get<string>(
+        'AUTH0_AUDIENCE',
+      )}`,
     );
     this.logger.debug(
-      `[JwtStrategy Init] JWKS URI: https://${auth0Domain}/.well-known/jwks.json`,
+      `[JwtStrategy Init] Raw AUTH0_NAMESPACE: ${configService.get<string>(
+        'AUTH0_NAMESPACE',
+      )}`,
     );
 
     if (!auth0Audience) {
       this.logger.warn(
-        'AUTH0_AUDIENCE no está configurado. La validación de la audiencia puede fallar.',
+        'AUTH0_AUDIENCE no está configurado. La validación de la audiencia puede fallar. Asegúrate de que tu .env tenga AUTH0_AUDIENCE.',
       );
     }
+    this.logger.debug(
+      `[JwtStrategy Init] Configured AUTH0_DOMAIN: ${auth0Domain}`,
+    );
+    this.logger.debug(
+      `[JwtStrategy Init] Configured AUTH0_AUDIENCE: ${auth0Audience}`,
+    );
+    this.logger.debug(
+      `[JwtStrategy Init] Configured AUTH0_NAMESPACE: ${
+        auth0Namespace || 'No definido'
+      }`,
+    );
+    this.logger.debug(
+      `[JwtStrategy Init] Expected Issuer URI: https://${auth0Domain}/`,
+    );
+    this.logger.debug(
+      `[JwtStrategy Init] JWKS URI for fetching public keys: https://${auth0Domain}/.well-known/jwks.json`,
+    );
   }
 
   async validate(req: Request, payload: Auth0Payload): Promise<User> {
@@ -108,8 +129,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       (namespace && payload[`${namespace}picture`]) || payload.picture;
 
     this.logger.debug(`JwtStrategy: Extracted email: ${email}`);
-    this.logger.debug(`JwtStrategy: Extracted name: ${name}`);
-    this.logger.debug(`JwtStrategy: Extracted picture: ${picture}`);
+    this.logger.debug(`JwtStrategy: Extracted full_name (name): ${name}`);
+    this.logger.debug(
+      `JwtStrategy: Extracted profile_picture_url (picture): ${picture}`,
+    );
+    this.logger.debug(
+      `JwtStrategy: Extracted email_verified: ${emailVerified}`,
+    );
 
     if (!auth0_id) {
       this.logger.error(
@@ -117,7 +143,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
       throw new UnauthorizedException('User ID not found in token payload.');
     }
-    this.logger.debug(`JwtStrategy: Auth0 ID extraído: ${auth0_id}`);
+    this.logger.debug(
+      `JwtStrategy: Auth0 ID extraído (payload.sub): ${auth0_id}`,
+    );
 
     if (payload.exp) {
       const expirationTime = new Date(payload.exp * 1000);
@@ -136,7 +164,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     } else {
       this.logger.warn(
-        'JwtStrategy: El payload del token de Auth0 no contiene un campo "exp".',
+        'JwtStrategy: El payload del token de Auth0 no contiene un campo "exp". No se puede verificar la expiración del token.',
       );
     }
 
@@ -149,7 +177,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       password: 'temp_password_for_auth0_user',
       confirmPassword: 'temp_password_for_auth0_user',
       address: 'Dirección pendiente',
-      phone: 0,
+      // Asegúrate de que phone sea string si en CreateUserDto lo esperas como string
+      phone: 0, // Si tu DTO espera un number, mantenlo, si no, ajusta
       country: 'País pendiente',
       city: 'Ciudad pendiente',
       isBlocked: false,
@@ -160,7 +189,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     let user: User;
     try {
       user = await this.usersService.findOrCreateAuth0User(createUserDto);
-    } catch (error) {
+      this.logger.debug(
+        `JwtStrategy: findOrCreateAuth0User successful for ID: ${user.id}`,
+      );
+    } catch (error: unknown) {
+      // Añadido : unknown
       this.logger.error(
         `JwtStrategy: Error en usersService.findOrCreateAuth0User para Auth0 ID "${auth0_id}": ${
           (error as Error).message
@@ -182,7 +215,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // *** LÓGICA: Crear Wallet y Cart si no existen ***
-    const queryRunner = this.authService.dataSource.createQueryRunner();
+    const queryRunner = this.authService.dataSource.createQueryRunner(); // Acceder a DataSource a través de AuthService
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
@@ -207,7 +240,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         );
       }
       await queryRunner.commitTransaction();
-    } catch (error) {
+    } catch (error: unknown) {
+      // Añadido : unknown
       await queryRunner.rollbackTransaction();
       this.logger.error(
         `JwtStrategy: Error al crear Wallet/Cart para usuario Auth0 ID: ${
