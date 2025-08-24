@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
+import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
 
 @Entity('withdraw_account_types')
 export class WithdrawAccountType {

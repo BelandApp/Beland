@@ -437,6 +437,19 @@ export class UsersController {
     }
   }
 
+  @Patch('changeRoleToCommerce')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(FlexibleAuthGuard, RolesGuard)
+  @Roles('USER')
+  @ApiOperation({
+    summary:
+      'Actualiza del estado USER a el estado COMMERCE.',
+  })
+  async changeRoleToCommerce( @Req() req: Request ): Promise<UserDto> {
+     return await this.usersService.update(req.user.id, {role: 'COMMERCE'})
+  }
+
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(FlexibleAuthGuard, RolesGuard, PermissionsGuard) // Requiere autenticación, rol y permiso

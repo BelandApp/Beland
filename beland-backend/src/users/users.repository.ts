@@ -2,12 +2,16 @@ import { Repository, Not, IsNull } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/users.entity';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { OrderDto } from 'src/common/dto/order.dto';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService)
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames =
+  | 'USER'
+  | 'LEADER'
+  | 'ADMIN'
+  | 'SUPERADMIN'
+  | 'COMMERCE'
+  | 'FUNDATION';
 
 @Injectable()
 export class UsersRepository {
@@ -33,7 +37,7 @@ export class UsersRepository {
     includeDeleted: boolean = false,
   ): Promise<User | null> {
     const query = this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.id = :id', { id });
 
     if (!includeDeleted) {
@@ -46,7 +50,7 @@ export class UsersRepository {
   async findById(id: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { id },
-      relations: { wallet: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role: true },
     });
   }
 
@@ -58,7 +62,7 @@ export class UsersRepository {
    */
   async findByAuth0Id(auth0Id: string): Promise<User | null> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('user.admin', 'admin')
       .where('user.auth0_id = :auth0Id', { auth0Id })
       .getOne();
@@ -72,7 +76,7 @@ export class UsersRepository {
   async findByEmail(email: string): Promise<User | null> {
     return this.userORMRepository.findOne({
       where: { email },
-      relations: { wallet: true, cart: true, role_relation: true },
+      relations: { wallet: true, cart: true, role: true },
     });
   }
 
@@ -83,7 +87,7 @@ export class UsersRepository {
    */
   async findByUsername(username: string): Promise<User | null> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.username = :username', { username })
       .getOne();
   }
@@ -96,7 +100,7 @@ export class UsersRepository {
   async findByPhone(phone: string): Promise<User | null> {
     // Cambiado a string
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.phone = :phone', { phone })
       .andWhere('user.deleted_at IS NULL')
       .getOne();
@@ -145,7 +149,7 @@ export class UsersRepository {
     } = getUsersQueryDto;
 
     const query = this.createQueryBuilder('user').leftJoinAndSelect(
-      'user.role_relation',
+      'user.role',
       'role',
     );
 
@@ -221,7 +225,7 @@ export class UsersRepository {
    */
   async findDeactivatedUsers(): Promise<User[]> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.deleted_at IS NOT NULL')
       .getMany();
   }

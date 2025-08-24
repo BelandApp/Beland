@@ -6,7 +6,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { ResourcesType } from 'src/resources-types/entities/resources-type.entity';
+import { ResourcesType } from '../../resources-types/entities/resources-type.entity';
+import { User } from '../../users/entities/users.entity';
 
 @Entity('resources')
 export class Resource {
@@ -35,6 +36,15 @@ export class Resource {
   @Column({ type: 'boolean', default: false })
   is_expired: boolean;
 
+  @Column('int', { default: 1 })
+  limit_user: number;
+
+  @Column('int', { default: 0 })
+  limit_app: number;
+
+  @Column('int', { default: 0 })
+  used_acount: number;
+
   @Column({ type: 'timestamptz', nullable: true })
   expires_at: Date;
 
@@ -46,4 +56,10 @@ export class Resource {
   resource_type: ResourcesType
   @Column({ type: 'uuid' })
   resource_type_id: string;
+
+  @ManyToOne(() => User)
+  @JoinColumn({name:'user_commerce_id'})
+  user_commerce: User
+  @Column({ type: 'uuid' })
+  user_commerce_id: string;
 }

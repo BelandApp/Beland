@@ -11,13 +11,13 @@ export class CreateRoleDto {
   @ApiProperty({
     description: 'Nombre del rol',
     // ¡ACTUALIZADO para incluir EMPRESA en el ejemplo y enum!
-    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN, EMPRESA
-    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
+    example: 'USER', // USER, LEADER, ADMIN, SUPERADMIN, COMMERCE, FUNDATION
+    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'COMMERCE', 'FUNDATION'],
   })
   @IsString()
   @IsNotEmpty()
-  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA']) // Asegurarse de que el valor sea uno de los roles válidos
-  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA'; // Tipo literal para el nombre del rol
+  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'COMMERCE', 'FUNDATION']) // Asegurarse de que el valor sea uno de los roles válidos
+  name: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION'; // Tipo literal para el nombre del rol
 
   @ApiProperty({
     description: 'Descripción del rol',

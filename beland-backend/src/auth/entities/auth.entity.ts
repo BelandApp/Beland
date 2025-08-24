@@ -1,43 +1,53 @@
-import { Role } from "src/roles/entities/role.entity";
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+// src/auth/entities/auth.entity.ts
+import { Role } from '../../roles/entities/role.entity';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
-@Entity({ name: "auth_verification" })
+@Entity({ name: 'auth_verifications' }) // Nombre de tabla en plural
 export class AuthVerification {
-  
-  @PrimaryGeneratedColumn("uuid")
-  id: string; 
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ length: 6 })
-  code: string; // código de verificación de 6 dígitos
+  code: string; // Código de verificación de 6 dígitos
 
   @Column({ unique: true })
   email: string;
 
-  @Column('varchar')
-  username: string;
-  
-  @Column('varchar', {nullable:true})
-  full_name: string;
+  @Column('varchar', { nullable: true }) // <--- ¡CAMBIO AQUÍ: username ahora es nullable!
+  username?: string; // Ahora es opcional
 
-  @Column('varchar', {nullable:true})
-  profile_picture_url:string
+  @Column('varchar', { nullable: true })
+  full_name?: string;
 
-  @ManyToOne(() => Role)
-  @JoinColumn({name: 'role_id'})
-  role: Role;
-  @Column('uuid')
-  role_id:string;
- 
-  @Column('varchar')
-  role_name: string;
+  @Column('varchar', { nullable: true })
+  profile_picture_url?: string;
 
-  @Column({ name: "password_hashed" })
+  // Propiedades de rol, ahora son opcionales para coincidir con NULLABLE en la DB
+  @ManyToOne(() => Role, { nullable: true })
+  @JoinColumn({ name: 'role_id' })
+  role?: Role;
+
+  @Column('uuid', { nullable: true })
+  role_id?: string;
+
+  @Column('varchar', { nullable: true })
+  role_name?: string;
+
+  @Column({ name: 'password_hashed' }) // Coincide con el nombre de columna en la DB
   passwordHashed: string;
 
   @Column({ nullable: true })
   address?: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'integer', nullable: true }) // Coincide con el tipo 'integer' en la DB
   phone?: number;
 
   @Column({ nullable: true })
@@ -46,7 +56,16 @@ export class AuthVerification {
   @Column({ nullable: true })
   city?: string;
 
-  @CreateDateColumn({ name: "created_at" })
-  createdAt: Date;
+  // Nuevas propiedades para la verificación
+  @Column({ type: 'boolean', default: false })
+  is_verified: boolean;
 
+  @Column({ type: 'timestamp', nullable: true }) // Coincide con NULLABLE en la DB
+  expires_at: Date;
+
+  @CreateDateColumn({ name: 'created_at' })
+  created_at: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updated_at: Date;
 }

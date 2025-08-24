@@ -5,7 +5,7 @@ import { Role } from './entities/role.entity';
 import { User } from '../users/entities/users.entity'; // Importar User si se usa en findUsersByRoleId
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService y Role Entity)
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA';
+type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
 
 @Injectable()
 export class RolesRepository {

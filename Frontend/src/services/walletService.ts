@@ -53,6 +53,13 @@ class WalletService {
     amount: number;
     paymentMethod: string;
   }): Promise<{ wallet: Wallet }> {
+    // Validación de monto
+    const amountNum = Number(data.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      throw new Error(
+        "El monto de recarga debe ser un número válido y mayor a cero."
+      );
+    }
     // Utiliza el userId si es UUID válido, si no genera uno
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -63,16 +70,18 @@ class WalletService {
       : `${Date.now()}-fake-uuid-frontend`;
     const payload = {
       wallet_id: data.userId,
-      amountUsd: data.amount,
+      amountUsd: amountNum,
       referenceCode: `RCH-${Date.now()}`,
       clientTransactionId,
       payphone_transactionId: Date.now(), // Valor temporal para pruebas
     };
     console.log("[Recarga API] Payload enviado al backend:", payload);
-    return await apiRequest("/wallets/recharge", {
+    const response = await apiRequest("/wallets/recharge", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    console.log("[Recarga API] Respuesta recibida del backend:", response);
+    return response;
   }
   // Obtener billetera por email de usuario
   async getWalletByUserId(userEmail: string, userId?: string): Promise<Wallet> {

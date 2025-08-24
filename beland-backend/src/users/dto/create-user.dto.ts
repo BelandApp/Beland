@@ -158,13 +158,13 @@ export class CreateUserDto {
 
   @ApiProperty({
     description: 'Rol del usuario. Por defecto, USER.',
-    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'],
+    enum: ['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'COMMERCE', 'FUNDATION'],
     default: 'USER',
     required: false,
   })
   @IsOptional()
-  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'EMPRESA'])
-  role?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'EMPRESA' = 'USER';
+  @IsEnum(['USER', 'LEADER', 'ADMIN', 'SUPERADMIN', 'COMMERCE', 'FUNDATION'])
+  role_name?: 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION' = 'USER';
 
   @ApiProperty({
     description: 'Si el usuario está bloqueado. Por defecto, false.',

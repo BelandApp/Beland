@@ -1,9 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, OneToOne, JoinColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { CartItem } from 'src/cart-items/entities/cart-item.entity';
-import { UserAddress } from 'src/user-address/entities/user-address.entity';
-import { Group } from 'src/groups/entities/group.entity';
-import { PaymentType } from 'src/payment-types/entities/payment-type.entity';
+import { User } from '../../users/entities/users.entity';
+import { CartItem } from '../../cart-items/entities/cart-item.entity';
+import { UserAddress } from '../../user-address/entities/user-address.entity';
+import { Group } from '../../groups/entities/group.entity';
+import { PaymentType } from '../../payment-types/entities/payment-type.entity';
 
 @Entity('carts')
 export class Cart { 

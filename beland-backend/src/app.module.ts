@@ -26,16 +26,13 @@ import { GroupsModule } from './groups/groups.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { DatabaseModule } from './database/database.module';
 import { DataSourceOptions } from 'typeorm';
-import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
+//import typeormConfig from './config/typeorm'; // Asegúrate de que este archivo exista y exporte la configuración
 import { RequestLoggerMiddleware } from './middlleware/request-logger.middleware'; // Asegúrate de que este archivo exista
 import { TransactionsModule } from './transactions/transactions.module';
 import { RecyclePricesModule } from './recycle_prices/recycle_prices.module';
-import { BankAccountModule } from './bank-account/bank-account.module';
-import { MerchantsModule } from './merchants/merchants.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 import { TransactionTypeModule } from './transaction-type/transaction-type.module';
 import { TransactionStateModule } from './transaction-state/transaction-state.module';
-import { CharityModule } from './charity/charity.module';
-import { BankAccountTypeModule } from './bank-account-type/bank-account-type.module';
 import { DatabaseInitModule } from './database/init/database-init.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminsModule } from './admins/admins.module';
@@ -56,14 +53,16 @@ import { SuperadminModule } from './superadmin-config/superadmin-config.module';
 import { WithdrawAccountModule } from './withdraw-account/withdraw-account.module';
 import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-account-type.module';
 import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
-import { WalletTypesModule } from './wallet-types/wallet-types.module';
+import { AmountToPaymentModule } from './amount-to-payment/amount-to-payment.module';
+import { PresetAmountModule } from './preset-amount/preset-amount.module';
+//import { NotificationsSocketModule } from './notification-socket/notification-socket.module'; 
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [typeormConfig],
-    }),
+      //load: [typeormConfig],
+    }), 
     // modulo para generar los token
     JwtModule.registerAsync({
       global: true,
@@ -91,14 +90,24 @@ import { WalletTypesModule } from './wallet-types/wallet-types.module';
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService): DataSourceOptions => {
-        const dbConfig = configService.get<DataSourceOptions>('typeorm');
-        return {
-          ...dbConfig,
-          entities: [__dirname + '/**/*.entity{.ts,.js}'], // Asegúrate de que esto apunte a tus entidades
-        };
-      },
       inject: [ConfigService],
+      useFactory: (configService: ConfigService): DataSourceOptions => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: parseInt(configService.get<string>('DB_PORT') || '5432', 10),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        migrations: [
+          __dirname + '/database/migrations/*{.ts,.js}'
+        ],
+        synchronize: false, // nunca true en prod
+        logging: false,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }),
     }),
 
     ScheduleModule.forRoot(),
@@ -124,12 +133,9 @@ import { WalletTypesModule } from './wallet-types/wallet-types.module';
     CommonModule,
     TransactionsModule,
     RecyclePricesModule,
-    BankAccountModule,
-    MerchantsModule,
+    OrganizationsModule,
     TransactionTypeModule,
     TransactionStateModule,
-    CharityModule,
-    BankAccountTypeModule,
     AdminsModule,
     CartModule,
     CartItemsModule,
@@ -147,7 +153,9 @@ import { WalletTypesModule } from './wallet-types/wallet-types.module';
     WithdrawAccountModule,
     WithdrawAccountTypeModule,
     UserWithdrawModule,
-    WalletTypesModule,
+    AmountToPaymentModule,
+    PresetAmountModule,
+    //NotificationsSocketModule,
   ],
   controllers: [],
   providers: [
