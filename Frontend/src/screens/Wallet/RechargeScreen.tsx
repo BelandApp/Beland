@@ -297,7 +297,7 @@ export default function RechargeScreen() {
             Recibirás:{" "}
             <Text style={styles.conversionAmount}>{amount} BeCoins</Text>
           </Text>
-          <Text style={styles.conversionNote}>1 USD = 1 BeCoin</Text>
+          <Text style={styles.conversionNote}>1 USD = 1s BeCoin</Text>
         </View>
       )}
       {/* Botón de recarga */}
@@ -307,10 +307,6 @@ export default function RechargeScreen() {
           (!amount || !selectedPaymentMethod || isLoading) &&
             styles.rechargeButtonDisabled,
         ]}
-        onPress={() => {
-          // Aquí va la lógica de recarga para móvil (API, backend, etc.)
-          Alert.alert("Recarga", "Aquí va la lógica de recarga para móvil.");
-        }}
         disabled={!amount || !selectedPaymentMethod || isLoading}
       >
         <Text style={styles.rechargeButtonText}>

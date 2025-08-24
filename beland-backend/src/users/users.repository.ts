@@ -5,7 +5,13 @@ import { User } from './entities/users.entity';
 import { GetUsersQueryDto } from './dto/get-users-query.dto';
 
 // Definición de tipo para todos los roles válidos (debe coincidir con UsersService)
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
+type ValidRoleNames =
+  | 'USER'
+  | 'LEADER'
+  | 'ADMIN'
+  | 'SUPERADMIN'
+  | 'COMMERCE'
+  | 'FUNDATION';
 
 @Injectable()
 export class UsersRepository {
@@ -31,7 +37,7 @@ export class UsersRepository {
     includeDeleted: boolean = false,
   ): Promise<User | null> {
     const query = this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.id = :id', { id });
 
     if (!includeDeleted) {
@@ -56,7 +62,7 @@ export class UsersRepository {
    */
   async findByAuth0Id(auth0Id: string): Promise<User | null> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .leftJoinAndSelect('user.admin', 'admin')
       .where('user.auth0_id = :auth0Id', { auth0Id })
       .getOne();
@@ -81,7 +87,7 @@ export class UsersRepository {
    */
   async findByUsername(username: string): Promise<User | null> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.username = :username', { username })
       .getOne();
   }
@@ -94,7 +100,7 @@ export class UsersRepository {
   async findByPhone(phone: string): Promise<User | null> {
     // Cambiado a string
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.phone = :phone', { phone })
       .andWhere('user.deleted_at IS NULL')
       .getOne();
@@ -143,7 +149,7 @@ export class UsersRepository {
     } = getUsersQueryDto;
 
     const query = this.createQueryBuilder('user').leftJoinAndSelect(
-      'user.role_relation',
+      'user.role',
       'role',
     );
 
@@ -219,7 +225,7 @@ export class UsersRepository {
    */
   async findDeactivatedUsers(): Promise<User[]> {
     return this.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role_relation', 'role')
+      .leftJoinAndSelect('user.role', 'role')
       .where('user.deleted_at IS NOT NULL')
       .getMany();
   }
