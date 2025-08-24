@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/users.entity';
 import { Wallet } from 'src/wallets/entities/wallet.entity';
 import { Role } from 'src/roles/entities/role.entity';
+import { Cart } from 'src/cart/entities/cart.entity'; // Importamos Cart Entity
 
 // Servicios y Repositorios
 import { AuthService } from './auth.service';
@@ -21,8 +22,6 @@ import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthenticationGuard } from './guards/auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
-
 // Módulos externos que proveen dependencias
 import { UsersModule } from 'src/users/users.module';
 import { RolesModule } from 'src/roles/roles.module';
@@ -30,6 +29,7 @@ import { RolesModule } from 'src/roles/roles.module';
 import { AuthController } from './auth.controller';
 import { EmailService } from 'src/email/email.service';
 import { AuthVerification } from './entities/auth.entity';
+import { FlexibleAuthGuard } from './guards/flexible-auth.guard';
 
 @Global()
 @Module({
@@ -54,7 +54,7 @@ import { AuthVerification } from './entities/auth.entity';
       }),
     }),
     // Registra las entidades de TypeORM necesarias para este módulo
-    TypeOrmModule.forFeature([User, Role, Wallet, AuthVerification]),
+    TypeOrmModule.forFeature([User, Role, Wallet, AuthVerification, Cart]), // Añadimos Cart aquí
   ],
   controllers: [AuthController],
   providers: [
@@ -63,12 +63,10 @@ import { AuthVerification } from './entities/auth.entity';
     UsersRepository,
     RolesRepository,
     WalletsRepository,
-    // JwtService ya no es necesario listarlo aquí explícitamente,
-    // ya que JwtModule (importado arriba) lo provee automáticamente.
     AuthenticationGuard, // Guard de autenticación local
     JwtAuthGuard, // Guard de autenticación de Auth0
     FlexibleAuthGuard, // Guard que combina ambos
-    EmailService
+    EmailService,
   ],
   exports: [
     AuthService,
