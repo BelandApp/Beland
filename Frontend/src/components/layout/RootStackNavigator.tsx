@@ -15,11 +15,14 @@ import {
 } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
 
-import { useAuth } from "src/hooks/AuthContext";
-import HomeView from "src/screens/Home/HomePage";
-
 import { HomeScreen } from "../../screens/HomeScreen";
 import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
+import { useAuth } from "src/hooks/AuthContext";
+import { CatalogScreen } from "src/screens/Catalog";
+import { AuthDeepLinkHandler } from "src/screens/AuthDeepLinkHandler";
+import { Linking } from "react-native";
+
+
 
 
 export type RootStackParamList = {
@@ -41,23 +44,46 @@ export type RootStackParamList = {
   Groups: undefined;
   UserDashboardScreen: undefined;
   PayphoneSuccess: undefined;
+  AuthDeepLinkHandler: { userId?: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStackNavigator = () => {
   const { user } = useAuth();
-  const initialRouteName = user ? "Dashboard" : "Home";
+  const linking = {
+    prefixes: ["beland://"], // ✅ Tu prefijo de deep linking
+    config: {
+      screens: {
+        AuthDeepLinkHandler: "login-success", // ✅ Mapea el deep link a tu nueva pantalla
+      },
+    },
+    async getInitialURL() {
+      // Maneja el caso en el que la app se abre desde un deep link
+      const url = await Linking.getInitialURL();
+      if (url && url.startsWith("beland://")) {
+        // Devuelve la URL para que el enrutador la procese
+        return url;
+      }
+      return undefined;
+    },
+  };
+
+
+
+
+
 
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-      initialRouteName={initialRouteName}>
-       <Stack.Screen name="Home" component={HomeView} />
-     <Stack.Screen name="Dashboard" component={DashboardScreen} />
-       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="AuthDeepLinkHandler"
+        component={AuthDeepLinkHandler}
+        options={{ headerShown: false }}
+      />
+      
+        <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+
      
       <Stack.Screen
         name="CanjearScreen"
@@ -70,7 +96,7 @@ export const RootStackNavigator = () => {
         component={SendScreen}
         options={{ headerShown: false, title: "Enviar" }}
       />
-      
+
       <Stack.Screen
         name="ReceiveScreen"
         component={ReceiveScreen}
@@ -112,7 +138,7 @@ export const RootStackNavigator = () => {
         component={HistoryScreen}
         options={{ headerShown: false }}
       />
-     
+
       <Stack.Screen
         name="UserDashboardScreen"
         component={UserDashboardScreen}
