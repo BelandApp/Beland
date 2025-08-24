@@ -8,11 +8,11 @@ import {
   JoinColumn,
   OneToOne,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { Wallet } from 'src/wallets/entities/wallet.entity';
-import { WithdrawAccount } from 'src/withdraw-account/entities/withdraw-account.entity';
-import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
-import { Transaction } from 'src/transactions/entities/transaction.entity';
+import { User } from '../../users/entities/users.entity';
+import { Wallet } from '../../wallets/entities/wallet.entity';
+import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
+import { TransactionState } from '../../transaction-state/entities/transaction-state.entity';
+import { Transaction } from '../../transactions/entities/transaction.entity';
 
 @Entity('user_withdraws')
 export class UserWithdraw {

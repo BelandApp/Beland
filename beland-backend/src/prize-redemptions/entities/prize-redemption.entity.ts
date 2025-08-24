@@ -6,8 +6,8 @@ import {
   CreateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { Prize } from 'src/prizes/entities/prize.entity';
+import { User } from '../../users/entities/users.entity';
+import { Prize } from '../../prizes/entities/prize.entity';
 
 @Entity('prize_redemptions')
 export class PrizeRedemption {

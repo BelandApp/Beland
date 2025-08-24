@@ -1,9 +1,9 @@
 // src/products/entities/product.entity.ts
-import { Category } from 'src/category/entities/category.entity';
-import { GroupType } from 'src/group-type/entities/group-type.entity';
-import { InventoryItem } from 'src/inventory-items/entities/inventory-item.entity';
-import { OrderItem } from 'src/order-items/entities/order-item.entity';
-import { RecycledItem } from 'src/recycled-items/entities/recycled-item.entity';
+import { Category } from '../../category/entities/category.entity';
+import { GroupType } from '../../group-type/entities/group-type.entity';
+import { InventoryItem } from '../../inventory-items/entities/inventory-item.entity';
+import { OrderItem } from '../../order-items/entities/order-item.entity';
+import { RecycledItem } from '../../recycled-items/entities/recycled-item.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
