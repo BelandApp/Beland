@@ -10,7 +10,7 @@ import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
 import { HistoryScreen, RecyclingMapScreen } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
-import { HomeScreen } from "../../screens/HomeScreen";
+
 import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
 import { useAuth } from "src/hooks/AuthContext";
 import { CatalogScreen } from "src/screens/Catalog";
@@ -21,7 +21,9 @@ import HomeView from "src/screens/Home/HomePage";
 
 export type RootStackParamList = {
   MainTabs: undefined;
-  Home: undefined;
+
+  Dashboard: undefined;
+
   Wallet: undefined;
   Rewards: undefined;
   QR: undefined;
@@ -46,11 +48,9 @@ export const RootStackNavigator = () => {
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
+     
         <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-      ) : (
-        <Stack.Screen name="Home" component={HomeScreen} />
-      )}
+    
       <Stack.Screen
         name="CanjearScreen"
         component={CanjearScreen}
