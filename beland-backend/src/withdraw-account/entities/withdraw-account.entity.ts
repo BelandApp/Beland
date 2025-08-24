@@ -7,9 +7,9 @@ import {
   JoinColumn,
   OneToOne,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity';
-import { Wallet } from 'src/wallets/entities/wallet.entity';
-import { WithdrawAccountType } from 'src/withdraw-account-type/entities/withdraw-account-type.entity';
+import { User } from '../../users/entities/users.entity';
+import { Wallet } from '../../wallets/entities/wallet.entity';
+import { WithdrawAccountType } from '../../withdraw-account-type/entities/withdraw-account-type.entity';
 
 @Entity('withdraw_accounts')
 export class WithdrawAccount {

@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Transaction } from 'src/transactions/entities/transaction.entity'; 
+import { Transaction } from '../../transactions/entities/transaction.entity'; 
 
 @Entity('transaction_states')
 export class TransactionState {

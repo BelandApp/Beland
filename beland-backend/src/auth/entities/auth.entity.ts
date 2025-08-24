@@ -1,4 +1,4 @@
-import { Role } from "src/roles/entities/role.entity";
+import { Role } from "../../roles/entities/role.entity";
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity({ name: "auth_verification" })

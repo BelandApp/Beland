@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateAmountToPaymentDto {
   @ApiProperty({
@@ -11,10 +11,11 @@ export class CreateAmountToPaymentDto {
   @Min(0, { message: 'El monto debe ser mayor o igual a 0' })
   amount: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Mensaje a mostrar con el pago',
     example: "¡Gracias por traer tus residuos! Descuento merecido",
   })
   @IsString()
-  message: string;
+  @IsOptional()
+  message?: string;
 }
