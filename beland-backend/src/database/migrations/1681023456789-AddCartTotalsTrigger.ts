@@ -1,3 +1,4 @@
+// src/database/migrations
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddCartTotalsTrigger1681023456789 implements MigrationInterface {

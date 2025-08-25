@@ -24,7 +24,9 @@ export const DashboardScreen = () => {
 
   if (Platform.OS === "web") {
     return (
-      <View style={webStyles.container}>
+      <View
+        style={[webStyles.container, { overflow: "scroll", height: "100%" }]}
+      >
         <AppHeader />
         <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
         <RewardsCard />

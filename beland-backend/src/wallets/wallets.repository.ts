@@ -11,13 +11,11 @@ export class WalletsRepository {
   ) {}
 
   async findAll(
-    user_id: string,
     page: number,
     limit: number,
   ): Promise<[Wallet[], number]> {
 
     return this.repository.findAndCount({
-        where: {user_id},
         order: { created_at: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,

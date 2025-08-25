@@ -7,8 +7,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { Product } from 'src/products/entities/product.entity';
-import { User } from 'src/users/entities/users.entity';
+import { Product } from '../../products/entities/product.entity';
+import { User } from '../../users/entities/users.entity';
 
 @Entity('recycled_items')
 export class RecycledItem {

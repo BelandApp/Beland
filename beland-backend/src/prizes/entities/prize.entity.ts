@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { PrizeRedemption } from 'src/prize-redemptions/entities/prize-redemption.entity';
+import { PrizeRedemption } from '../../prize-redemptions/entities/prize-redemption.entity';
 
 @Entity('prizes')
 export class Prize {

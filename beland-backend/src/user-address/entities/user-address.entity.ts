@@ -9,8 +9,8 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity'; 
-import { Order } from 'src/orders/entities/order.entity';
+import { User } from '../../users/entities/users.entity'; 
+import { Order } from '../../orders/entities/order.entity';
 
 @Entity('user_addresses')
 export class UserAddress {

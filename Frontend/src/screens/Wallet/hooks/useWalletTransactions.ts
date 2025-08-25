@@ -149,9 +149,27 @@ export const useWalletTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walletId, setWalletId] = useState<string | null>(null);
+
+  // Obtener el wallet_id del usuario actual
+  useEffect(() => {
+    const fetchWalletId = async () => {
+      if (!user?.email || !user?.id) return;
+      try {
+        const wallet = await walletService.getWalletByUserId(
+          user.email,
+          user.id
+        );
+        setWalletId(wallet.id);
+      } catch (err) {
+        setWalletId(null);
+      }
+    };
+    fetchWalletId();
+  }, [user?.email, user?.id]);
 
   const fetchTransactions = async () => {
-    if (!user?.email) return;
+    if (!walletId) return;
 
     setIsLoading(true);
     setError(null);
@@ -162,14 +180,14 @@ export const useWalletTransactions = () => {
 
       console.log("🔧 useWalletTransactions configuración:");
       console.log("- isDemoMode:", isDemoMode);
-      console.log("- user.email:", user.email);
+      console.log("- walletId:", walletId);
 
       if (!isDemoMode) {
         try {
           // Modo producción: intentar usar API real
-
-          // El backend ahora obtiene las transacciones por el user id del JWT
+          // Filtrar por wallet_id del usuario actual
           const response = await transactionService.getTransactions({
+            wallet_id: walletId,
             limit: 20,
             page: 1,
           });
@@ -210,7 +228,7 @@ export const useWalletTransactions = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [user?.email]);
+  }, [walletId]);
 
   return {
     transactions,

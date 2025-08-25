@@ -11,9 +11,11 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "src/hooks/AuthContext";
-import { LogOut, LayoutDashboard } from "lucide-react-native";
+import { LogOut, LayoutDashboard, Store } from "lucide-react-native";
 import { RootStackParamList } from "./RootStackNavigator";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { showSuccessAlert, showErrorAlert } from "src/utils/alertHelpers";
+import { authService } from "src/services/authService";
 
 type AppHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -22,6 +24,8 @@ export const AppHeader = () => {
   const { user, isLoading, isDemo, loginWithAuth0, logout, loginAsDemo } =
     useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [showCommerceAlert, setShowCommerceAlert] = useState(false);
+  const [isChangingRole, setIsChangingRole] = useState(false);
 
   const handleLogin = async () => {
     await loginWithAuth0();
@@ -39,6 +43,29 @@ export const AppHeader = () => {
   const handleNavigateToDashboard = () => {
     setMenuVisible(false);
     navigation.navigate("UserDashboardScreen");
+  };
+
+  const handleChangeRoleToCommerce = async () => {
+    setIsChangingRole(true);
+    try {
+      const resp = await authService.changeRoleToCommerce();
+      setShowCommerceAlert(false);
+      showSuccessAlert(
+        "¡Ya eres comerciante!",
+        "Tu perfil ha sido actualizado y ahora puedes recibir pagos por QR.",
+        "OK"
+      );
+      // Opcional: recargar usuario/contexto
+    } catch (err) {
+      setShowCommerceAlert(false);
+      showErrorAlert(
+        "Error",
+        String(err) || "No se pudo cambiar el rol. Intenta nuevamente.",
+        "OK"
+      );
+    } finally {
+      setIsChangingRole(false);
+    }
   };
 
   // Nuevo: Mostrar un spinner de carga si la sesión está en proceso de restauración.
@@ -84,7 +111,8 @@ export const AppHeader = () => {
 
           <TouchableOpacity
             style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}>
+            onPress={handleDemoLogin}
+          >
             <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>
@@ -108,7 +136,8 @@ export const AppHeader = () => {
                   style={[
                     styles.roleBadgeText,
                     { color: getRoleBadgeStyle().color },
-                  ]}>
+                  ]}
+                >
                   {user.role_name || user.role}
                 </Text>
               </View>
@@ -123,10 +152,23 @@ export const AppHeader = () => {
             <View style={styles.menuDropdown}>
               <TouchableOpacity
                 style={styles.menuItem}
-                onPress={handleNavigateToDashboard}>
+                onPress={handleNavigateToDashboard}
+              >
                 <LayoutDashboard size={18} style={styles.menuItemIcon} />
                 <Text style={styles.menuItemText}>Dashboard</Text>
               </TouchableOpacity>
+
+              {/* Mostrar opción solo si el usuario NO es comerciante */}
+              {user?.role !== "COMMERCE" && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => setShowCommerceAlert(true)}
+                >
+                  <Store size={18} style={styles.menuItemIcon} />
+                  <Text style={styles.menuItemText}>Hacerme comerciante</Text>
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
                 <LogOut size={18} style={styles.menuItemIcon} />
                 <Text style={styles.menuItemText}>Cerrar sesión</Text>
@@ -134,6 +176,50 @@ export const AppHeader = () => {
             </View>
           </Modal>
         </View>
+      )}
+
+      {showCommerceAlert && (
+        <Modal
+          transparent={true}
+          visible={showCommerceAlert}
+          animationType="fade"
+        >
+          <Pressable
+            style={styles.overlay}
+            onPress={() => setShowCommerceAlert(false)}
+          />
+          <View style={[styles.menuDropdown, { top: 120 }]}>
+            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
+              ¿Quieres convertirte en comerciante?
+            </Text>
+            <Text style={{ marginBottom: 16 }}>
+              Esto actualizará tu perfil y habilitará la recepción de pagos por
+              QR.
+            </Text>
+            <TouchableOpacity
+              style={[styles.menuItem, { backgroundColor: "#1E90FF" }]}
+              onPress={handleChangeRoleToCommerce}
+              disabled={isChangingRole}
+            >
+              <Text style={[styles.menuItemText, { color: "#fff" }]}>
+                Confirmar
+              </Text>
+              {isChangingRole && (
+                <ActivityIndicator
+                  size="small"
+                  color="#fff"
+                  style={{ marginLeft: 8 }}
+                />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.menuItem, { marginTop: 8 }]}
+              onPress={() => setShowCommerceAlert(false)}
+            >
+              <Text style={styles.menuItemText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
       )}
     </View>
   );

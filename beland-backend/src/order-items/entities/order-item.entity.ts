@@ -7,9 +7,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm'; 
-import { Order } from 'src/orders/entities/order.entity';
-import { Product } from 'src/products/entities/product.entity';
-import { User } from 'src/users/entities/users.entity';
+import { Order } from '../../orders/entities/order.entity';
+import { Product } from '../../products/entities/product.entity';
 
 @Entity('order_items')
 export class OrderItem {

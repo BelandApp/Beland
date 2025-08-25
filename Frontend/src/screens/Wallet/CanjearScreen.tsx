@@ -42,6 +42,7 @@ const CanjearScreen: React.FC<{
   const balance =
     useBeCoinsStore((state: { balance: number }) => state.balance) ?? 0;
   const spendBeCoins = useBeCoinsStore((state: any) => state.spendBeCoins);
+  const { refetch } = require("./hooks/useWalletData");
 
   // Estado para modal de éxito
   const [showSuccess, setShowSuccess] = useState(false);
@@ -168,6 +169,10 @@ const CanjearScreen: React.FC<{
       });
       setShowSuccess(true);
       setAmount("");
+      // Actualizar el balance global después de canjear
+      if (typeof refetch === "function") {
+        await refetch();
+      }
     } catch (error: any) {
       console.error("Error en canje:", error);
       Alert.alert(
