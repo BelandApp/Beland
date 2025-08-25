@@ -1,7 +1,12 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { ActivityIndicator, Platform } from "react-native";
 import { useBeCoinsStoreHydration } from "./src/stores/useBeCoinsStore";
+
+import { View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as NavigationBar from "expo-navigation-bar";
+import { setStatusBarHidden } from "expo-status-bar";
+
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -27,18 +32,7 @@ const AppContent = () => {
     undefined
   );
 
-  useEffect(() => {
-    // Si el usuario no existe y el navegador ya está montado
-    if (!user && navigationRef.current?.isReady()) {
-      // Navega a la pantalla Home y resetea el stack
-      // Esto evita que el usuario pueda volver al dashboard con el botón de retroceso
-      navigationRef.current.reset({
-        index: 0,
-        routes: [{ name: "Home" }],
-      });
-    }
-  }, [user]);
-
+  // Padding dinámico para web móvil
   const dynamicPaddingBottom = useMemo(() => {
     if (
       Platform.OS === "web" &&
@@ -53,6 +47,40 @@ const AppContent = () => {
       return tabbarHeight + extraBottom;
     }
     return 0;
+  }, []);
+
+
+  useEffect(() => {
+    const configureSystemBars = async () => {
+      if (Platform.OS === "android") {
+        try {
+
+          // Ocultar barra de navegación
+          await NavigationBar.setVisibilityAsync("hidden");
+          // Ocultar barra de estado también
+          setStatusBarHidden(true, "slide");
+          console.log("Barras del sistema ocultas correctamente");
+        } catch (error) {
+          console.log("Error configurando las barras del sistema:", error);
+
+        }
+      }
+    };
+    configureSystemBars();
+
+    const interval = setInterval(() => {
+      if (Platform.OS === "android") {
+        try {
+          NavigationBar.setVisibilityAsync("hidden");
+          setStatusBarHidden(true, "slide");
+
+        } catch (error) {
+          // Ignorar errores silenciosamente
+        }
+
+      }
+    }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleQRPress = () => {
@@ -85,13 +113,6 @@ const AppContent = () => {
     !walletActionScreens.includes(currentRoute) &&
     !!user;
 
-  if (isLoading || !isBeCoinsLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF7A00" />
-      </View>
-    );
-  }
 
   const isPayphoneSuccess =
     typeof window !== "undefined" &&
@@ -106,8 +127,8 @@ const AppContent = () => {
     prefixes: ["http://localhost:8081", "https://tudominio.com"],
     config: {
       screens: {
-        PayphoneSuccess: "payphone-success",
         MainTabs: "",
+        PayphoneSuccess: "payphone-success",
         CanjearScreen: "canjear",
         SendScreen: "send",
         ReceiveScreen: "receive",
@@ -118,20 +139,31 @@ const AppContent = () => {
         RecyclingMap: "recycling-map",
         HistoryScreen: "history",
         UserDashboardScreen: "user-dashboard",
+        GroupsScreen: "Groups",
         // Agrega aquí todas las rutas que tienes en RootStackParamList
       },
     },
   };
 
   return (
-    <View style={styles.appContainer}>
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <StatusBar style="light" />
       <NavigationContainer
         ref={navigationRef}
+        onStateChange={onNavigationStateChange}
+        linking={linking}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "#F7F8FA",
+            paddingBottom: dynamicPaddingBottom,
+          }}
+        >
 
-        onStateChange={onNavigationStateChange}>
-        <RootStackNavigator />
-
+          <RootStackNavigator />
+          {shouldShowQRButton && <FloatingQRButton onPress={handleQRPress} />}
+        </View>
       </NavigationContainer>
     </View>
   );
@@ -142,18 +174,27 @@ const App = () => (
     <SafeAreaProvider>
       <AppContent />
     </SafeAreaProvider>
-  );
-}
 
-const styles = StyleSheet.create({
+  </AuthProvider>
+);
+
+const appStyles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#F7F8FA",
   },
   appContainer: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  mainView: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
+  },
 });
+
+
+
+export default App;
+

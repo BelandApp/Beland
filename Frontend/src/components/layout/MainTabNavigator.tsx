@@ -8,7 +8,6 @@ import { RewardsScreen } from "../../screens/RewardsScreen";
 import { CatalogScreen } from "../../screens/CatalogScreen";
 import { HistoryScreen } from "../../screens/HistoryScreen";
 import { GroupsStackNavigator } from "./GroupsStackNavigator";
-import { HomeScreen } from "../../screens/HomeScreen";
 import { useAuth } from "src/hooks/AuthContext";
 
 import {
@@ -109,20 +108,14 @@ export const MainTabNavigator = () => {
         headerShown: false,
         tabBarHideOnKeyboard: true,
       })}>
-      {/* Condicionalmente mostrar el Dashboard o Home */}
-      {user ? (
+      
+      
         <Tab.Screen
           name="Home"
           component={DashboardScreen}
           options={{ tabBarLabel: "Dashboard" }}
         />
-      ) : (
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ tabBarLabel: "Inicio" }}
-        />
-      )}
+      
       <Tab.Screen
         name="Wallet"
         component={WalletScreen}
