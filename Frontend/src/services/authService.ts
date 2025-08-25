@@ -70,6 +70,13 @@ export const authService = {
       body: JSON.stringify(data),
     });
   },
+
+  // Cambiar rol a comerciante
+  changeRoleToCommerce: async (): Promise<{ user: any }> => {
+    return await apiRequest("/users/changeRoleToCommerce", {
+      method: "PATCH",
+    });
+  },
 };
 
 // Servicios de simulación para demo (sin backend)

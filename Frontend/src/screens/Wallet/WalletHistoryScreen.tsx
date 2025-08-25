@@ -11,7 +11,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { TransactionCard } from "./components/TransactionCard";
 import { useWalletTransactions } from "./hooks/useWalletTransactions";
-import { Transaction } from "./types";
 
 export default function WalletHistoryScreen() {
   const navigation = useNavigation();

@@ -46,6 +46,85 @@ export interface PendingTransferRequest {
 }
 
 class WalletService {
+  // Obtener datos de pago tras escanear QR
+  async getDataPayment(walletId: string): Promise<any> {
+    try {
+      const response = await apiRequest(`/wallets/data-Payment/${walletId}`, {
+        method: "GET",
+      });
+      return response;
+    } catch (error) {
+      console.error("Error al obtener datos de pago:", error);
+      throw error;
+    }
+  }
+  // Listar presets de monto
+  async getPresetAmounts(): Promise<any[]> {
+    try {
+      const response = await apiRequest("/preset-amount", { method: "GET" });
+      return response || [];
+    } catch (error) {
+      console.error("Error al obtener presets de monto:", error);
+      throw error;
+    }
+  }
+
+  // Crear preset de monto
+  async createPresetAmount(data: {
+    name: string;
+    amount: number;
+    message?: string;
+  }): Promise<any> {
+    try {
+      const response = await apiRequest("/preset-amount", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      return response;
+    } catch (error) {
+      console.error("Error al crear preset de monto:", error);
+      throw error;
+    }
+  }
+  // Obtener montos a cobrar
+  async getAmountsToPayment(): Promise<any[]> {
+    try {
+      const response = await apiRequest("/amount-to-payment", {
+        method: "GET",
+      });
+      return response || [];
+    } catch (error) {
+      console.error("Error al obtener montos a cobrar:", error);
+      throw error;
+    }
+  }
+
+  // Crear monto a cobrar
+  async createAmountToPayment(amount: number): Promise<any> {
+    try {
+      const response = await apiRequest("/amount-to-payment", {
+        method: "POST",
+        body: JSON.stringify({ amount }),
+      });
+      return response;
+    } catch (error) {
+      console.error("Error al crear monto a cobrar:", error);
+      throw error;
+    }
+  }
+
+  // Eliminar monto a cobrar
+  async deleteAmountToPayment(id: string): Promise<any> {
+    try {
+      const response = await apiRequest(`/amount-to-payment/${id}`, {
+        method: "DELETE",
+      });
+      return response;
+    } catch (error) {
+      console.error("Error al eliminar monto a cobrar:", error);
+      throw error;
+    }
+  }
   // Recarga usando el modo API Payphone (el backend hace toda la integración)
   async rechargeWithPayphoneAPI(data: {
     userId: string;
@@ -53,6 +132,13 @@ class WalletService {
     amount: number;
     paymentMethod: string;
   }): Promise<{ wallet: Wallet }> {
+    // Validación de monto
+    const amountNum = Number(data.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      throw new Error(
+        "El monto de recarga debe ser un número válido y mayor a cero."
+      );
+    }
     // Utiliza el userId si es UUID válido, si no genera uno
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -63,34 +149,26 @@ class WalletService {
       : `${Date.now()}-fake-uuid-frontend`;
     const payload = {
       wallet_id: data.userId,
-      amountUsd: data.amount,
+      amountUsd: amountNum,
       referenceCode: `RCH-${Date.now()}`,
       clientTransactionId,
       payphone_transactionId: Date.now(), // Valor temporal para pruebas
     };
     console.log("[Recarga API] Payload enviado al backend:", payload);
-    return await apiRequest("/wallets/recharge", {
+    const response = await apiRequest("/wallets/recharge", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+    console.log("[Recarga API] Respuesta recibida del backend:", response);
+    return response;
   }
   // Obtener billetera por email de usuario
   async getWalletByUserId(userEmail: string, userId?: string): Promise<Wallet> {
     try {
-      // El backend devuelve [walletsArray, total]
-      const response = await apiRequest(`/wallets`, {
+      // El backend devuelve la wallet del usuario autenticado
+      const response = await apiRequest(`/wallets/user`, {
         method: "GET",
       });
-      if (
-        Array.isArray(response) &&
-        response.length === 2 &&
-        Array.isArray(response[0]) &&
-        response[0].length > 0
-      ) {
-        // Toma la primera wallet del array
-        return response[0][0];
-      }
-      // Si la respuesta es un objeto único (compatibilidad)
       if (response && response.id) {
         return response;
       }
@@ -318,6 +396,28 @@ class WalletService {
     } catch (error) {
       console.error("❌ Error en transferencia entre usuarios:", error);
       throw error;
+    }
+  }
+
+  // Obtener QR de la wallet del usuario/comercio
+  async getWalletQR(): Promise<string | null> {
+    console.log("getWalletQR called");
+    const { token } =
+      require("../stores/useAuthTokenStore").useAuthTokenStore.getState();
+    console.log("Token actual:", token);
+    if (!token) {
+      console.error(
+        "No hay token de autenticación. El usuario debe iniciar sesión."
+      );
+      return null;
+    }
+    try {
+      const resp = await apiRequest("/wallets/qr", { method: "GET" });
+      if (resp?.qr) return resp.qr;
+      return null;
+    } catch (error) {
+      console.error("Error al obtener el QR:", error);
+      return null;
     }
   }
 

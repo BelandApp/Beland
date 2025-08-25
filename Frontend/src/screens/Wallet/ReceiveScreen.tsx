@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,18 +7,25 @@ import {
   Alert,
   Share,
   ScrollView,
+  ActivityIndicator,
+  Image,
+  Platform,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../../hooks/AuthContext";
 import { useWalletData } from "../Wallet/hooks/useWalletData";
+import { walletService } from "../../services/walletService";
 
 const ReceiveScreen = () => {
   const navigation = useNavigation();
   const { walletData } = useWalletData();
   const { user } = useAuth();
   const [showToast, setShowToast] = useState(false);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   // Generar alias basado en datos del usuario
   const generateUserAlias = () => {
@@ -53,6 +60,28 @@ const ReceiveScreen = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchQr = async () => {
+      if (user?.id) {
+        setQrLoading(true);
+        setQrError(null);
+        try {
+          const qr = await walletService.getWalletQR();
+          if (qr) {
+            setQrImage(qr);
+          } else {
+            setQrError("No se pudo obtener el QR");
+          }
+        } catch (err) {
+          setQrError("Error al obtener el QR");
+        } finally {
+          setQrLoading(false);
+        }
+      }
+    };
+    fetchQr();
+  }, [user?.id]);
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -65,18 +94,98 @@ const ReceiveScreen = () => {
         <Text style={styles.title}>Recibir BeCoins</Text>
       </View>
 
-      {/* QR Code */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Código QR</Text>
-        <View style={styles.qrContainer}>
-          <View style={styles.qrCodeWrapper}>
-            <MaterialCommunityIcons name="qrcode" size={120} color="#7DA244" />
+      {/* Solo mostrar QR si el usuario es comerciante */}
+      {user?.role === "COMMERCE" && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Código QR</Text>
+          <View style={styles.qrContainer}>
+            <View style={styles.qrCodeWrapper}>
+              {qrLoading ? (
+                <ActivityIndicator size="large" color="#7DA244" />
+              ) : qrImage ? (
+                <Image
+                  source={{ uri: qrImage }}
+                  style={{ width: 180, height: 180, borderRadius: 12 }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text style={{ color: "#FF6347" }}>
+                  {qrError || "No se pudo cargar el QR"}
+                </Text>
+              )}
+            </View>
+
+            {Platform.OS === "web" ? (
+              <a
+                href={qrImage ?? undefined}
+                download={`qr-beland-${Date.now()}.png`}
+                style={{
+                  backgroundColor: "#7DA244",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginTop: 8,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  textDecoration: "none",
+                  fontFamily: "sans-serif",
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="download"
+                  size={20}
+                  color="#fff"
+                />
+                <span style={{ color: "#fff", marginLeft: 8 }}>
+                  Descargar QR
+                </span>
+              </a>
+            ) : (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: "#7DA244",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginTop: 8,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={async () => {
+                  if (!qrImage) return;
+                  try {
+                    const FileSystem = require("expo-file-system");
+                    const filename = `qr-beland-${Date.now()}.png`;
+                    const downloadResumable = FileSystem.downloadAsync(
+                      qrImage,
+                      FileSystem.documentDirectory + filename
+                    );
+                    await downloadResumable;
+                    Alert.alert(
+                      "Descarga exitosa",
+                      "El QR se guardó en tus archivos."
+                    );
+                  } catch (err) {
+                    Alert.alert("Error", "No se pudo descargar el QR");
+                  }
+                }}
+              >
+                <MaterialCommunityIcons
+                  name="download"
+                  size={20}
+                  color="#fff"
+                />
+                <Text style={{ color: "#fff", marginLeft: 8 }}>
+                  Descargar QR
+                </Text>
+              </TouchableOpacity>
+            )}
+            {/* Fin del botón de descarga */}
+            <Text style={styles.qrDescription}>
+              Comparte este código QR para recibir pagos o transferencias
+            </Text>
           </View>
-          <Text style={styles.qrDescription}>
-            Comparte este código QR para recibir pagos
-          </Text>
         </View>
-      </View>
+      )}
 
       {/* Alias */}
       <View style={styles.section}>

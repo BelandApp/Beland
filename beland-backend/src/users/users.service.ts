@@ -32,7 +32,13 @@ const ROLE_SUPERADMIN = 'SUPERADMIN';
 const ROLE_EMPRESA = 'EMPRESA';
 
 // Definición de tipo para todos los roles válidos
-type ValidRoleNames = 'USER' | 'LEADER' | 'ADMIN' | 'SUPERADMIN' | 'COMMERCE' | 'FUNDATION';
+type ValidRoleNames =
+  | 'USER'
+  | 'LEADER'
+  | 'ADMIN'
+  | 'SUPERADMIN'
+  | 'COMMERCE'
+  | 'FUNDATION';
 
 @Injectable()
 export class UsersService {
@@ -153,12 +159,24 @@ export class UsersService {
         const savedUser = await queryRunner.manager.save(User, newUser);
 
         // Crear cartera y carrito por defecto para el nuevo usuario
+
+        // Crear wallet y generar QR
+        const usernamePart = savedUser.email.split('@')[0];
+        const randomNumber = Math.floor(Math.random() * 1000);
+        const alias = `${usernamePart}.${randomNumber}`;
         const newWallet = queryRunner.manager.create(Wallet, {
           user: savedUser,
           balance: 0,
+          alias,
         });
-        await queryRunner.manager.save(Wallet, newWallet);
+        const savedWallet = await queryRunner.manager.save(Wallet, newWallet);
+        // Generar QR y guardar en la wallet
+        const QRCode = require('qrcode');
+        const qr = await QRCode.toDataURL(savedWallet.id);
+        savedWallet.qr = qr;
+        await queryRunner.manager.save(Wallet, savedWallet);
 
+        // Crear carrito
         const newCart = queryRunner.manager.create(Cart, { user: savedUser });
         await queryRunner.manager.save(Cart, newCart);
 

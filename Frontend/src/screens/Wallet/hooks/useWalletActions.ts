@@ -12,6 +12,9 @@ import { useNavigation } from "@react-navigation/native";
 export const useWalletActions = () => {
   const navigation = useNavigation();
 
+  // Obtener rol del usuario
+  const { user } = require("../../../hooks/AuthContext").useAuth();
+
   // Acciones principales del wallet
   const mainWalletActions: WalletAction[] = [
     {
@@ -28,13 +31,26 @@ export const useWalletActions = () => {
       backgroundColor: "#FFFFFF",
       onPress: () => navigation.navigate("SendScreen" as never),
     },
-    {
-      id: "receive",
-      label: "Recibir",
-      icon: ReceiveIcon,
-      backgroundColor: "#FFFFFF",
-      onPress: () => navigation.navigate("ReceiveScreen" as never),
-    },
+    // Mostrar solo a admin/comerciante
+    ...(user?.role === "ADMIN" || user?.role === "COMMERCE"
+      ? [
+          {
+            id: "cobrar",
+            label: "Cobrar",
+            icon: ReceiveIcon,
+            backgroundColor: "#FFFFFF",
+            onPress: () => navigation.navigate("CobrarScreen" as never),
+          },
+        ]
+      : [
+          {
+            id: "receive",
+            label: "Recibir",
+            icon: ReceiveIcon,
+            backgroundColor: "#FFFFFF",
+            onPress: () => navigation.navigate("ReceiveScreen" as never),
+          },
+        ]),
     {
       id: "exchange",
       label: "Canjear",

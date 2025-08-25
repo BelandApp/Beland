@@ -72,6 +72,20 @@ export default function PayphoneSuccessScreen() {
 
           // 3. Recargar saldo en el backend SOLO si la transacción fue confirmada
           const generatedClientTxId = uuidv4();
+          const amountUsd = Number(payphoneData.amount) / 100;
+          console.log(
+            "[PayphoneSuccessScreen] Monto recibido de Payphone:",
+            payphoneData.amount
+          );
+          console.log(
+            "[PayphoneSuccessScreen] Monto enviado al backend (USD):",
+            amountUsd
+          );
+          if (isNaN(amountUsd) || amountUsd <= 0) {
+            setStatus("El monto recibido de Payphone es inválido.");
+            setLoading(false);
+            return;
+          }
           const rechargeRes = await fetch(
             `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
             {
@@ -81,7 +95,7 @@ export default function PayphoneSuccessScreen() {
                 ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
               },
               body: JSON.stringify({
-                amountUsd: payphoneData.amount / 100,
+                amountUsd,
                 referenceCode: payphoneData.reference,
                 payphone_transactionId: payphoneData.transactionId,
                 clientTransactionId: generatedClientTxId,
