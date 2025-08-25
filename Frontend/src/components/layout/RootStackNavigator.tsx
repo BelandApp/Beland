@@ -8,23 +8,23 @@ import WalletHistoryScreen from "../../screens/Wallet/WalletHistoryScreen";
 import RechargeScreen from "../../screens/Wallet/RechargeScreen";
 import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
-import {
-  DashboardScreen,
-  HistoryScreen,
-  RecyclingMapScreen,
-} from "../../screens";
+import { HistoryScreen, RecyclingMapScreen } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
 
+import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
 import { useAuth } from "src/hooks/AuthContext";
+import { CatalogScreen } from "src/screens/Catalog";
+
 // import HomeView from "src/screens/Home/HomePage";
 
 // import { HomeScreen } from "../../screens/HomeScreen";
-import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
+
 
 export type RootStackParamList = {
   MainTabs: undefined;
+
   Dashboard: undefined;
-  Home: undefined;
+
   Wallet: undefined;
   Rewards: undefined;
   QR: undefined;
@@ -45,6 +45,7 @@ export type RootStackParamList = {
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStackNavigator = () => {
+
   // const { user } = useAuth();
   // const initialRouteName = user ? "Dashboard" : "Home";
 
@@ -59,6 +60,7 @@ export const RootStackNavigator = () => {
       <Stack.Screen name="Dashboard" component={DashboardScreen} /> */}
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
 
+
       <Stack.Screen
         name="CanjearScreen"
         component={CanjearScreen}
@@ -72,8 +74,8 @@ export const RootStackNavigator = () => {
       />
 
       <Stack.Screen
-        name="ReceiveScreen"
-        component={ReceiveScreen}
+        name="Catalog"
+        component={CatalogScreen}
         options={{ headerShown: false, title: "Recibir" }}
       />
 
@@ -125,8 +127,9 @@ export const RootStackNavigator = () => {
       <Stack.Screen
         name="PayphoneSuccess"
         component={PayphoneSuccessScreen}
-        options={{ headerShown: false, title: "Recarga Payphone" }}
+        options={{ headerShown: false }}
       />
+
     </Stack.Navigator>
   );
 };
