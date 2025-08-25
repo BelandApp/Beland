@@ -2,27 +2,23 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { MainTabNavigator } from "./MainTabNavigator";
 import CanjearScreen from "../../screens/Wallet/CanjearScreen";
+import { ReceiveScreen, CobrarScreen } from "src/screens/Wallet";
+
 import SendScreen from "../../screens/Wallet/SendScreen";
-import ReceiveScreen from "../../screens/Wallet/ReceiveScreen";
 import WalletHistoryScreen from "../../screens/Wallet/WalletHistoryScreen";
 import RechargeScreen from "../../screens/Wallet/RechargeScreen";
 import WalletSettingsScreen from "../../screens/Wallet/WalletSettingsScreen";
 import { QRScannerScreen } from "../../screens/QRScannerScreen";
+import PaymentScreen from "../../screens/PaymentScreen";
 import { HistoryScreen, RecyclingMapScreen } from "../../screens";
 import UserDashboardScreen from "src/screens/UserDashboardScreen";
 
 import PayphoneSuccessScreen from "../../screens/Wallet/PayphoneSuccessScreen";
-import { useAuth } from "src/hooks/AuthContext";
 import { CatalogScreen } from "src/screens/Catalog";
-
-// import HomeView from "src/screens/Home/HomePage";
-
-// import { HomeScreen } from "../../screens/HomeScreen";
-
 
 export type RootStackParamList = {
   MainTabs: undefined;
-
+  CobrarScreen: undefined;
   Dashboard: undefined;
 
   Wallet: undefined;
@@ -40,26 +36,19 @@ export type RootStackParamList = {
   Groups: undefined;
   UserDashboardScreen: undefined;
   PayphoneSuccess: undefined;
+  PaymentScreen: { paymentData: any };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStackNavigator = () => {
-
-  // const { user } = useAuth();
-  // const initialRouteName = user ? "Dashboard" : "Home";
-
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
-      // initialRouteName={initialRouteName}
     >
-      {/* <Stack.Screen name="Home" component={HomeView} />
-      <Stack.Screen name="Dashboard" component={DashboardScreen} /> */}
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-
 
       <Stack.Screen
         name="CanjearScreen"
@@ -125,11 +114,27 @@ export const RootStackNavigator = () => {
       />
 
       <Stack.Screen
+        name="ReceiveScreen"
+        component={ReceiveScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
         name="PayphoneSuccess"
         component={PayphoneSuccessScreen}
         options={{ headerShown: false }}
       />
 
+      <Stack.Screen
+        name="CobrarScreen"
+        component={CobrarScreen}
+        options={{ headerShown: false, title: "Cobrar" }}
+      />
+      <Stack.Screen
+        name="PaymentScreen"
+        component={PaymentScreen}
+        options={{ headerShown: false, title: "Pago QR" }}
+      />
     </Stack.Navigator>
   );
 };

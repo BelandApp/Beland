@@ -49,12 +49,10 @@ const AppContent = () => {
     return 0;
   }, []);
 
-
   useEffect(() => {
     const configureSystemBars = async () => {
       if (Platform.OS === "android") {
         try {
-
           // Ocultar barra de navegación
           await NavigationBar.setVisibilityAsync("hidden");
           // Ocultar barra de estado también
@@ -62,7 +60,6 @@ const AppContent = () => {
           console.log("Barras del sistema ocultas correctamente");
         } catch (error) {
           console.log("Error configurando las barras del sistema:", error);
-
         }
       }
     };
@@ -73,11 +70,9 @@ const AppContent = () => {
         try {
           NavigationBar.setVisibilityAsync("hidden");
           setStatusBarHidden(true, "slide");
-
         } catch (error) {
           // Ignorar errores silenciosamente
         }
-
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -112,7 +107,6 @@ const AppContent = () => {
     currentRoute &&
     !walletActionScreens.includes(currentRoute) &&
     !!user;
-
 
   const isPayphoneSuccess =
     typeof window !== "undefined" &&
@@ -160,7 +154,6 @@ const AppContent = () => {
             paddingBottom: dynamicPaddingBottom,
           }}
         >
-
           <RootStackNavigator />
           {shouldShowQRButton && <FloatingQRButton onPress={handleQRPress} />}
         </View>
@@ -174,27 +167,7 @@ const App = () => (
     <SafeAreaProvider>
       <AppContent />
     </SafeAreaProvider>
-
   </AuthProvider>
 );
 
-const appStyles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  appContainer: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  mainView: {
-    flex: 1,
-    backgroundColor: "#F7F8FA",
-  },
-});
-
-
-
 export default App;
-

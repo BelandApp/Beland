@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
+import type { RootStackParamList } from "../components/layout/RootStackNavigator";
+import { walletService } from "../services/walletService";
 import { View, Text, StyleSheet, Alert, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Camera, CameraView, BarcodeScanningResult } from "expo-camera";
@@ -9,6 +13,7 @@ export const QRScannerScreen = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
     const getCameraPermissions = async () => {
@@ -22,26 +27,22 @@ export const QRScannerScreen = () => {
   const handleBarCodeScanned = ({ type, data }: BarcodeScanningResult) => {
     if (scanned) return;
 
+    console.log("[QRScanner] Código escaneado:", data, "Tipo:", type);
     setScanned(true);
     setIsActive(false);
 
-    Alert.alert("¡QR Escaneado!", `Código detectado: ${data}`, [
-      {
-        text: "Escanear otro",
-        onPress: () => {
-          setScanned(false);
-          setIsActive(true);
-        },
-      },
-      {
-        text: "Procesar",
-        onPress: () => {
-          // Aquí iría la lógica para procesar el código QR
-          console.log("Procesando código QR:", data);
-          // Navegar a la siguiente pantalla o procesar la información
-        },
-      },
-    ]);
+    // Navegación automática tras escaneo
+    (async () => {
+      try {
+        console.log("[QRScanner] Procesando wallet_id:", data);
+        const paymentData = await walletService.getDataPayment(data);
+        console.log("[QRScanner] Datos recibidos:", paymentData);
+        navigation.navigate("PaymentScreen", { paymentData } as any);
+      } catch (err) {
+        console.error("[QRScanner] Error al obtener datos de pago:", err);
+        Alert.alert("Error", "No se pudo obtener los datos de pago");
+      }
+    })();
   };
 
   if (hasPermission === null) {
