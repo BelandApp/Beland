@@ -8,8 +8,7 @@ import { RewardsScreen } from "../../screens/RewardsScreen";
 import { CatalogScreen } from "../../screens/CatalogScreen";
 import { HistoryScreen } from "../../screens/HistoryScreen";
 import { GroupsStackNavigator } from "./GroupsStackNavigator";
-import { HomeScreen } from "../../screens/HomeScreen";
-
+import { useAuth } from "src/hooks/AuthContext";
 
 import {
   HomeIcon,
@@ -23,6 +22,8 @@ import {
 const Tab = createBottomTabNavigator();
 
 export const MainTabNavigator = () => {
+  const { user } = useAuth(); // Usar el hook de autenticación
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -91,16 +92,8 @@ export const MainTabNavigator = () => {
           }
           return {
             ...baseStyle,
-            paddingBottom: Platform.OS === "android" ? 16 : 8,
-            height: Platform.OS === "android" ? 80 : 70,
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: Platform.OS === "web" ? 9999 : 1,
-            ...(Platform.OS === "android" && {
-              borderBottomWidth: 0,
-            }),
+            paddingBottom: Platform.OS === "ios" ? 20 : 0,
+            height: Platform.OS === "ios" ? 80 : 60,
           };
         })(),
         tabBarItemStyle: {
@@ -110,16 +103,19 @@ export const MainTabNavigator = () => {
           fontSize: 12,
           fontWeight: "500",
           marginTop: 4,
-          marginBottom: Platform.OS === "android" ? 4 : 0, // Margen inferior adicional en Android
+          marginBottom: Platform.OS === "android" ? 4 : 0,
         },
         headerShown: false,
-        tabBarHideOnKeyboard: true, 
+        tabBarHideOnKeyboard: true,
       })}>
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ tabBarLabel: "Inicio" }}
-      />
+      
+      
+        <Tab.Screen
+          name="Home"
+          component={DashboardScreen}
+          options={{ tabBarLabel: "Dashboard" }}
+        />
+      
       <Tab.Screen
         name="Wallet"
         component={WalletScreen}
@@ -139,13 +135,6 @@ export const MainTabNavigator = () => {
         name="Groups"
         component={GroupsStackNavigator}
         options={{ tabBarLabel: "Grupos" }}
-      />
-      <Tab.Screen
-        name="History"
-        component={HistoryScreen}
-        options={{
-          tabBarButton: () => null, // Oculta esta pestaña de la barra de navegación
-        }}
       />
     </Tab.Navigator>
   );

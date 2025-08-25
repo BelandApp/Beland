@@ -1,17 +1,22 @@
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { ActivityIndicator, Platform } from "react-native";
 import { useBeCoinsStoreHydration } from "./src/stores/useBeCoinsStore";
-import { View } from "react-native";
+
+import { View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
 import { setStatusBarHidden } from "expo-status-bar";
+
 import {
   NavigationContainer,
   NavigationContainerRef,
   NavigationState,
 } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { RootStackNavigator } from "./src/components/layout/RootStackNavigator";
+import {
+  RootStackNavigator,
+  RootStackParamList,
+} from "./src/components/layout/RootStackNavigator";
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { useAuth } from "src/hooks/AuthContext";
 import { AuthProvider } from "src/hooks/AuthContext";
@@ -21,13 +26,19 @@ const AppContent = () => {
   // Declarar todos los hooks al inicio, sin condicionales
   const { user, isLoading } = useAuth();
   const isBeCoinsLoaded = useBeCoinsStoreHydration();
-  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const navigationRef =
+    useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [currentRoute, setCurrentRoute] = useState<string | undefined>(
     undefined
   );
+
   // Padding dinámico para web móvil
   const dynamicPaddingBottom = useMemo(() => {
-    if (Platform.OS === "web" && window.innerWidth < 600) {
+    if (
+      Platform.OS === "web" &&
+      typeof window !== "undefined" &&
+      window.innerWidth < 600
+    ) {
       const tabbarHeight = 70;
       const extraBottom =
         typeof window.visualViewport !== "undefined" && window.visualViewport
@@ -38,11 +49,12 @@ const AppContent = () => {
     return 0;
   }, []);
 
-  // Configurar la barra de navegación y estado para Android
+
   useEffect(() => {
     const configureSystemBars = async () => {
       if (Platform.OS === "android") {
         try {
+
           // Ocultar barra de navegación
           await NavigationBar.setVisibilityAsync("hidden");
           // Ocultar barra de estado también
@@ -50,26 +62,31 @@ const AppContent = () => {
           console.log("Barras del sistema ocultas correctamente");
         } catch (error) {
           console.log("Error configurando las barras del sistema:", error);
+
         }
       }
     };
     configureSystemBars();
-    // También intentar configurar cada vez que la app vuelve al foco
+
     const interval = setInterval(() => {
       if (Platform.OS === "android") {
         try {
           NavigationBar.setVisibilityAsync("hidden");
           setStatusBarHidden(true, "slide");
+
         } catch (error) {
           // Ignorar errores silenciosamente
         }
+
       }
     }, 1000);
     return () => clearInterval(interval);
   }, []);
 
   const handleQRPress = () => {
-    navigationRef.current?.navigate("QR");
+    if (navigationRef.current) {
+      navigationRef.current.navigate("QR");
+    }
   };
 
   const onNavigationStateChange = (state: NavigationState | undefined) => {
@@ -88,10 +105,14 @@ const AppContent = () => {
     "RechargeScreen",
     "WalletHistoryScreen",
   ];
+
   const shouldShowQRButton =
     currentRoute !== "QR" &&
     currentRoute !== "RecyclingMap" &&
-    !walletActionScreens.includes(currentRoute ?? "");
+    currentRoute &&
+    !walletActionScreens.includes(currentRoute) &&
+    !!user;
+
 
   const isPayphoneSuccess =
     typeof window !== "undefined" &&
@@ -139,6 +160,7 @@ const AppContent = () => {
             paddingBottom: dynamicPaddingBottom,
           }}
         >
+
           <RootStackNavigator />
           {shouldShowQRButton && <FloatingQRButton onPress={handleQRPress} />}
         </View>
@@ -147,12 +169,32 @@ const AppContent = () => {
   );
 };
 
-export default function App() {
-  return (
+const App = () => (
+  <AuthProvider>
     <SafeAreaProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <AppContent />
     </SafeAreaProvider>
-  );
-}
+
+  </AuthProvider>
+);
+
+const appStyles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  appContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  mainView: {
+    flex: 1,
+    backgroundColor: "#F7F8FA",
+  },
+});
+
+
+
+export default App;
+
