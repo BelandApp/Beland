@@ -196,7 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       usePKCE: true,
       extraParams: {
         audience: auth0Audience,
-        // prompt: "login",
+        prompt: "login",
       },
     },
     discovery

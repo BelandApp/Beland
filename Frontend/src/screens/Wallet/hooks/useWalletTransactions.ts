@@ -151,7 +151,7 @@ export const useWalletTransactions = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
-    if (!user?.email) return;
+    if (!user?.email || !user?.id) return;
 
     setIsLoading(true);
     setError(null);
@@ -167,9 +167,9 @@ export const useWalletTransactions = () => {
       if (!isDemoMode) {
         try {
           // Modo producción: intentar usar API real
-
-          // El backend ahora obtiene las transacciones por el user id del JWT
+          // Filtrar por usuario actual
           const response = await transactionService.getTransactions({
+            user_id: user.id,
             limit: 20,
             page: 1,
           });

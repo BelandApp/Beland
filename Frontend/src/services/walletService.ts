@@ -330,6 +330,28 @@ class WalletService {
     }
   }
 
+  // Obtener QR de la wallet del usuario/comercio
+  async getWalletQR(): Promise<string | null> {
+    console.log("getWalletQR called");
+    const { token } =
+      require("../stores/useAuthTokenStore").useAuthTokenStore.getState();
+    console.log("Token actual:", token);
+    if (!token) {
+      console.error(
+        "No hay token de autenticación. El usuario debe iniciar sesión."
+      );
+      return null;
+    }
+    try {
+      const resp = await apiRequest("/wallets/qr", { method: "GET" });
+      if (resp?.qr) return resp.qr;
+      return null;
+    } catch (error) {
+      console.error("Error al obtener el QR:", error);
+      return null;
+    }
+  }
+
   // Función de diagnóstico para verificar el estado del servicio
   async healthCheck(): Promise<{ status: string; message: string }> {
     try {

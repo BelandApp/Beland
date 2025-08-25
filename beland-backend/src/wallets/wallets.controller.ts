@@ -93,8 +93,25 @@ export class WalletsController {
   @ApiResponse({ status: 404, description: 'No se encontró la billetera' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async findQRByUser(@Req() req: Request): Promise<{ qr: string }> {
-    const wallet = await this.service.findByUser(req.user.id);
-    return { qr: wallet.qr };
+    console.log(
+      '[WalletsController] findQRByUser - user.id recibido:',
+      req.user?.id,
+    );
+    const wallet = await this.service.findByUser(req.user?.id);
+    if (!wallet) {
+      console.log(
+        '[WalletsController] No se encontró wallet para user.id:',
+        req.user?.id,
+      );
+    } else {
+      console.log(
+        '[WalletsController] Wallet encontrada:',
+        wallet.id,
+        'QR:',
+        wallet.qr?.slice(0, 30) + '...',
+      );
+    }
+    return { qr: wallet?.qr };
   }
 
   @Get('alias/:alias')
