@@ -31,9 +31,8 @@ export class WalletsService {
   constructor(
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
-    private readonly dataSource: DataSource, // 👈 acá lo inyectás
-  ) // private readonly notificationsGateway: NotificationsGateway,
-  {}
+    private readonly dataSource: DataSource, // 👈 acá lo inyectás // private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
   async findAll(
     pageNumber: number,
@@ -49,7 +48,10 @@ export class WalletsService {
 
   async findOne(id: string): Promise<Wallet> {
     try {
-      const res = await this.repository.findOne(id);
+      const res = await this.dataSource.getRepository(Wallet).findOne({
+        where: { id },
+        relations: ['user'],
+      });
       if (!res)
         throw new NotFoundException(`No se encontro ${this.completeMessage}`);
       return res;
@@ -584,6 +586,7 @@ export class WalletsService {
         type,
         status,
         amount: -dto.amountBecoin,
+        amount_beicon: -dto.amountBecoin,
         post_balance: from.becoin_balance,
         related_wallet_id: to.id,
         reference: `${code_transaction_send}-${dto.toWalletId}`,
@@ -608,6 +611,7 @@ export class WalletsService {
         type,
         status,
         amount: dto.amountBecoin,
+        amount_beicon: dto.amountBecoin,
         post_balance: to.becoin_balance,
         related_wallet_id: from.id,
         reference: `${code_transaction_received}-${from.id}`,
