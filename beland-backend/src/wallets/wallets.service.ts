@@ -648,16 +648,11 @@ export class WalletsService {
       // === EMITIR EVENTO AL COMERCIO (post-commit) ===
       // Identificá al comercio: según tu código, 'to' es la wallet del comercio:
       // const to = ... (ya lo tenías arriba)
-      // const payload:RespTransferResult = {
-      //    walletId: to.id,
-      //    success: true,
-      //    newBalance: to.becoin_balance,
-      //    message: 'Se acreditó tu pago',
-      //    amountPaymentIdDeleted: dto.amount_payment_id || null,
-      //  };
-
-      // // // Room por userId del comercio (recomendado)
-      //  this.notificationsGateway.notifyCommerceByUserId(to.user_id, payload);
+      this.notificationsGateway.notifyUser(to.user_id, {
+        message: "Cobro Realizado con Éxito",
+        amount: +dto.amountBecoin* +this.superadminConfig.getPriceOneBecoin(),
+        success: true,
+      });    
 
       // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };
