@@ -103,7 +103,8 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
         migrations: [
           __dirname + '/database/migrations/*{.ts,.js}'
         ],
-        synchronize: false, // nunca true en prod
+        //synchronize: true, // nunca true en prod
+        //dropSchema: true,
         logging: false,
         ssl: {
           rejectUnauthorized: false,
@@ -150,7 +151,6 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
     ResourcesModule,
     ResourcesTypesModule,
     UserResourcesModule,
-    SuperadminModule,
     WithdrawAccountModule,
     WithdrawAccountTypeModule,
     UserWithdrawModule,
@@ -158,6 +158,7 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
     PresetAmountModule,
     NotificationsSocketModule,
     TestimoniesModule,
+    SuperadminModule,
   ],
   controllers: [],
   providers: [
