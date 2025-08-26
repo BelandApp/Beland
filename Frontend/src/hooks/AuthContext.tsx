@@ -22,6 +22,7 @@ import {
   exchangeCodeAsync,
 } from "expo-auth-session";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -80,17 +81,7 @@ interface AuthContextType {
   logout: () => void;
   isDemo: boolean;
   loginAsDemo: () => void;
-  loginWithEmailPassword: (email: string, password: string) => Promise<boolean>;
-  registerWithEmailPassword: (
-    name: string,
-    email: string,
-    password: string,
-    confirmPassword: string,
-    address: string,
-    phone: string,
-    country: string,
-    city: string
-  ) => Promise<true | string>;
+  setSession: (token: string) => Promise<void>;
 }
 
 // === CONTEXTO ===
@@ -98,7 +89,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Funciones auxiliares de manejo de token
 const saveToken = async (token: string) => {
-  // Sincroniza el token con zustand para que apiRequest lo use
   useAuthTokenStore.getState().setToken(token);
   if (Platform.OS === "web") {
     localStorage.setItem("auth_token", token);
@@ -123,7 +113,6 @@ const deleteToken = async () => {
   }
 };
 
-// Función para obtener el perfil del usuario desde tu backend
 const fetchUserProfileFromBackend = async (
   token: string
 ): Promise<AuthUser> => {
@@ -151,7 +140,6 @@ const fetchUserProfileFromBackend = async (
     name: backendUser.full_name || backendUser.username,
     picture: backendUser.profile_picture_url,
     role: backendUser.role_name,
-    // Agregamos las propiedades tal como vienen del backend para que TypeScript no se queje
     full_name: backendUser.full_name,
     profile_picture_url: backendUser.profile_picture_url,
     role_name: backendUser.role_name,
@@ -202,6 +190,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     discovery
   );
 
+  // ✅ Nueva función para procesar un token y establecer la sesión
+  const processAuthTokenAndSetSession = useCallback(async (token: string) => {
+    try {
+      if (!token) {
+        console.error("❌ No se recibió token.");
+        throw new Error("No token provided.");
+      }
+
+      await saveToken(token);
+      const authUser = await fetchUserProfileFromBackend(token);
+      setUser(authUser);
+      setIsDemo(false);
+
+      if (authUser?.email) {
+        await updateBeCoinsBalance(authUser.email);
+      }
+    } catch (err) {
+      console.error(
+        "❌ Error al procesar el token y establecer la sesión:",
+        err
+      );
+      await deleteToken();
+      throw err; // Vuelve a lanzar el error para que el componente que llama lo pueda manejar
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // === Manejo de Login con Auth0 ===
   useEffect(() => {
     const handleAuth = async () => {
@@ -220,21 +236,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           const accessToken = tokenResult.accessToken;
           console.log(accessToken, "✅ Access Token obtenido");
-          if (!accessToken) {
-            console.error("❌ No se obtuvo accessToken de Auth0.");
-            throw new Error("No access token from Auth0.");
-          }
-
-          await saveToken(accessToken);
-
-          const authUser = await fetchUserProfileFromBackend(accessToken);
-
-          setUser(authUser);
-          setIsDemo(false);
-
-          if (authUser?.email) {
-            await updateBeCoinsBalance(authUser.email);
-          }
+          await processAuthTokenAndSetSession(accessToken);
         } catch (err) {
           console.error(
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
@@ -251,7 +253,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     handleAuth();
-  }, [response, request]);
+  }, [response, request, processAuthTokenAndSetSession]);
 
   // === Restaurar sesión al cargar ===
   useEffect(() => {
@@ -261,27 +263,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
         return;
       }
-
+      setIsLoading(true);
       try {
-        // Obtiene perfil y balance en paralelo
-        const authUserPromise = fetchUserProfileFromBackend(token);
-        let authUser: AuthUser | null = null;
-        let balancePromise: Promise<void> | null = null;
-
-        authUser = await authUserPromise;
-        setUser(authUser);
-        setIsDemo(false);
-
-        if (authUser?.email) {
-          balancePromise = updateBeCoinsBalance(authUser.email);
-        }
-
-        // No bloquea la UI por el balance, solo espera el perfil
-        if (balancePromise) {
-          balancePromise.catch((e) => {
-            console.error("No se pudo actualizar el balance de BeCoins:", e);
-          });
-        }
+        await processAuthTokenAndSetSession(token);
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
         await deleteToken();
@@ -291,103 +275,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     restoreSession();
-  }, []);
+  }, [processAuthTokenAndSetSession]);
 
-  // === Login con email y password ===
-  const loginWithEmailPassword = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
-      setIsLoading(true);
-      useBeCoinsStore.getState().resetBalance();
-      try {
-        const loginResp = await authService.loginWithEmail({ email, password });
-        const token = loginResp.token;
-        if (!token) throw new Error("No se recibió token del backend");
-        await saveToken(token);
-        try {
-          const userResp = await fetchUserProfileFromBackend(token);
-          // Los errores se han corregido al actualizar la interfaz AuthUser
-          setUser(userResp);
-          setIsDemo(false);
-          return true;
-        } catch (meError) {
-          console.error("[LOGIN] Error al llamar /auth/me:", meError);
-          return false;
-        }
-      } catch (error: any) {
-        console.error("[LOGIN] Error en loginWithEmail:", error);
-        return false;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
-  // === Registro con email y password ===
-  const registerWithEmailPassword = useCallback(
-    async (
-      name: string,
-      email: string,
-      password: string,
-      confirmPassword: string,
-      address: string,
-      phone: string,
-      country: string,
-      city: string
-    ): Promise<true | string> => {
-      setIsLoading(true);
-      try {
-        const body = {
-          full_name: name,
-          email,
-          password,
-          confirmPassword,
-          address,
-          phone: Number(phone),
-          country,
-          city,
-          username: email.split("@")[0],
-          profile_picture_url: undefined,
-        };
-        const registerResp = await authService.registerWithEmail(body);
-        const token = registerResp.token;
-        if (!token) throw new Error("No se recibió token del backend");
-        await saveToken(token);
-        try {
-          const userResp = await fetchUserProfileFromBackend(token);
-          // Los errores se han corregido al actualizar la interfaz AuthUser
-          setUser(userResp);
-          setIsDemo(false);
-          return true;
-        } catch (meError) {
-          console.error("[REGISTER] Error al llamar /auth/me:", meError);
-          return "REGISTRATION_ERROR";
-        }
-      } catch (error: any) {
-        if (error?.status === 409 || error?.status === 401) {
-          return "EMAIL_ALREADY_EXISTS";
-        }
-        if (!error.status || error.status >= 500) {
-          return "NETWORK_ERROR";
-        }
-        if (error?.message) {
-          alert(
-            "Error: " +
-              error.message +
-              (error?.body ? "\n" + JSON.stringify(error.body) : "")
-          );
-        }
-        return "REGISTRATION_ERROR";
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
 
   const loginWithAuth0 = () => {
     setIsLoading(true);
-
     promptAsync();
   };
 
@@ -417,10 +309,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout,
         isDemo,
         loginAsDemo,
-        loginWithEmailPassword,
-        registerWithEmailPassword,
-      }}
-    >
+        setSession: processAuthTokenAndSetSession,
+      }}>
       {children}
     </AuthContext.Provider>
   );
