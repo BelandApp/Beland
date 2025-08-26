@@ -100,7 +100,7 @@ async function bootstrap() {
     configService.get<string>('AUTH0_AUDIENCE'), // Puede ser necesario como origen
     'https://auth.expo.io/@beland/Beland', // Para Expo Go
     'belandnative://redirect', // Para Expo Development Build y esquemas personalizados
-    // Añadir patrones de wildcard para Expo en desarrollo si son necesarios
+    'https://zef_jly-gabrielz20-8081.exp.direct', // Dominio Expo web actual
     /https:\/\/\w+\-beland\-\d+\.exp\.direct$/,
     /https:\/\/\w+\-anonymous\-\d+\.exp\.direct$/,
   ].filter(Boolean); // Filtrar valores nulos o indefinidos

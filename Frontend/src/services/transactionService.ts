@@ -5,6 +5,7 @@ export interface Transaction {
   id: string;
   user_id?: string;
   wallet_id: string;
+  related_wallet_id?: string; // <-- agregado para transferencias
   amount: number;
   amount_beicon?: number;
   type_id?: string;

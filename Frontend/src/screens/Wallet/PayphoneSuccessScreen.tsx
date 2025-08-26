@@ -9,9 +9,11 @@ export default function PayphoneSuccessScreen() {
   const { user } = useAuth();
   const [id, setId] = useState<string | null>(null);
   const [clientTxId, setClientTxId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("Procesando...");
+  const [status, setStatus] = useState<string>("Pendiente");
   const [loading, setLoading] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isPayment, setIsPayment] = useState(false); // Solo para lógica interna, no para render
+  const [toWalletId, setToWalletId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -19,6 +21,14 @@ export default function PayphoneSuccessScreen() {
     const clientTxIdParam = params.get("clientTransactionId");
     setId(idParam);
     setClientTxId(clientTxIdParam);
+
+    // Detectar si es pago QR por bandera en localStorage
+    const isQrPayment =
+      localStorage.getItem("payphone_is_qr_payment") === "true";
+    setIsPayment(isQrPayment); // Solo para lógica interna
+    setStatus("Pendiente");
+    const toWalletId = localStorage.getItem("payphone_to_wallet_id");
+    setToWalletId(toWalletId);
 
     async function confirmarTransaccion() {
       try {
@@ -47,7 +57,8 @@ export default function PayphoneSuccessScreen() {
         const payphoneData = await payphoneRes.json();
 
         if (payphoneData.transactionStatus === "Approved") {
-          setStatus("Recarga confirmada");
+          // Limpiar bandera de pago QR para evitar que quede en true
+          localStorage.removeItem("payphone_is_qr_payment");
           localStorage.setItem(
             "payphone_last_success",
             JSON.stringify(payphoneData)
@@ -70,46 +81,73 @@ export default function PayphoneSuccessScreen() {
             return;
           }
 
-          // 3. Recargar saldo en el backend SOLO si la transacción fue confirmada
+          // 3. Realizar pago o recarga en el backend
           const generatedClientTxId = uuidv4();
           const amountUsd = Number(payphoneData.amount) / 100;
-          console.log(
-            "[PayphoneSuccessScreen] Monto recibido de Payphone:",
-            payphoneData.amount
-          );
-          console.log(
-            "[PayphoneSuccessScreen] Monto enviado al backend (USD):",
-            amountUsd
-          );
+
           if (isNaN(amountUsd) || amountUsd <= 0) {
             setStatus("El monto recibido de Payphone es inválido.");
             setLoading(false);
             return;
           }
-          const rechargeRes = await fetch(
-            `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
-              },
-              body: JSON.stringify({
-                amountUsd,
-                referenceCode: payphoneData.reference,
-                payphone_transactionId: payphoneData.transactionId,
-                clientTransactionId: generatedClientTxId,
-              }),
-            }
-          );
-          const rechargeResult = await rechargeRes.json().catch(() => null);
+          let backendRes, backendResult;
+          if (isPayment && toWalletId) {
+            // Pago QR
+            backendRes = await fetch(
+              `${process.env.EXPO_PUBLIC_API_URL}/wallets/purchase-recharge/${toWalletId}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
+                },
+                body: JSON.stringify({
+                  amountUsd,
+                  referenceCode: payphoneData.reference,
+                  payphone_transactionId: payphoneData.transactionId,
+                  clientTransactionId: generatedClientTxId,
+                  wallet_id: toWalletId,
+                }),
+              }
+            );
+            backendResult = await backendRes.json().catch(() => null);
+          } else {
+            // Recarga
+            backendRes = await fetch(
+              `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
+                },
+                body: JSON.stringify({
+                  amountUsd,
+                  referenceCode: payphoneData.reference,
+                  payphone_transactionId: payphoneData.transactionId,
+                  clientTransactionId: generatedClientTxId,
+                }),
+              }
+            );
+            backendResult = await backendRes.json().catch(() => null);
+          }
 
           if (
-            rechargeResult &&
-            rechargeResult.wallet &&
-            typeof rechargeResult.wallet.becoin_balance === "number"
+            backendResult &&
+            backendResult.wallet &&
+            typeof backendResult.wallet.becoin_balance === "number"
           ) {
-            setWalletBalance(rechargeResult.wallet.becoin_balance);
+            setWalletBalance(backendResult.wallet.becoin_balance);
+          }
+
+          if (!backendResult || !backendResult.wallet) {
+            let errorMsg = "Transacción rechazada o cancelada";
+            if (backendResult && backendResult.message) {
+              errorMsg = `Error backend: ${backendResult.message}`;
+            } else if (backendResult && backendResult.error) {
+              errorMsg = `Error backend: ${backendResult.error}`;
+            }
+            setStatus(errorMsg);
           }
 
           // 4. Guardar datos de la tarjeta SOLO si viene ctoken (cardToken)
@@ -150,13 +188,16 @@ export default function PayphoneSuccessScreen() {
               }),
             });
           }
-
-          setStatus("Recarga exitosa");
+          setLoading(false);
           setTimeout(() => {
-            window.location.href = "/wallet/main";
-          }, 2000);
+            setStatus(isPayment ? "Pago exitoso" : "Recarga exitosa");
+            setTimeout(() => {
+              window.location.href = "/wallet/main";
+            }, 1500);
+          }, 100);
         } else {
           setStatus("Transacción rechazada o cancelada");
+          localStorage.removeItem("payphone_is_qr_payment");
         }
       } finally {
         setLoading(false);
@@ -198,7 +239,49 @@ export default function PayphoneSuccessScreen() {
           border: `2px solid ${colors.belandGreen}`,
         }}
       >
-        {/* Estado visual según status */}
+        {/* Título principal */}
+        {!loading && (
+          <>
+            {status === "Pago exitoso" && (
+              <h2
+                style={{
+                  fontWeight: 800,
+                  marginBottom: 18,
+                  fontSize: 28,
+                  color: colors.primary,
+                }}
+              >
+                ¡Pago exitoso!
+              </h2>
+            )}
+            {status === "Recarga exitosa" && (
+              <h2
+                style={{
+                  fontWeight: 800,
+                  marginBottom: 18,
+                  fontSize: 28,
+                  color: colors.primary,
+                }}
+              >
+                ¡Recarga exitosa!
+              </h2>
+            )}
+            {status !== "Pago exitoso" && status !== "Recarga exitosa" && (
+              <h2
+                style={{
+                  fontWeight: 800,
+                  marginBottom: 18,
+                  fontSize: 28,
+                  color: colors.error,
+                }}
+              >
+                {status}
+              </h2>
+            )}
+          </>
+        )}
+
+        {/* Spinner y mensaje de proceso */}
         {loading && (
           <div
             style={{
@@ -227,46 +310,12 @@ export default function PayphoneSuccessScreen() {
                 fontWeight: 600,
               }}
             >
-              Procesando recarga...
+              Procesando...
             </span>
-            <h2
-              style={{
-                fontWeight: 800,
-                marginBottom: 18,
-                fontSize: 28,
-                color: colors.primary,
-              }}
-            >
-              Pendiente
-            </h2>
           </div>
         )}
-        {!loading && status === "Recarga exitosa" && (
-          <h2
-            style={{
-              fontWeight: 800,
-              marginBottom: 18,
-              fontSize: 28,
-              color: colors.primary,
-            }}
-          >
-            ¡Recarga exitosa!
-          </h2>
-        )}
-        {!loading && status === "Transacción rechazada o cancelada" && (
-          <h2
-            style={{
-              fontWeight: 800,
-              marginBottom: 18,
-              fontSize: 28,
-              color: colors.error,
-            }}
-          >
-            Ocurrió un error, intenta nuevamente
-          </h2>
-        )}
 
-        {/* Estado */}
+        {/* Bloque de estado */}
         <div style={{ marginBottom: 28 }}>
           <span style={{ fontWeight: 600, color: colors.belandGreen }}>
             Estado:
@@ -278,20 +327,20 @@ export default function PayphoneSuccessScreen() {
               fontWeight: 700,
               color: loading
                 ? colors.textSecondary
+                : status === "Pago exitoso"
+                ? colors.success
                 : status === "Recarga exitosa"
                 ? colors.success
-                : status === "Transacción rechazada o cancelada"
-                ? colors.error
-                : colors.textSecondary,
+                : colors.error,
             }}
           >
             {loading
               ? "Pendiente"
+              : status === "Pago exitoso"
+              ? "Pago exitoso"
               : status === "Recarga exitosa"
               ? "Recarga exitosa"
-              : status === "Transacción rechazada o cancelada"
-              ? "Error"
-              : "Pendiente"}
+              : status}
           </span>
         </div>
 

@@ -1,5 +1,12 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Platform,
+  Alert,
+} from "react-native";
 
 type Resource = {
   id: string;
@@ -13,6 +20,7 @@ type PaymentData = {
   amount: number;
   message?: string;
   resource?: Resource[];
+  wallet_id?: string;
 };
 
 type PaymentScreenProps = {
@@ -25,6 +33,64 @@ type PaymentScreenProps = {
 
 export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
   const { paymentData } = route.params;
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Función para cargar el script Payphone en web
+  function loadPayphoneScript(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!document.getElementById("payphone-css")) {
+        const link = document.createElement("link");
+        link.id = "payphone-css";
+        link.rel = "stylesheet";
+        link.href =
+          "https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.css";
+        document.head.appendChild(link);
+      }
+      // @ts-ignore
+      if (window.PPaymentButtonBox) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src =
+        "https://cdn.payphonetodoesposible.com/box/v1.1/payphone-payment-box.js";
+      script.onload = () => resolve();
+      script.onerror = () =>
+        reject(new Error("No se pudo cargar el script de Payphone."));
+      document.body.appendChild(script);
+    });
+  }
+
+  // Handler para pago con Payphone en web
+  const handlePayphoneWeb = async () => {
+    setIsLoading(true);
+    const ppDiv = document.getElementById("pp-button");
+
+    if (ppDiv) ppDiv.innerHTML = "";
+    try {
+      await loadPayphoneScript();
+
+      const payphoneToken = process.env.EXPO_PUBLIC_PAYPHONE_TOKEN;
+      localStorage.setItem("payphone_token", payphoneToken);
+      // @ts-ignore
+      const payphoneConfig = {
+        token: payphoneToken,
+        clientTransactionId: `TX-${Date.now()}`,
+        amount: paymentData.amount * 100,
+        amountWithoutTax: paymentData.amount * 100,
+        currency: "USD",
+        storeId: process.env.EXPO_PUBLIC_PAYPHONE_STOREID,
+        reference: "Pago QR Beland",
+      };
+
+      // @ts-ignore
+      new window.PPaymentButtonBox(payphoneConfig).render("pp-button");
+    } catch (err) {
+      Alert.alert("Error", "No se pudo cargar el widget de Payphone.");
+      setIsLoading(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -65,13 +131,52 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
           </View>
         )}
         <View style={styles.buttonRow}>
-          <View style={styles.buttonPrimary}>
-            <Text style={styles.buttonText}>Confirmar pago</Text>
-          </View>
+          {Platform.OS === "web" ? (
+            <button
+              style={{
+                backgroundColor: "#007AFF",
+                borderRadius: 10,
+                padding: 12,
+                width: "100%",
+                marginRight: 8,
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 16,
+                letterSpacing: 0.5,
+                border: "none",
+                cursor: isLoading ? "not-allowed" : "pointer",
+                opacity: isLoading ? 0.7 : 1,
+              }}
+              onClick={handlePayphoneWeb}
+              disabled={isLoading}
+            >
+              {isLoading ? "Procesando..." : "Confirmar pago"}
+            </button>
+          ) : (
+            <View style={styles.buttonPrimary}>
+              <Text style={styles.buttonText}>Confirmar pago</Text>
+            </View>
+          )}
           <View style={styles.buttonSecondary}>
             <Text style={styles.buttonTextSec}>Cancelar</Text>
           </View>
         </View>
+        {/* Widget Payphone solo en web, sin botón extra */}
+        {Platform.OS === "web" && (
+          <View style={{ width: "100%", marginTop: 24 }}>
+            <View id="pp-button" style={{ marginBottom: 16 }}></View>
+          </View>
+        )}
+        {/* Placeholder para mobile */}
+        {Platform.OS !== "web" && (
+          <View style={{ width: "100%", marginTop: 24 }}>
+            <View style={styles.buttonPrimary}>
+              <Text style={styles.buttonText}>
+                Pagar con Payphone (próximamente)
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
