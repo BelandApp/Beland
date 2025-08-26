@@ -28,7 +28,7 @@ import { UserAddress } from '../../user-address/entities/user-address.entity';
 import { UserCard } from '../../user-cards/entities/user-card.entity';
 import { GroupInvitation } from '../../group-invitations/entities/group-invitation.entity';
 import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
-import { Testimony } from 'src/testimonies/entities/testimony.entity';
+import { Testimony } from '../../testimonies/entities/testimony.entity';
 
 // Definición de tipo para todos los roles válidos (importante para consistencia)
 export type ValidRoleNames =

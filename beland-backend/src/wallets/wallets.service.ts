@@ -23,6 +23,7 @@ import { RespCobroDto } from './dto/resp-cobro.dto';
 import { UserResource } from 'src/user-resources/entities/user-resource.entity';
 import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
 import { RespTransferResult } from './dto/resp-tranfer-result.dto';
+import { UserEventBeland } from 'src/users/entities/users-event-beland.entity';
 
 @Injectable()
 export class WalletsService {
@@ -518,6 +519,7 @@ export class WalletsService {
     await queryRunner.startTransaction();
 
     try {
+
       // 1) certifico que exista la wallet origen y que tenga los fondos
       const from = await queryRunner.manager.findOne(Wallet, {
         where: { user_id },
@@ -532,13 +534,13 @@ export class WalletsService {
       });
       if (!to) throw new NotFoundException('Billetera destino no existe');
 
-      const user: User = await queryRunner.manager.findOne(User, {
-        where: { id: user_id },
-      });
-      if (!user) throw new NotFoundException('Usuario destino no existe');
-
-      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de wallet
+      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de usuario 
+      // de la wallet destino.
       if (!code_transaction_send) {
+        const user: User = await queryRunner.manager.findOne(User, {
+          where: { wallet: {id: to.id} },
+        });
+        if (!user) throw new NotFoundException('Usuario destino no existe');
         switch (user.role.name) {
           case 'COMMERCE':
             code_transaction_send = TransactionCode.PURCHASE;
@@ -553,12 +555,18 @@ export class WalletsService {
           case 'SUPERADMIN':
             code_transaction_send = TransactionCode.PURCHASE_BELAND;
             code_transaction_received = TransactionCode.SALE_BELAND;
+            await queryRunner.manager.save(UserEventBeland, {
+              user_payment_id: user_id,
+              user_sale_id: user.id,
+              amount: dto.amountBecoin,
+              isRecycled: dto.amountBecoin === 0,
+            });
             break;
 
           default:
             code_transaction_send = TransactionCode.TRANSFER_SEND;
             code_transaction_received = TransactionCode.TRANSFER_RECEIVED;
-            break;
+          break;
         }
       }
 

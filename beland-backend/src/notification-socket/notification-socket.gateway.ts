@@ -24,7 +24,7 @@ import { NotificationsService } from './notification-socket.service';
     'http://localhost:8081/api',
     'https://eoy0nfm-beland-8081.exp.direct',
     'https://nl6egxw-anonymous-8081.exp.direct',
-    'https://zef_jly-anonymous-8081.exp.direct',
+    'https://zef_jly-anonymous-8081.exp.direct', 
   ], credentials: true },
 })
 export class NotificationsGateway implements OnModuleInit {
