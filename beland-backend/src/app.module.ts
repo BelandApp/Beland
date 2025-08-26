@@ -55,7 +55,7 @@ import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-acco
 import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
 import { AmountToPaymentModule } from './amount-to-payment/amount-to-payment.module';
 import { PresetAmountModule } from './preset-amount/preset-amount.module';
-//import { NotificationsSocketModule } from './notification-socket/notification-socket.module'; 
+import { NotificationsSocketModule } from './notification-socket/notification-socket.module'; 
 import { TestimoniesModule } from './testimonies/testimonies.module';
 
 @Module({
@@ -156,8 +156,8 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
     UserWithdrawModule,
     AmountToPaymentModule,
     PresetAmountModule,
+    NotificationsSocketModule,
     TestimoniesModule,
-    //NotificationsSocketModule,
   ],
   controllers: [],
   providers: [
