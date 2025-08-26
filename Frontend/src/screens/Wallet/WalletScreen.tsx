@@ -16,10 +16,6 @@ import {
   useWalletTransactions,
 } from "./hooks";
 import { containerStyles } from "./styles";
-import { PayphoneWidget } from "../../components/ui/PayphoneWidget";
-import { StyleSheet } from "react-native";
-
-const payphoneLogo = require("../../../assets/payphone-logo.png");
 
 export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { user } = useAuth();
@@ -61,7 +57,7 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             {/* Transacciones recientes */}
             <RecentTransactions
-              transactions={transactions}
+              transactions={transactions ?? []}
               isLoading={transactionsLoading}
             />
           </View>

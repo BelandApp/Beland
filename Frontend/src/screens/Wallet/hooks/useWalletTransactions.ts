@@ -12,29 +12,32 @@ const mapBackendTransactionToFrontend = (
 ): Transaction => {
   // Mapear tipo de transacción según el backend
   let type: Transaction["type"] = "exchange";
-  if (
+  const typeName = (
     backendTransaction.type?.name ||
-    backendTransaction.transaction_type?.name
-  ) {
-    const typeName = (
-      backendTransaction.type?.name ||
-      backendTransaction.transaction_type?.name ||
-      ""
-    ).toLowerCase();
-    if (typeName.includes("recarga") || typeName.includes("recharge")) {
-      type = "recharge";
-    } else if (
-      typeName.includes("transferencia") ||
-      typeName.includes("transfer")
-    ) {
-      type = "transfer";
-    } else if (typeName.includes("retiro") || typeName.includes("withdraw")) {
-      type = "transfer";
-    } else if (typeName.includes("recibido") || typeName.includes("receive")) {
-      type = "receive";
-    } else if (typeName.includes("canje") || typeName.includes("exchange")) {
-      type = "exchange";
-    }
+    backendTransaction.transaction_type?.name ||
+    ""
+  ).toLowerCase();
+  console.log(
+    "[Transacción] typeName recibido:",
+    typeName,
+    "id:",
+    backendTransaction.id
+  );
+
+  if (typeName.includes("recarga") || typeName.includes("recharge")) {
+    type = "recharge";
+  } else if (typeName.includes("transferencia enviada")) {
+    type = "transfer";
+  } else if (typeName.includes("transferencia recibida")) {
+    type = "receive";
+  } else if (typeName.includes("compra") || typeName.includes("purchase")) {
+    type = "payment";
+  } else if (typeName.includes("venta") || typeName.includes("sale")) {
+    type = "collection";
+  } else if (typeName.includes("canje") || typeName.includes("exchange")) {
+    type = "exchange";
+  } else {
+    type = "exchange";
   }
 
   // Mapear estado
@@ -92,28 +95,33 @@ const mapBackendTransactionToFrontend = (
     });
   }
 
+  // Si es transferencia recibida, forzar monto positivo y descripción
+  const isReceive = type === "receive";
   return {
     id: backendTransaction.id,
     type,
-    amount: Math.abs(
-      convertBackendTransactionAmount(backendTransaction.amount)
-    ),
-    amount_beicon:
-      backendTransaction.amount_beicon !== undefined
-        ? Math.abs(
-            convertBackendTransactionAmount(backendTransaction.amount_beicon)
-          )
-        : Math.abs(convertBackendTransactionAmount(backendTransaction.amount)),
-    description: getTransactionDescription(type, backendTransaction),
+    amount: isReceive
+      ? Math.abs(convertBackendTransactionAmount(backendTransaction.amount))
+      : convertBackendTransactionAmount(backendTransaction.amount),
+    amount_beicon: isReceive
+      ? Math.abs(
+          backendTransaction.amount_beicon !== undefined
+            ? convertBackendTransactionAmount(backendTransaction.amount_beicon)
+            : convertBackendTransactionAmount(backendTransaction.amount)
+        )
+      : backendTransaction.amount_beicon !== undefined
+      ? convertBackendTransactionAmount(backendTransaction.amount_beicon)
+      : convertBackendTransactionAmount(backendTransaction.amount),
+    description: isReceive
+      ? getTransactionDescription(type, backendTransaction)
+      : getTransactionDescription(type, backendTransaction),
     date: formattedDate,
     status,
-    // Campos opcionales según el tipo
-    from:
-      type === "receive"
-        ? backendTransaction.reference ||
-          backendTransaction.reference_number ||
-          "Usuario"
-        : undefined,
+    from: isReceive
+      ? backendTransaction.reference ||
+        backendTransaction.reference_number ||
+        "Usuario"
+      : undefined,
     to:
       type === "transfer"
         ? backendTransaction.reference ||
@@ -132,11 +140,13 @@ const getTransactionDescription = (
     case "recharge":
       return "Recarga de billetera";
     case "transfer":
-      return `Transferencia ${
-        backendTransaction.amount > 0 ? "recibida" : "enviada"
-      }`;
+      return "Transferencia enviada";
     case "receive":
-      return "Pago recibido";
+      return "Transferencia recibida";
+    case "payment":
+      return "Pago realizado";
+    case "collection":
+      return "Cobro recibido";
     case "exchange":
       return "Canjeado por premio";
     default:
@@ -146,8 +156,8 @@ const getTransactionDescription = (
 
 export const useWalletTransactions = () => {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [walletId, setWalletId] = useState<string | null>(null);
 
@@ -161,6 +171,10 @@ export const useWalletTransactions = () => {
           user.id
         );
         setWalletId(wallet.id);
+        // Guardar el wallet_id en localStorage para el mapeo
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("wallet_id", wallet.id);
+        }
       } catch (err) {
         setWalletId(null);
       }
@@ -170,7 +184,6 @@ export const useWalletTransactions = () => {
 
   const fetchTransactions = async () => {
     if (!walletId) return;
-
     setIsLoading(true);
     setError(null);
 
@@ -210,9 +223,7 @@ export const useWalletTransactions = () => {
       } else {
         // Modo demo: usar datos mock
         console.log("📝 Usando transacciones mock (modo demo)");
-
-        // Simular delay de red
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        setTransactions([]);
       }
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
@@ -227,7 +238,7 @@ export const useWalletTransactions = () => {
   };
 
   useEffect(() => {
-    fetchTransactions();
+    if (walletId) fetchTransactions();
   }, [walletId]);
 
   return {

@@ -13,37 +13,38 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   transaction,
 }) => {
   const getTransactionIcon = () => {
-    switch (transaction.type) {
-      case "transfer":
-        return "arrow-up-right";
-      case "receive":
-        return "arrow-down-left";
-      case "recharge":
-        return "plus-circle";
-      case "exchange":
-        return "swap-horizontal";
-      default:
-        return "help-circle";
-    }
+    // Si es transferencia recibida, mostrar icono de entrada
+    if (transaction.type === "receive") return "arrow-down-left";
+    if (transaction.type === "transfer") return "arrow-up-right";
+    if (transaction.type === "recharge") return "plus-circle";
+    if (transaction.type === "exchange") return "swap-horizontal";
+    if (transaction.type === "payment") return "credit-card-minus";
+    if (transaction.type === "collection") return "cash-plus";
+    return "help-circle";
   };
 
   const getTransactionColor = () => {
-    switch (transaction.type) {
-      case "transfer":
-        return "#f44336"; // Rojo para envíos
-      case "receive":
-        return "#4caf50"; // Verde para recibir
-      case "recharge":
-        return "#2196f3"; // Azul para recargas
-      case "exchange":
-        return "#ff9800"; // Naranja para canjes
-      default:
-        return "#666";
-    }
+    // Si es transferencia recibida, mostrar verde
+    if (transaction.type === "receive" || transaction.type === "collection")
+      return "#4caf50";
+    if (transaction.type === "transfer" || transaction.type === "payment")
+      return "#f44336";
+    if (transaction.type === "recharge") return "#2196f3";
+    if (transaction.type === "exchange") return "#ff9800";
+    return "#666";
   };
 
   const getAmountPrefix = () => {
-    return transaction.type === "transfer" ? "-" : "+";
+    // Si es transferencia recibida, mostrar '+'
+    if (
+      transaction.type === "receive" ||
+      transaction.type === "collection" ||
+      transaction.type === "recharge"
+    )
+      return "+";
+    if (transaction.type === "transfer" || transaction.type === "payment")
+      return "-";
+    return "";
   };
 
   const getStatusColor = () => {
@@ -58,6 +59,12 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
         return "#666";
     }
   };
+
+  // Forzar monto positivo para transferencias recibidas
+  const displayAmount =
+    transaction.type === "receive" || transaction.type === "collection"
+      ? Math.abs(transaction.amount_beicon)
+      : transaction.amount_beicon;
 
   return (
     <Card style={styles.container}>
@@ -87,7 +94,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             <BeCoinIcon width={16} height={16} />
             <Text style={[styles.amount, { color: getTransactionColor() }]}>
               {getAmountPrefix()}
-              {transaction.amount_beicon}
+              {String(Math.abs(displayAmount))}
             </Text>
           </View>
           <View

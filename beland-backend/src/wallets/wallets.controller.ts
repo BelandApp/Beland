@@ -34,6 +34,10 @@ import { WithdrawDto, WithdrawResponseDto } from './dto/withdraw.dto';
 import { TransactionCode } from 'src/transactions/enum/transaction-code';
 import { RespCobroDto } from './dto/resp-cobro.dto';
 import { PaymentWithRechargeDto } from './dto/payment-with-recharge.dto';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 @ApiTags('wallets')
 @Controller('wallets')
@@ -311,17 +315,60 @@ export class WalletsController {
     @Body() dto: PaymentWithRechargeDto,
     @Req() req: Request,
   ): Promise<{ wallet: Wallet }> {
-    await this.service.recharge(req.user?.id, dto);
+    // Detectar si la wallet destino es comercio
+    const toWallet = await this.service.findOne(to_wallet_id);
+
+    const isMerchant =
+      toWallet?.user?.role_name === 'COMMERCE' ||
+      toWallet?.user?.role?.name === 'COMMERCE';
+
     const toWalletId = to_wallet_id;
-    const amountBecoin =
-      +dto.amountUsd / +this.superadminConfig.getPriceOneBecoin;
+    let amountBecoin = 0;
+    if (!dto.amountUsd || isNaN(+dto.amountUsd) || +dto.amountUsd <= 0) {
+      throw new BadRequestException('El monto enviado no es válido');
+    }
+    const priceOneBecoin = Number(this.superadminConfig.getPriceOneBecoin());
+    if (isNaN(priceOneBecoin) || priceOneBecoin <= 0) {
+      throw new InternalServerErrorException(
+        'El precio de BeCoin no es válido',
+      );
+    }
+    amountBecoin = +dto.amountUsd / priceOneBecoin;
+    if (isNaN(amountBecoin) || amountBecoin <= 0) {
+      throw new BadRequestException(
+        'El monto calculado en BeCoin no es válido',
+      );
+    }
     const amount_payment_id = dto.amount_payment_id;
     const user_resource_id = dto.user_resource_id;
-    return await this.service.transfer(req.user?.id, {
-      toWalletId,
-      amountBecoin,
-      amount_payment_id,
-      user_resource_id,
-    });
+
+    if (isMerchant) {
+      // Pago a comercio: usar PURCHASE y SALE
+      return await this.service.transfer(
+        req.user?.id,
+        {
+          toWalletId,
+          amountBecoin,
+          amount_payment_id,
+          user_resource_id,
+        },
+        TransactionCode.PURCHASE,
+        TransactionCode.SALE,
+      );
+    } else {
+      await this.service.recharge(req.user?.id, dto);
+      // Pago a usuario normal: usar TRANSFER_SEND y TRANSFER_RECEIVED
+      return await this.service.transfer(
+        req.user?.id,
+        {
+          toWalletId,
+          amountBecoin,
+          amount_payment_id,
+          user_resource_id,
+        },
+        TransactionCode.TRANSFER_SEND,
+        TransactionCode.TRANSFER_RECEIVED,
+      );
+    }
   }
 }
