@@ -315,48 +315,26 @@ export class WalletsController {
     @Body() dto: PaymentWithRechargeDto,
     @Req() req: Request,
   ): Promise<{ wallet: Wallet }> {
-    // Detectar si la wallet destino es comercio
-    const toWallet = await this.service.findOne(to_wallet_id);
 
-    const isMerchant =
-      toWallet?.user?.role_name === 'COMMERCE' ||
-      toWallet?.user?.role?.name === 'COMMERCE';
-
-    const toWalletId = to_wallet_id;
     let amountBecoin = 0;
-    if (!dto.amountUsd || isNaN(+dto.amountUsd) || +dto.amountUsd <= 0) {
-      throw new BadRequestException('El monto enviado no es válido');
-    }
     const priceOneBecoin = Number(this.superadminConfig.getPriceOneBecoin());
-    if (isNaN(priceOneBecoin) || priceOneBecoin <= 0) {
+    if (priceOneBecoin !== 0.05) {
       throw new InternalServerErrorException(
         'El precio de BeCoin no es válido',
       );
     }
-    amountBecoin = +dto.amountUsd / priceOneBecoin;
-    if (isNaN(amountBecoin) || amountBecoin <= 0) {
-      throw new BadRequestException(
-        'El monto calculado en BeCoin no es válido',
-      );
-    }
+
     const amount_payment_id = dto.amount_payment_id;
     const user_resource_id = dto.user_resource_id;
 
-    if (isMerchant) {
-      return await this.service.transfer(req.user?.id, {
-        toWalletId,
-        amountBecoin,
-        amount_payment_id,
-        user_resource_id,
-      });
-    } else {
-      await this.service.recharge(req.user?.id, dto);
-      return await this.service.transfer(req.user?.id, {
-        toWalletId,
-        amountBecoin,
-        amount_payment_id,
-        user_resource_id,
-      });
-    }
+    return await this.service.transfer(
+        req.user?.id,
+        {
+          toWalletId: to_wallet_id,
+          amountBecoin,
+          amount_payment_id,
+          user_resource_id,
+        },
+      );
   }
 }

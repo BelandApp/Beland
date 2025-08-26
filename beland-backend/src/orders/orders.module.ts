@@ -18,10 +18,10 @@ import { WalletsRepository } from 'src/wallets/wallets.repository';
 import { TransactionType } from 'src/transaction-type/entities/transaction-type.entity';
 import { TransactionState } from 'src/transaction-state/entities/transaction-state.entity';
 import { Transaction } from 'src/transactions/entities/transaction.entity';
-//import { NotificationsSocketModule } from 'src/notification-socket/notification-socket.module';
+import { NotificationsSocketModule } from 'src/notification-socket/notification-socket.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, Wallet, Cart, OrderItem, PaymentType, Payment, 
+  imports: [NotificationsSocketModule, TypeOrmModule.forFeature([Order, Wallet, Cart, OrderItem, PaymentType, Payment, 
     TransactionType, TransactionState, Transaction
   ])],
   controllers: [OrdersController],

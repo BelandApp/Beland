@@ -282,7 +282,11 @@ class WalletService {
   }
 
   // Crear transferencia
-  async createTransfer(transferData: TransferRequest): Promise<any> {
+  async createTransfer(transferData: {
+    toWalletId: string;
+    amountBecoin: number;
+    description?: string;
+  }): Promise<any> {
     try {
       console.log("🔄 Creando transferencia:", transferData);
       const response = await apiRequest("/wallets/transfer", {
@@ -335,21 +339,16 @@ class WalletService {
     }
   }
 
-  // Buscar wallet por alias, email o teléfono (para transferencias)
-  async findWalletByIdentifier(identifier: string): Promise<Wallet | null> {
+  // Buscar wallet por alias (para transferencias)
+  async findWalletByIdentifier(alias: string): Promise<Wallet | null> {
     try {
-      // Solo soportamos búsqueda por email por ahora
-      if (identifier.includes("@")) {
-        return await this.getWalletByUserId(identifier);
-      }
-
-      // Para alias u otros identificadores, necesitaríamos un endpoint específico
-      // Por ahora lanzamos un error descriptivo
-      throw new Error(
-        "Solo se pueden hacer transferencias a emails registrados en Beland"
-      );
+      const response = await apiRequest(`/wallets/alias/${alias}`, {
+        method: "GET",
+      });
+      if (response && response.id) return response;
+      return null;
     } catch (error) {
-      console.log("⚠️ Wallet no encontrada por identificador:", identifier);
+      console.log("⚠️ Wallet no encontrada por alias:", alias);
       return null;
     }
   }
@@ -358,17 +357,12 @@ class WalletService {
   async transferBetweenUsers(
     senderEmail: string,
     recipientIdentifier: string,
-    amount: number,
-    description?: string
+    amount: number
   ): Promise<any> {
     try {
       console.log(
         `💸 Iniciando transferencia de ${senderEmail} a ${recipientIdentifier}: ${amount} BeCoins`
       );
-
-      // TODO: Obtener el UUID del usuario de otra forma si es necesario
-      // const senderUUID = await userService.getUserUUIDByEmail(senderEmail);
-      const senderUUID = undefined; // El backend debe tomar el usuario del token
 
       // Buscar wallet del destinatario
       const recipientWallet = await this.findWalletByIdentifier(
@@ -384,11 +378,10 @@ class WalletService {
 
       // Usuario registrado - transferencia directa
       console.log("✅ Usuario encontrado, realizando transferencia directa...");
-      const transferData: TransferRequest = {
-        receiver_user_id: recipientWallet.user_id,
-        amount: amount,
-        description: description,
-        transfer_type: "WALLET_TO_WALLET",
+      const transferData = {
+        toWalletId: recipientWallet.id,
+        amountBecoin: amount,
+        // description eliminado porque el backend no lo acepta
       };
 
       const result = await this.createTransfer(transferData);

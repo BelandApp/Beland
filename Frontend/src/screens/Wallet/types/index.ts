@@ -1,6 +1,7 @@
 export interface WalletData {
   balance: number;
   estimatedValue: string;
+  alias?: string;
 }
 
 export interface WalletAction {
@@ -13,7 +14,13 @@ export interface WalletAction {
 
 export interface Transaction {
   id: string;
-  type: "transfer" | "receive" | "recharge" | "exchange";
+  type:
+    | "transfer"
+    | "receive"
+    | "recharge"
+    | "exchange"
+    | "payment"
+    | "collection";
   amount: number;
   amount_beicon: number;
   description: string;

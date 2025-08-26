@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CustomAlert } from "../../components/ui/CustomAlert";
 import {
   View,
   Text,
@@ -15,23 +16,26 @@ import { walletService } from "../../services/walletService";
 import Constants from "expo-constants";
 import { useWalletData } from "../Wallet/hooks/useWalletData";
 
-const digitalCurrencies = [
-  { label: "BECOINS", value: "becoin" },
-  { label: "USD", value: "usd" },
-  { label: "ARS", value: "ars" },
-];
-
 const SendScreen = () => {
   const navigation = useNavigation();
   const { walletData, refetch } = useWalletData();
   const { user } = useAuth();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
-  const [currency, setCurrency] = useState(digitalCurrencies[0].value);
-  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [currency] = useState("becoin");
+  // Estados para CustomAlert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertType, setAlertType] = useState<"success" | "error" | "info">(
+    "info"
+  );
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertAutoClose, setAlertAutoClose] = useState<number | undefined>(
+    undefined
+  );
   const [isLoading, setIsLoading] = useState(false);
 
+  // Para mostrar datos en la alerta de éxito
   const [sentAmount, setSentAmount] = useState("");
   const [sentCurrency, setSentCurrency] = useState("");
   const [sentAddress, setSentAddress] = useState("");
@@ -43,17 +47,29 @@ const SendScreen = () => {
     const transferAmount = parseFloat(amount);
 
     if (!amount || isNaN(transferAmount) || transferAmount <= 0) {
-      Alert.alert("Error", "Por favor ingresa un monto válido");
+      setAlertType("error");
+      setAlertTitle("Error");
+      setAlertMessage("Por favor ingresa un monto válido");
+      setAlertAutoClose(2000);
+      setAlertVisible(true);
       return false;
     }
 
     if (transferAmount > walletData.balance) {
-      Alert.alert("Error", "Saldo insuficiente para realizar la transferencia");
+      setAlertType("error");
+      setAlertTitle("Error");
+      setAlertMessage("Saldo insuficiente para realizar la transferencia");
+      setAlertAutoClose(2000);
+      setAlertVisible(true);
       return false;
     }
 
     if (!address.trim()) {
-      Alert.alert("Error", "Por favor ingresa un alias o número de teléfono");
+      setAlertType("error");
+      setAlertTitle("Error");
+      setAlertMessage("Por favor ingresa un alias o número de teléfono");
+      setAlertAutoClose(2000);
+      setAlertVisible(true);
       return false;
     }
 
@@ -72,11 +88,21 @@ const SendScreen = () => {
         setSentAmount(amount);
         setSentCurrency(currency);
         setSentAddress(address);
-        setShowSuccess(true);
+        setAlertType("success");
+        setAlertTitle("¡Transferencia Exitosa!");
+        setAlertMessage(`Se han enviado ${amount} BECOINS a ${address}`);
+        setAlertAutoClose(2000);
+        setAlertVisible(true);
+        // Actualizar datos de la wallet
+        refetch();
       } else {
         // Modo producción: transferencia real usando nueva funcionalidad
         if (!user?.email) {
-          Alert.alert("Error", "Usuario no autenticado");
+          setAlertType("error");
+          setAlertTitle("Error");
+          setAlertMessage("Usuario no autenticado");
+          setAlertAutoClose(2000);
+          setAlertVisible(true);
           return;
         }
 
@@ -84,36 +110,45 @@ const SendScreen = () => {
         const recipientIdentifier = address.trim();
 
         try {
+          // Solo BeCoins
           const result = await walletService.transferBetweenUsers(
             user.email,
             recipientIdentifier,
-            amountNumber,
-            `Transferencia de ${amount} ${currency.toUpperCase()}`
+            amountNumber
           );
 
           if (result.isPending) {
-            Alert.alert(
-              "Invitación enviada",
-              `Se ha enviado una invitación a ${recipientIdentifier}. Recibirá los BeCoins cuando se registre en la app.`,
-              [{ text: "OK", onPress: () => navigation.goBack() }]
+            setAlertType("info");
+            setAlertTitle("Invitación enviada");
+            setAlertMessage(
+              `Se ha enviado una invitación a ${recipientIdentifier}. Recibirá los BeCoins cuando se registre en la app.`
             );
+            setAlertAutoClose(2500);
+            setAlertVisible(true);
           } else {
             // Transferencia completada exitosamente
             setSentAmount(amount);
             setSentCurrency(currency);
             setSentAddress(address);
-            setShowSuccess(true);
+            setAlertType("success");
+            setAlertTitle("¡Transferencia Exitosa!");
+            setAlertMessage(`Se han enviado ${amount} BECOINS a ${address}`);
+            setAlertAutoClose(2000);
+            setAlertVisible(true);
 
             // Actualizar datos de la wallet
             refetch();
           }
         } catch (transferError: any) {
           console.error("Error en transferencia:", transferError);
-          Alert.alert(
-            "Error en transferencia",
+          setAlertType("error");
+          setAlertTitle("Error en transferencia");
+          setAlertMessage(
             transferError.message ||
               "No se pudo completar la transferencia. Verifica los datos e intenta nuevamente."
           );
+          setAlertAutoClose(2000);
+          setAlertVisible(true);
         }
       }
 
@@ -122,173 +157,114 @@ const SendScreen = () => {
       setAddress("");
     } catch (error: any) {
       console.error("Error en transferencia:", error);
-      Alert.alert(
-        "Error en transferencia",
+      setAlertType("error");
+      setAlertTitle("Error en transferencia");
+      setAlertMessage(
         error.message ||
           "No se pudo completar la transferencia. Intenta nuevamente."
       );
+      setAlertAutoClose(2000);
+      setAlertVisible(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (showSuccess) {
-    return (
-      <View style={styles.successContainer}>
-        <MaterialCommunityIcons
-          name="check-decagram"
-          size={80}
-          color="#4ecdc4"
-          style={{ marginBottom: 16 }}
-        />
-        <Text style={styles.successTitle}>¡Transferencia Exitosa!</Text>
-        <Text style={styles.successSubtitle}>
-          Se han enviado {sentAmount}{" "}
-          {sentCurrency === "becoin" ? "BECOINS" : sentCurrency.toUpperCase()} a{" "}
-          {sentAddress}
-        </Text>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => {
-            setShowSuccess(false);
-            navigation.goBack();
-          }}
-        >
-          <Text style={styles.closeButtonText}>Cerrar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // El modal de éxito se reemplaza por CustomAlert
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Enviar BeCoins</Text>
-      </View>
-
-      {/* Monto */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Monto a enviar</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.amountInput}
-            placeholder="0"
-            value={amount}
-            onChangeText={setAmount}
-            keyboardType="numeric"
-            maxLength={10}
-          />
+    <>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
           <TouchableOpacity
-            style={styles.currencySelector}
-            onPress={() => setShowCurrencyModal(true)}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
           >
-            <Text style={styles.currencyText}>
-              {currency === "becoin" ? "BECOINS" : currency.toUpperCase()}
-            </Text>
-            <MaterialCommunityIcons
-              name="chevron-down"
-              size={16}
-              color="#4ecdc4"
-            />
+            <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
           </TouchableOpacity>
+          <Text style={styles.title}>Enviar BeCoins</Text>
         </View>
-      </View>
 
-      {/* Destinatario */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Destinatario</Text>
-        <View style={styles.recipientContainer}>
-          <TextInput
-            style={styles.recipientInput}
-            placeholder="Alias o número de teléfono"
-            value={address}
-            onChangeText={setAddress}
-            keyboardType="default"
-          />
-          <TouchableOpacity
-            style={styles.qrButton}
-            onPress={() => navigation.navigate("QR" as never)}
-          >
-            <MaterialCommunityIcons
-              name="qrcode-scan"
-              size={24}
-              color="#4ecdc4"
+        {/* Monto */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Monto a enviar (BeCoins)</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.amountInput}
+              placeholder="0"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+              maxLength={10}
             />
-          </TouchableOpacity>
+            <View style={styles.currencySelector}>
+              <Text style={styles.currencyText}>BECOINS</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      {/* Información del saldo */}
-      <View style={styles.balanceInfo}>
-        <Text style={styles.balanceLabel}>Saldo disponible:</Text>
-        <Text style={styles.balanceAmount}>{walletData.balance} BECOINS</Text>
-      </View>
-
-      {/* Botón enviar */}
-      <TouchableOpacity
-        style={[
-          styles.sendButton,
-          { opacity: amount && address && !isLoading ? 1 : 0.5 },
-        ]}
-        disabled={!amount || !address || isLoading}
-        onPress={handleSend}
-      >
-        <Text style={styles.sendButtonText}>
-          {isLoading ? "ENVIANDO..." : "ENVIAR"}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Modal selector de moneda */}
-      {showCurrencyModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Seleccionar moneda</Text>
-            {digitalCurrencies.map((item) => (
-              <TouchableOpacity
-                key={item.value}
-                style={[
-                  styles.currencyOption,
-                  currency === item.value && styles.currencyOptionSelected,
-                ]}
-                onPress={() => {
-                  setCurrency(item.value);
-                  setShowCurrencyModal(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.currencyOptionText,
-                    currency === item.value &&
-                      styles.currencyOptionTextSelected,
-                  ]}
-                >
-                  {item.label}
-                </Text>
-                {currency === item.value && (
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={20}
-                    color="#4ecdc4"
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
+        {/* Destinatario */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Destinatario</Text>
+          <View style={styles.recipientContainer}>
+            <TextInput
+              style={styles.recipientInput}
+              placeholder="Alias o número de teléfono"
+              value={address}
+              onChangeText={setAddress}
+              keyboardType="default"
+            />
             <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCurrencyModal(false)}
+              style={styles.qrButton}
+              onPress={() => navigation.navigate("QR" as never)}
             >
-              <Text style={styles.modalCloseButtonText}>Cancelar</Text>
+              <MaterialCommunityIcons
+                name="qrcode-scan"
+                size={24}
+                color="#4ecdc4"
+              />
             </TouchableOpacity>
           </View>
         </View>
-      )}
-    </ScrollView>
+
+        {/* Información del saldo */}
+        <View style={styles.balanceInfo}>
+          <Text style={styles.balanceLabel}>Saldo disponible:</Text>
+          <Text style={styles.balanceAmount}>{walletData.balance} BECOINS</Text>
+        </View>
+
+        {/* Botón enviar */}
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            { opacity: amount && address && !isLoading ? 1 : 0.5 },
+          ]}
+          disabled={!amount || !address || isLoading}
+          onPress={handleSend}
+        >
+          <Text style={styles.sendButtonText}>
+            {isLoading ? "ENVIANDO..." : "ENVIAR"}
+          </Text>
+        </TouchableOpacity>
+
+        {/* El selector de moneda ha sido eliminado, solo se permite BeCoins */}
+      </ScrollView>
+      {/* CustomAlert para mostrar errores y éxito */}
+      <CustomAlert
+        visible={alertVisible}
+        type={alertType}
+        title={alertTitle}
+        message={alertMessage}
+        autoCloseDelay={alertAutoClose}
+        onClose={() => {
+          setAlertVisible(false);
+          // Si fue éxito o invitación, volver atrás
+          if (alertType === "success" || alertType === "info") {
+            navigation.goBack();
+          }
+        }}
+      />
+    </>
   );
 };
 
