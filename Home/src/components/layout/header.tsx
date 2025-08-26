@@ -12,11 +12,12 @@ import {
 } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/ui/logo";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { usePathname } from "next/navigation";
 import { useScrollSpy } from "@/hooks/use-scroll-spy";
-import { useAuth0 } from "@auth0/auth0-react";
+// Se elimina la importación de Auth0
+// import { useAuth0 } from "@auth0/auth0-react";
 
 // Navegación principal
 const navLinks = [
@@ -30,28 +31,16 @@ const navLinks = [
   { href: "/blog", label: "Blog" },
 ];
 
+// URL de la aplicación desplegada en Netlify
+const netlifyUrl = "https://beland-project.netlify.app";
+
 export function Header() {
   const [isSheetOpen, setSheetOpen] = useState(false);
   const pathname = usePathname();
   const isHomePage = pathname === "/";
 
-  // Obtenemos las funciones y el estado de Auth0
-  const { isAuthenticated, loginWithRedirect, logout } = useAuth0();
-
-  // Función para manejar el inicio de sesión
-  const handleLogin = () => {
-    loginWithRedirect();
-  };
-
-  // Función para manejar el cierre de sesión, con redirección correcta
-  const handleLogout = () => {
-    logout({
-      logoutParams: {
-        // Redirigimos a la página principal después de cerrar sesión
-        returnTo: window.location.origin,
-      },
-    });
-  };
+  // Se elimina la desestructuración de Auth0
+  // const { isAuthenticated, loginWithRedirect, logout } = useAuth0();
 
   const activeSection = useScrollSpy(
     navLinks.filter(l => isHomePage && l.sectionId).map(l => l.sectionId!),
@@ -98,16 +87,13 @@ export function Header() {
                   </ul>
                   <Separator />
                   <div className="flex flex-col space-y-2">
-                    {isAuthenticated ? (
-                      <Button onClick={handleLogout}>Cerrar Sesión</Button>
-                    ) : (
-                      <>
-                        <Button variant="outline" onClick={handleLogin}>
-                          Iniciar Sesión
-                        </Button>
-                        <Button onClick={handleLogin}>Registrarse</Button>
-                      </>
-                    )}
+                    {/* Se reemplaza la lógica de Auth0 con enlaces directos */}
+                    <Button variant="outline" asChild>
+                      <Link href={netlifyUrl}>Iniciar Sesión</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href={netlifyUrl}>Registrarse</Link>
+                    </Button>
                   </div>
                 </div>
               </SheetContent>
@@ -129,16 +115,13 @@ export function Header() {
         {/* Botones de autenticación para escritorio */}
         <div className="hidden items-center justify-end space-x-2 md:flex">
           <div className="hidden md:flex items-center space-x-2">
-            {isAuthenticated ? (
-              <Button onClick={handleLogout}>Cerrar Sesión</Button>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={handleLogin}>
-                  Iniciar Sesión
-                </Button>
-                <Button onClick={handleLogin}>Registrarse</Button>
-              </>
-            )}
+            {/* Se reemplaza la lógica de Auth0 con enlaces directos */}
+            <Button variant="ghost" asChild>
+              <Link href={netlifyUrl}>Iniciar Sesión</Link>
+            </Button>
+            <Button asChild>
+              <Link href={netlifyUrl}>Registrarse</Link>
+            </Button>
             <Separator orientation="vertical" className="h-6" />
             <ThemeToggle />
           </div>
