@@ -62,11 +62,18 @@ async function bootstrap() {
   const appLandingUrlProd = configService.get<string>('APP_LANDING_URL_PROD');
   const appLandingUrlLocal = configService.get<string>('APP_LANDING_URL_LOCAL');
 
+  appLogger.debug(`${appMainUrlProd}`, 'URL PRODUCCION');
+  appLogger.debug(`${appMainUrlLocal}`, 'URL local MAIN');
+  appLogger.debug(`${appLandingUrlProd}`, 'URL lANDING PRODUCCION');
+  appLogger.debug(`${appLandingUrlLocal}`, 'URL LANDING LOCAL');
 
   const allowedOrigins: (string | RegExp)[] = isProduction
     ? [
         appMainUrlProd,
         appLandingUrlProd,
+        'https://beland-project.netlify.app',
+        'https://beland-production.up.railway.app/api',
+        'https://belandlanding.vercel.app',
         configService.get<string>('CORS_ADDITIONAL_ORIGINS_PROD'),
         configService.get<string>('AUTH0_AUDIENCE'),
       ].filter(Boolean)
@@ -77,10 +84,12 @@ async function bootstrap() {
         configService.get<string>('AUTH0_AUDIENCE'),
         'http://localhost:3001',
         'http://[::1]:3001',
+        'https://beland-project.netlify.app',
+        'https://beland-production.up.railway.app/api',
+        'https://belandlanding.vercel.app',
         /https:\/\/\w+\-beland\-\d+\.exp\.direct$/,
         /https:\/\/\w+\-anonymous\-\d+\.exp\.direct$/,
       ].filter(Boolean);
-
 
   app.enableCors({
     origin: (origin, callback) => {
