@@ -21,7 +21,7 @@ import { User } from 'src/users/entities/users.entity';
 import { AmountToPayment } from 'src/amount-to-payment/entities/amount-to-payment.entity';
 import { RespCobroDto } from './dto/resp-cobro.dto';
 import { UserResource } from 'src/user-resources/entities/user-resource.entity';
-//import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
+import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
 import { RespTransferResult } from './dto/resp-tranfer-result.dto';
 
 @Injectable()
@@ -31,8 +31,9 @@ export class WalletsService {
   constructor(
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
-    private readonly dataSource: DataSource, // 👈 acá lo inyectás // private readonly notificationsGateway: NotificationsGateway,
-  ) {}
+    private readonly dataSource: DataSource, // 👈 acá lo inyectás
+   private readonly notificationsGateway: NotificationsGateway,)
+  {}
 
   async findAll(
     pageNumber: number,
@@ -621,7 +622,7 @@ export class WalletsService {
       if (dto.amount_payment_id) {
         await queryRunner.manager.delete(AmountToPayment, {
           id: dto.amount_payment_id,
-        }); // <- FIX
+        }); 
       }
 
       // 10) Si vino user_resource_id entonces doy de baja el recurso.
@@ -640,15 +641,15 @@ export class WalletsService {
       // Identificá al comercio: según tu código, 'to' es la wallet del comercio:
       // const to = ... (ya lo tenías arriba)
       // const payload:RespTransferResult = {
-      //   walletId: to.id,
-      //   success: true,
-      //   newBalance: to.becoin_balance,
-      //   message: 'Se acreditó tu pago',
-      //   amountPaymentIdDeleted: dto.amount_payment_id || null,
-      // };
+      //    walletId: to.id,
+      //    success: true,
+      //    newBalance: to.becoin_balance,
+      //    message: 'Se acreditó tu pago',
+      //    amountPaymentIdDeleted: dto.amount_payment_id || null,
+      //  };
 
-      // // Room por userId del comercio (recomendado)
-      // this.notificationsGateway.notifyCommerceByUserId(to.user_id, payload);
+      // // // Room por userId del comercio (recomendado)
+      //  this.notificationsGateway.notifyCommerceByUserId(to.user_id, payload);
 
       // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };

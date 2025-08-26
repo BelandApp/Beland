@@ -13,7 +13,7 @@
     "image_url": "https://cdn.example.com/products/te-verde.jpg",
     "category": "Bebidas"
   },
-  {
+  { 
     "name": "Jugo Natural de Naranja",
     "description": "Exprimido 100%, sin conservantes ni azúcar añadida.",
     "price": 60,
