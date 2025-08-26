@@ -7,14 +7,20 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../../users/users.service'; // Ruta relativa ajustada
 import { CreateUserDto } from '../../../users/dto/create-user.dto'; // Ruta relativa ajustada
+import { AuthService } from 'src/auth/auth.service';
+import { DataSource } from 'typeorm';
+import { User } from 'src/users/entities/users.entity';
+import { Role } from 'src/roles/entities/role.entity';
+import { ROLES_KEY } from 'src/auth/decorators/roles.decorator';
 
 @Injectable()
 export class SuperAdminUserSeeder {
   private readonly logger = new Logger(SuperAdminUserSeeder.name);
 
   constructor(
-    private readonly usersService: UsersService,
     private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+    public dataSource: DataSource,
   ) {}
 
   async seed(): Promise<void> {
@@ -50,12 +56,19 @@ export class SuperAdminUserSeeder {
       return;
     }
 
+    const roleRepo = this.dataSource.getRepository(Role);
+    const role:Role = await roleRepo.findOne({where: {name: 'SUPERADMIN'}})
+    const userRepo = this.dataSource.getRepository(User);
+    const user:User = await userRepo.findOne({where: {role_name: 'SUPERADMIN'}})
+    if (user) {
+      return;
+    }
     const superAdminData: CreateUserDto = {
       email: superAdminEmail,
       full_name: superAdminFullName,
       username: superAdminUsername,
       oauth_provider: null,
-      role_name: 'SUPERADMIN',
+      role_name: role.name,
       password: superAdminPassword,
       confirmPassword: superAdminPassword,
       address: superAdminAddress,
@@ -67,13 +80,20 @@ export class SuperAdminUserSeeder {
       profile_picture_url: '',
     };
    
-    try {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction(); 
 
-      await this.usersService.create(superAdminData);
+    try {
+      
+      const newUser = await queryRunner.manager.save(User, {...superAdminData, role_id: role.role_id});
+      await this.authService.createWalletAndCart(queryRunner, newUser);
+      await queryRunner.commitTransaction();
       this.logger.log(
         `✅ Usuario SUPERADMIN creado exitosamente: ${superAdminEmail}`,
       );
     } catch (error: any) {
+      await queryRunner.rollbackTransaction();
       // Asumiendo que UsersService.create lanza ConflictException si el usuario ya existe
       if (error instanceof ConflictException) {
         this.logger.log(`ℹ️ Usuario SUPERADMIN ya existe: ${superAdminEmail}`); // Log informativo
@@ -87,6 +107,8 @@ export class SuperAdminUserSeeder {
           `Error al crear el usuario SUPERADMIN: ${error.message}`,
         );
       }
+    } finally {
+      await queryRunner.release();
     }
   }
 }

@@ -81,27 +81,39 @@ async function bootstrap() {
       ].filter(Boolean);
 
 
+  // app.enableCors({
+  //   origin: (origin, callback) => {
+  //     if (!origin) {
+  //       appLogger.debug(`CORS: Origen no proporcionado, permitiendo acceso.`);
+  //       return callback(null, true);
+  //     }
+
+  //     const isAllowed = allowedOrigins.some((allowedOrigin) => {
+  //       if (typeof allowedOrigin === 'string') {
+  //         return allowedOrigin === origin;
+  //       }
+  //       return allowedOrigin.test(origin);
+  //     });
+
+  //     if (isAllowed) {
+  //       callback(null, true);
+  //     } else {
+  //       appLogger.warn(`CORS: Origen "${origin}" NO permitido.`);
+  //       callback(new Error(`Not allowed by CORS: ${origin}`));
+  //     }
+  //   },
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   credentials: true,
+  // });
+
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        appLogger.debug(`CORS: Origen no proporcionado, permitiendo acceso.`);
-        return callback(null, true);
-      }
-
-      const isAllowed = allowedOrigins.some((allowedOrigin) => {
-        if (typeof allowedOrigin === 'string') {
-          return allowedOrigin === origin;
-        }
-        return allowedOrigin.test(origin);
-      });
-
-      if (isAllowed) {
-        callback(null, true);
-      } else {
-        appLogger.warn(`CORS: Origen "${origin}" NO permitido.`);
-        callback(new Error(`Not allowed by CORS: ${origin}`));
-      }
-    },
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:8081',
+      'http://localhost:3001',
+      'https://belandlanding.vercel.app/',
+      'https://beland-project.netlify.app/',
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
