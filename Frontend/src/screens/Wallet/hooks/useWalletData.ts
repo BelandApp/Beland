@@ -64,6 +64,7 @@ export const useWalletData = () => {
   const walletData: WalletData = {
     balance: balance, // Balance del store (actualizado desde backend o demo)
     estimatedValue: formatUSDPrice(balance * 0.05), // Valor estimado en USD (solo conversión directa)
+    alias: fullWalletData?.alias ?? undefined,
   };
 
   // Debug log para verificar cálculos

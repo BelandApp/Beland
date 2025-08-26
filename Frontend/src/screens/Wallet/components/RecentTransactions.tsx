@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { TransactionCard } from "./TransactionCard";
@@ -30,7 +30,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
           </Text>
         </View>
         <View style={recentTransactionsStyles.loadingContainer}>
-          <MaterialCommunityIcons name="loading" size={24} color="#666" />
+          <ActivityIndicator size="small" color="#F88D2A" />
           <Text style={recentTransactionsStyles.loadingText}>Cargando...</Text>
         </View>
       </View>
