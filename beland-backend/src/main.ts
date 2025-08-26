@@ -107,7 +107,8 @@ async function bootstrap() {
   // });
 
   app.enableCors({
-    origin: [
+    origin: true,
+    /*[
       'http://localhost:3000',
       'http://localhost:8081',
       'http://localhost:3001',
@@ -116,8 +117,8 @@ async function bootstrap() {
       'https://beland-project.netlify.app',
       'https://beland-production.up.railway.app/api', 
       'https://beland-dev.us.auth0.com',
-    ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    ]*/
+   // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   }); 
 
