@@ -29,7 +29,13 @@ async function bootstrap() {
   const appLogger = new Logger('main.ts');
 
   // --- Seguridad y Middleware ---
-  app.use(helmet());
+  // ✅ Seguridad con Helmet
+  app.use(
+    helmet({
+      crossOriginOpenerPolicy: false, // 🚨 evita el error de COOP
+      crossOriginEmbedderPolicy: false, // también lo desactivamos para OAuth
+    }),
+  );
   app.use(compression());
   app.use(
     rateLimit({
