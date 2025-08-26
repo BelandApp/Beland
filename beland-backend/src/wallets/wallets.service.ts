@@ -31,14 +31,9 @@ export class WalletsService {
   constructor(
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
-<<<<<<< HEAD
     private readonly dataSource: DataSource, // 👈 acá lo inyectás
    private readonly notificationsGateway: NotificationsGateway,)
   {}
-=======
-    private readonly dataSource: DataSource, // 👈 acá lo inyectás // private readonly notificationsGateway: NotificationsGateway,
-  ) {}
->>>>>>> bd12e18e8955ce2c494fada5f0f369f0ec0bbbc4
 
   async findAll(
     pageNumber: number,
