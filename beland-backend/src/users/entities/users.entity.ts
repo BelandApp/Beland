@@ -28,6 +28,7 @@ import { UserAddress } from '../../user-address/entities/user-address.entity';
 import { UserCard } from '../../user-cards/entities/user-card.entity';
 import { GroupInvitation } from '../../group-invitations/entities/group-invitation.entity';
 import { WithdrawAccount } from '../../withdraw-account/entities/withdraw-account.entity';
+import { Testimony } from 'src/testimonies/entities/testimony.entity';
 
 // Definición de tipo para todos los roles válidos (importante para consistencia)
 export type ValidRoleNames =
@@ -101,8 +102,8 @@ export class User {
     eager: true,
   })
   @JoinColumn({ name: 'role_id', referencedColumnName: 'role_id' })
-  role: Role ;
-  @Column({ type: 'uuid'})
+  role: Role;
+  @Column({ type: 'uuid' })
   role_id: string; // ID del rol (FK)
 
   // ¡NUEVA RELACIÓN OneToOne con Admin!
@@ -129,6 +130,10 @@ export class User {
   // NEW: Invitations received by this user
   @OneToMany(() => GroupInvitation, (invitation) => invitation.invited_user)
   received_invitations: GroupInvitation[];
+
+  // NUEVO: Relación con Testimonios
+  @OneToMany(() => Testimony, (testimony) => testimony.user)
+  testimonies: Testimony[];
 
   @OneToMany(() => Order, (order) => order.leader)
   orders: Order[];
@@ -160,7 +165,7 @@ export class User {
   @OneToMany(() => UserCard, (card) => card.user, { cascade: true })
   cards: UserCard[];
 
-    // 🔹 Un usuario puede tener varias cuentas de retiro
+  // 🔹 Un usuario puede tener varias cuentas de retiro
   @OneToMany(() => WithdrawAccount, (withdrawAccount) => withdrawAccount.user)
   withdraw_accounts: WithdrawAccount[];
 }
