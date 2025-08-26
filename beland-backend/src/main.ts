@@ -62,6 +62,7 @@ async function bootstrap() {
   const appLandingUrlProd = configService.get<string>('APP_LANDING_URL_PROD');
   const appLandingUrlLocal = configService.get<string>('APP_LANDING_URL_LOCAL');
 
+
   const allowedOrigins: (string | RegExp)[] = isProduction
     ? [
         appMainUrlProd,
@@ -79,6 +80,7 @@ async function bootstrap() {
         /https:\/\/\w+\-beland\-\d+\.exp\.direct$/,
         /https:\/\/\w+\-anonymous\-\d+\.exp\.direct$/,
       ].filter(Boolean);
+
 
   app.enableCors({
     origin: (origin, callback) => {
