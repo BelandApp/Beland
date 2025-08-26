@@ -108,19 +108,24 @@ async function bootstrap() {
 
   app.enableCors({
     origin: true,
-    /*[
-      'http://localhost:3000',
-      'http://localhost:8081',
-      'http://localhost:3001',
-      'http://localhost:9002',
-      'https://belandlanding.vercel.app',
-      'https://beland-project.netlify.app',
-      'https://beland-production.up.railway.app/api', 
-      'https://beland-dev.us.auth0.com',
-    ]*/
-   // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
-  }); 
+  });
+
+  // app.enableCors({
+  //   origin: true,
+  //   /*[
+  //     'http://localhost:3000',
+  //     'http://localhost:8081',
+  //     'http://localhost:3001',
+  //     'http://localhost:9002',
+  //     'https://belandlanding.vercel.app',
+  //     'https://beland-project.netlify.app',
+  //     'https://beland-production.up.railway.app/api', 
+  //     'https://beland-dev.us.auth0.com',
+  //   ]*/
+  //  // methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   credentials: true,
+  // }); 
 
   appLogger.log(
     `✅ CORS permitidos: ${allowedOrigins
