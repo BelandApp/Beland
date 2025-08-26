@@ -343,20 +343,32 @@ export class WalletsController {
     const user_resource_id = dto.user_resource_id;
 
     if (isMerchant) {
-      return await this.service.transfer(req.user?.id, {
-        toWalletId,
-        amountBecoin,
-        amount_payment_id,
-        user_resource_id,
-      });
+      // Pago a comercio: usar PURCHASE y SALE
+      return await this.service.transfer(
+        req.user?.id,
+        {
+          toWalletId,
+          amountBecoin,
+          amount_payment_id,
+          user_resource_id,
+        },
+        TransactionCode.PURCHASE,
+        TransactionCode.SALE,
+      );
     } else {
       await this.service.recharge(req.user?.id, dto);
-      return await this.service.transfer(req.user?.id, {
-        toWalletId,
-        amountBecoin,
-        amount_payment_id,
-        user_resource_id,
-      });
+      // Pago a usuario normal: usar TRANSFER_SEND y TRANSFER_RECEIVED
+      return await this.service.transfer(
+        req.user?.id,
+        {
+          toWalletId,
+          amountBecoin,
+          amount_payment_id,
+          user_resource_id,
+        },
+        TransactionCode.TRANSFER_SEND,
+        TransactionCode.TRANSFER_RECEIVED,
+      );
     }
   }
 }

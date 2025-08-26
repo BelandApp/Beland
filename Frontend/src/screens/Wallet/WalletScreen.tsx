@@ -57,7 +57,7 @@ export const WalletScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
             {/* Transacciones recientes */}
             <RecentTransactions
-              transactions={transactions}
+              transactions={transactions ?? []}
               isLoading={transactionsLoading}
             />
           </View>

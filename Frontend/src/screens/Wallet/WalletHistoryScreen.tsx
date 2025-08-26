@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -26,7 +27,7 @@ export default function WalletHistoryScreen() {
     { id: "exchange", label: "Canjes", icon: "swap-horizontal" },
   ];
 
-  const filteredTransactions = transactions.filter((transaction) => {
+  const filteredTransactions = (transactions ?? []).filter((transaction) => {
     const matchesSearch = transaction.description
       .toLowerCase()
       .includes(searchText.toLowerCase());
@@ -108,7 +109,7 @@ export default function WalletHistoryScreen() {
       <ScrollView style={styles.transactionsList}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <MaterialCommunityIcons name="loading" size={32} color="#666" />
+            <ActivityIndicator size="large" color="#F88D2A" />
             <Text style={styles.loadingText}>Cargando transacciones...</Text>
           </View>
         ) : filteredTransactions.length === 0 ? (

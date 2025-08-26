@@ -27,28 +27,26 @@ const ReceiveScreen = () => {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
 
-  // Generar alias basado en datos del usuario
-  const generateUserAlias = () => {
-    if (user?.email) {
-      // Usar email como base para el alias
-      const emailPrefix = user.email.split("@")[0];
-      return `${emailPrefix}.beland`;
-    } else if (user?.name) {
-      // Si no hay email, usar nombre
-      const cleanName = user.name.toLowerCase().replace(/\s+/g, ".");
-      return `${cleanName}.beland`;
-    }
-    return "usuario.beland";
-  };
-
-  const alias = generateUserAlias();
+  // Usar solo el alias que venga del backend
+  const alias = walletData?.alias;
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(alias);
+    await Clipboard.setStringAsync(alias ?? "");
     setShowToast(true);
     setTimeout(() => setShowToast(false), 1600);
   };
 
+  const [aliasLoadingDots, setAliasLoadingDots] = useState(0);
+  useEffect(() => {
+    if (!alias) {
+      const interval = setInterval(() => {
+        setAliasLoadingDots((prev) => (prev + 1) % 4);
+      }, 500);
+      return () => clearInterval(interval);
+    } else {
+      setAliasLoadingDots(0);
+    }
+  }, [alias]);
   const handleShare = async () => {
     try {
       const userName = user?.name || "Usuario";
@@ -191,7 +189,9 @@ const ReceiveScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tu alias</Text>
         <View style={styles.aliasContainer}>
-          <Text style={styles.aliasText}>{alias}</Text>
+          <Text style={styles.aliasText}>
+            {alias ?? `Cargando alias${".".repeat(aliasLoadingDots)}`}
+          </Text>
           <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>
             <MaterialCommunityIcons
               name="content-copy"
