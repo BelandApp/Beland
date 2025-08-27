@@ -55,7 +55,7 @@ import { WithdrawAccountTypeModule } from './withdraw-account-type/withdraw-acco
 import { UserWithdrawModule } from './user-withdraw/user-withdraw.module';
 import { AmountToPaymentModule } from './amount-to-payment/amount-to-payment.module';
 import { PresetAmountModule } from './preset-amount/preset-amount.module';
-//import { NotificationsSocketModule } from './notification-socket/notification-socket.module'; 
+import { NotificationsSocketModule } from './notification-socket/notification-socket.module'; 
 import { TestimoniesModule } from './testimonies/testimonies.module';
 
 @Module({
@@ -103,7 +103,8 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
         migrations: [
           __dirname + '/database/migrations/*{.ts,.js}'
         ],
-        synchronize: false, // nunca true en prod
+        //synchronize: true, // nunca true en prod
+        //dropSchema: true,
         logging: false,
         ssl: {
           rejectUnauthorized: false,
@@ -150,14 +151,14 @@ import { TestimoniesModule } from './testimonies/testimonies.module';
     ResourcesModule,
     ResourcesTypesModule,
     UserResourcesModule,
-    SuperadminModule,
     WithdrawAccountModule,
     WithdrawAccountTypeModule,
     UserWithdrawModule,
     AmountToPaymentModule,
     PresetAmountModule,
+    NotificationsSocketModule,
     TestimoniesModule,
-    //NotificationsSocketModule,
+    SuperadminModule,
   ],
   controllers: [],
   providers: [
