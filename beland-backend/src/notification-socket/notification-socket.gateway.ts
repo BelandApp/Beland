@@ -44,6 +44,6 @@ export class NotificationsGateway implements OnGatewayConnection {
   
   // Método para notificar a un usuario
   notifyUser(userId: string, payload: respSocket) {
-    this.server.to(`user_${userId}`).emit('paymentSuccess', payload);
+    this.server.to(`user_${userId}`).emit('payment-success', payload);
   }
 }
