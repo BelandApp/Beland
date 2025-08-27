@@ -21,6 +21,7 @@ import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { useAuth } from "src/hooks/AuthContext";
 import { AuthProvider } from "src/hooks/AuthContext";
 import PayphoneSuccessScreen from "./src/screens/Wallet/PayphoneSuccessScreen";
+import SocketStatus from "./src/components/SocketStatus";
 
 const AppContent = () => {
   // Declarar todos los hooks al inicio, sin condicionales
@@ -118,7 +119,7 @@ const AppContent = () => {
 
   // Configuración de linking para rutas web
   const linking = {
-    prefixes: ["http://localhost:8081", "https://tudominio.com"],
+    prefixes: ["http://localhost:8081", "https://beland-project.netlify.app"],
     config: {
       screens: {
         MainTabs: "",
@@ -162,12 +163,15 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <AuthProvider>
+const App = () => {
+  return (
     <SafeAreaProvider>
-      <AppContent />
+      <AuthProvider>
+        <SocketStatus />
+        <AppContent />
+      </AuthProvider>
     </SafeAreaProvider>
-  </AuthProvider>
-);
+  );
+};
 
 export default App;

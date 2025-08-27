@@ -57,20 +57,76 @@ export default function RechargeScreen() {
   // --- RENDER WEB ---
   if (Platform.OS === "web") {
     return (
-      <div className="recharge-web-bg">
-        <div className="recharge-web-main">
-          <div className="recharge-web-header">
-            <span className="recharge-web-title">Recargar BeCoins</span>
+      <div
+        style={{
+          background: "#f0f9ff",
+          minHeight: "100vh",
+          padding: 0,
+          fontFamily: "'Inter', 'Roboto', 'Segoe UI', sans-serif",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 420,
+            margin: "40px auto",
+            background: "#fff",
+            borderRadius: 24,
+            boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+            padding: 32,
+          }}
+        >
+          <div
+            style={{ display: "flex", alignItems: "center", marginBottom: 32 }}
+          >
+            <span
+              style={{
+                fontSize: 24,
+                fontWeight: 700,
+                color: "#F88D2A",
+                letterSpacing: 1,
+              }}
+            >
+              Recargar BeCoins
+            </span>
           </div>
-          <div className="recharge-web-section">
-            <span className="recharge-web-section-title">Montos rápidos</span>
-            <div className="recharge-web-preset-grid">
+          <div style={{ marginBottom: 24 }}>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "#F88D2A",
+                marginBottom: 12,
+                display: "block",
+              }}
+            >
+              Montos rápidos
+            </span>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {PRESET_AMOUNTS.map((presetAmount) => (
                 <button
                   key={presetAmount}
-                  className={`recharge-web-preset-btn${
-                    amount === presetAmount.toString() ? " selected" : ""
-                  }`}
+                  style={{
+                    flex: "1 1 30%",
+                    padding: "12px 0",
+                    background:
+                      amount === presetAmount.toString()
+                        ? "#F88D2A"
+                        : "#f0f9ff",
+                    color:
+                      amount === presetAmount.toString() ? "#fff" : "#6BA43A",
+                    border: "2px solid",
+                    borderColor:
+                      amount === presetAmount.toString()
+                        ? "#F88D2A"
+                        : "#e0f2fe",
+                    borderRadius: 12,
+                    fontWeight: 600,
+                    fontSize: 16,
+                    cursor: "pointer",
+                    marginBottom: 8,
+                    transition: "all 0.2s",
+                  }}
                   onClick={() => setAmount(presetAmount.toString())}
                 >
                   ${presetAmount}
@@ -78,119 +134,207 @@ export default function RechargeScreen() {
               ))}
             </div>
           </div>
-          <div className="recharge-web-section">
-            <span className="recharge-web-section-title">
+          <div style={{ marginBottom: 24 }}>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "#F88D2A",
+                marginBottom: 12,
+                display: "block",
+              }}
+            >
               Monto personalizado
             </span>
-            <div className="recharge-web-input-container">
-              <span className="recharge-web-currency-symbol">$</span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#fff",
+                borderRadius: 12,
+                border: "2px solid #F88D2A",
+                padding: "12px 16px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "#F88D2A",
+                  marginRight: 8,
+                }}
+              >
+                $
+              </span>
               <input
-                className="recharge-web-amount-input"
+                style={{
+                  flex: 1,
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "#333",
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                }}
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 type="number"
                 maxLength={10}
               />
-              <span className="recharge-web-currency-label">USD</span>
+              <span
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "#6BA43A",
+                  marginLeft: 8,
+                }}
+              >
+                USD
+              </span>
             </div>
           </div>
-          <div className="recharge-web-section">
-            <span className="recharge-web-section-title">Método de pago</span>
-            <div className="recharge-web-methods-grid">
+          <div style={{ marginBottom: 24 }}>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 600,
+                color: "#F88D2A",
+                marginBottom: 12,
+                display: "block",
+              }}
+            >
+              Método de pago
+            </span>
+            <div style={{ display: "flex", gap: 12 }}>
               {PAYMENT_METHODS.map((method) => (
                 <button
                   key={method.id}
-                  className={`recharge-web-method-btn${
-                    selectedPaymentMethod === method.id ? " selected" : ""
-                  }`}
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "16px 0",
+                    background:
+                      selectedPaymentMethod === method.id ? "#fff8f0" : "#fff",
+                    color:
+                      selectedPaymentMethod === method.id ? "#4ecdc4" : "#333",
+                    border: "2px solid",
+                    borderColor:
+                      selectedPaymentMethod === method.id
+                        ? "#F88D2A"
+                        : "#e0f2fe",
+                    borderRadius: 12,
+                    fontWeight: selectedPaymentMethod === method.id ? 700 : 600,
+                    fontSize: 16,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    marginBottom: 8,
+                    transition: "all 0.2s",
+                  }}
                   onClick={() => setSelectedPaymentMethod(method.id)}
                 >
                   {method.name}
-                  {selectedPaymentMethod === method.id && " ✔"}
+                  {selectedPaymentMethod === method.id && (
+                    <span
+                      style={{
+                        fontSize: 18,
+                        color: "#4ecdc4",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✔
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
           {amount && (
-            <div className="recharge-web-conversion-info">
-              <span className="recharge-web-conversion-text">
+            <div
+              style={{
+                background: "#f8f9fa",
+                borderRadius: 12,
+                padding: "16px 20px",
+                marginBottom: 24,
+                textAlign: "center",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "#6BA43A",
+                  marginBottom: 4,
+                }}
+              >
                 Recibirás:{" "}
-                <span className="recharge-web-conversion-amount">
-                  {amount} BeCoins
-                </span>
-              </span>
-              <span className="recharge-web-conversion-note">
-                1 USD = 1 BeCoin
-              </span>
+                <span>{Math.floor(Number(amount) / 0.05)} BeCoins</span>
+              </div>
+              <div style={{ fontSize: 14, color: "#999" }}>
+                1 USD = 20 BeCoins
+                <br />1 BeCoin = 0.05 USD
+              </div>
             </div>
           )}
-          {/* Widget Payphone solo si está seleccionado */}
           {selectedPaymentMethod === "PAYPHONE" && (
             <>
               <div id="pp-button" style={{ marginBottom: 16 }}></div>
-              <button
-                className={`recharge-web-btn${
-                  !amount || isLoading ? " disabled" : ""
-                }`}
-                onClick={async () => {
-                  const ppDiv = document.getElementById("pp-button");
-                  if (ppDiv) ppDiv.innerHTML = "";
-                  setIsLoading(true);
-                  try {
-                    console.log(
-                      "[Payphone] Cargando script y mostrando widget..."
-                    );
-                    await loadPayphoneScript();
-                    // Usar el token directamente del .env
-                    const payphoneToken =
-                      process.env.EXPO_PUBLIC_PAYPHONE_TOKEN;
-                    // Guardar el token en localStorage para la confirmación
-                    localStorage.setItem("payphone_token", payphoneToken);
-                    // @ts-ignore
-                    const payphoneConfig = {
-                      token: payphoneToken,
-                      clientTransactionId: `TX-${Date.now()}`,
-                      amount: parseInt(amount) * 100,
-                      amountWithoutTax: parseInt(amount) * 100,
-                      currency: "USD",
-                      storeId: process.env.EXPO_PUBLIC_PAYPHONE_STOREID,
-                      reference: "Recarga Beland",
-                      onSuccess: (data: any) => {
-                        console.log("[Payphone] Callback onSuccess", data);
-                        Alert.alert(
-                          "Pago confirmado",
-                          "La transacción fue aprobada por Payphone."
+              {!isLoading && (
+                <button
+                  style={{
+                    width: "100%",
+                    background: "#F88D2A",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 18,
+                    padding: "16px 0",
+                    borderRadius: 12,
+                    border: "none",
+                    boxShadow: "0 4px 16px rgba(248,141,42,0.15)",
+                    cursor: !amount ? "not-allowed" : "pointer",
+                    opacity: !amount ? 0.6 : 1,
+                    marginBottom: 8,
+                    transition: "all 0.2s",
+                  }}
+                  onClick={async () => {
+                    const ppDiv = document.getElementById("pp-button");
+                    if (ppDiv) ppDiv.innerHTML = "";
+                    setIsLoading(true);
+                    setTimeout(async () => {
+                      try {
+                        await loadPayphoneScript();
+                        const payphoneToken =
+                          process.env.EXPO_PUBLIC_PAYPHONE_TOKEN;
+                        localStorage.setItem("payphone_token", payphoneToken);
+                        const payphoneConfig = {
+                          token: payphoneToken,
+                          clientTransactionId: `TX-${Date.now()}`,
+                          amount: parseInt(amount) * 100,
+                          amountWithoutTax: parseInt(amount) * 100,
+                          currency: "USD",
+                          storeId: process.env.EXPO_PUBLIC_PAYPHONE_STOREID,
+                          reference: "Recarga Beland",
+                        };
+                        // @ts-ignore
+                        new window.PPaymentButtonBox(payphoneConfig).render(
+                          "pp-button"
                         );
+                      } catch (err) {
+                        alert("No se pudo cargar el widget de Payphone.");
                         setIsLoading(false);
-                      },
-                      onError: (err: any) => {
-                        console.log("[Payphone] Callback onError", err);
-                        Alert.alert(
-                          "Error",
-                          "No se pudo procesar el pago con Payphone."
-                        );
-                        setIsLoading(false);
-                      },
-                    };
-                    console.log(
-                      "[Payphone] Configuración enviada:",
-                      payphoneConfig
-                    );
-                    // @ts-ignore
-                    new window.PPaymentButtonBox(payphoneConfig).render(
-                      "pp-button"
-                    );
-                  } catch (err) {
-                    console.log("[Payphone] Error al cargar el widget:", err);
-                    alert("No se pudo cargar el widget de Payphone.");
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={!amount || isLoading}
-              >
-                {isLoading ? "Procesando..." : "Pagar con Payphone"}
-              </button>
+                      }
+                    }, 0);
+                  }}
+                  disabled={!amount}
+                >
+                  Pagar con Payphone
+                </button>
+              )}
             </>
           )}
         </div>
@@ -301,18 +445,22 @@ export default function RechargeScreen() {
         </View>
       )}
       {/* Botón de recarga */}
-      <TouchableOpacity
-        style={[
-          styles.rechargeButton,
-          (!amount || !selectedPaymentMethod || isLoading) &&
-            styles.rechargeButtonDisabled,
-        ]}
-        disabled={!amount || !selectedPaymentMethod || isLoading}
-      >
-        <Text style={styles.rechargeButtonText}>
-          {isLoading ? "Procesando..." : "Recargar BeCoins"}
-        </Text>
-      </TouchableOpacity>
+      {isLoading ? (
+        <View style={[styles.rechargeButton, styles.rechargeButtonDisabled]}>
+          <Text style={styles.rechargeButtonText}>Procesando...</Text>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={[
+            styles.rechargeButton,
+            (!amount || !selectedPaymentMethod) &&
+              styles.rechargeButtonDisabled,
+          ]}
+          disabled={!amount || !selectedPaymentMethod}
+        >
+          <Text style={styles.rechargeButtonText}>Recargar BeCoins</Text>
+        </TouchableOpacity>
+      )}
       <View style={styles.bottomSpace} />
     </ScrollView>
   );
