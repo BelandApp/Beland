@@ -15,7 +15,7 @@ import { UsersService } from 'src/users/users.service';
 
 // Interfaz para el payload de tu token JWT local
 // Esto asegura que TypeScript reconozca la propiedad 'sub'
-interface LocalJwtPayload {
+export interface LocalJwtPayload {
   sub: string; // ID del usuario (subject)
   email: string;
   role_name: string;
