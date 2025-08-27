@@ -93,6 +93,14 @@ export default function PayphoneSuccessScreen() {
           let backendRes, backendResult;
           if (isPayment && toWalletId) {
             // Pago QR
+            const payload = {
+              amountUsd,
+              referenceCode: payphoneData.reference,
+              payphone_transactionId: payphoneData.transactionId,
+              clientTransactionId: generatedClientTxId,
+              wallet_id: toWalletId,
+            };
+
             backendRes = await fetch(
               `${process.env.EXPO_PUBLIC_API_URL}/wallets/purchase-recharge/${toWalletId}`,
               {
@@ -101,18 +109,19 @@ export default function PayphoneSuccessScreen() {
                   "Content-Type": "application/json",
                   ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
                 },
-                body: JSON.stringify({
-                  amountUsd,
-                  referenceCode: payphoneData.reference,
-                  payphone_transactionId: payphoneData.transactionId,
-                  clientTransactionId: generatedClientTxId,
-                  wallet_id: toWalletId,
-                }),
+                body: JSON.stringify(payload),
               }
             );
             backendResult = await backendRes.json().catch(() => null);
           } else {
             // Recarga
+            const payload = {
+              amountUsd,
+              referenceCode: payphoneData.reference,
+              payphone_transactionId: payphoneData.transactionId,
+              clientTransactionId: generatedClientTxId,
+            };
+
             backendRes = await fetch(
               `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
               {
@@ -121,12 +130,7 @@ export default function PayphoneSuccessScreen() {
                   "Content-Type": "application/json",
                   ...(jwtToken ? { Authorization: `Bearer ${jwtToken}` } : {}),
                 },
-                body: JSON.stringify({
-                  amountUsd,
-                  referenceCode: payphoneData.reference,
-                  payphone_transactionId: payphoneData.transactionId,
-                  clientTransactionId: generatedClientTxId,
-                }),
+                body: JSON.stringify(payload),
               }
             );
             backendResult = await backendRes.json().catch(() => null);

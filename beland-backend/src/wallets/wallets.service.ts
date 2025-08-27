@@ -33,8 +33,8 @@ export class WalletsService {
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
     private readonly dataSource: DataSource, // 👈 acá lo inyectás
-   private readonly notificationsGateway: NotificationsGateway,)
-  {}
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
   async findAll(
     pageNumber: number,
@@ -519,7 +519,6 @@ export class WalletsService {
     await queryRunner.startTransaction();
 
     try {
-
       // 1) certifico que exista la wallet origen y que tenga los fondos
       const from = await queryRunner.manager.findOne(Wallet, {
         where: { user_id },
@@ -534,14 +533,15 @@ export class WalletsService {
       });
       if (!to) throw new NotFoundException('Billetera destino no existe');
 
-      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de usuario 
+      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de usuario
       // de la wallet destino.
       if (!code_transaction_send) {
         const user: User = await queryRunner.manager.findOne(User, {
-          where: { wallet: {id: to.id} },
+          where: { wallet: { id: to.id } },
         });
         if (!user) throw new NotFoundException('Usuario destino no existe');
-        switch (user.role.name) {
+
+        switch (user.role_name) {
           case 'COMMERCE':
             code_transaction_send = TransactionCode.PURCHASE;
             code_transaction_received = TransactionCode.SALE;
@@ -566,7 +566,7 @@ export class WalletsService {
           default:
             code_transaction_send = TransactionCode.TRANSFER_SEND;
             code_transaction_received = TransactionCode.TRANSFER_RECEIVED;
-          break;
+            break;
         }
       }
 
@@ -630,7 +630,7 @@ export class WalletsService {
       if (dto.amount_payment_id) {
         await queryRunner.manager.delete(AmountToPayment, {
           id: dto.amount_payment_id,
-        }); 
+        });
       }
 
       // 10) Si vino user_resource_id entonces doy de baja el recurso.
@@ -649,9 +649,11 @@ export class WalletsService {
       // Identificá al comercio: según tu código, 'to' es la wallet del comercio:
       // const to = ... (ya lo tenías arriba)
       this.notificationsGateway.notifyUser(to.user_id, {
+        wallet_id: to.id,
         message: "Cobro Realizado con Éxito",
         amount: +dto.amountBecoin* +this.superadminConfig.getPriceOneBecoin(),
         success: true,
+        amount_payment_id_deleted: dto.amount_payment_id || null,
       });    
 
       // se debe eliminar del front el amount to payment eliminado

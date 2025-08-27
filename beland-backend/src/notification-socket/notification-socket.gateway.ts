@@ -7,9 +7,11 @@ import { Server, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 
 export interface respSocket {
+  wallet_id: string,
   message: string;
   amount: number;
   success: boolean;
+  amount_payment_id_deleted?: string | null;
 }
 
 @WebSocketGateway({

@@ -22,6 +22,7 @@ import {
   exchangeCodeAsync,
 } from "expo-auth-session";
 import Constants from "expo-constants";
+import { SocketService, RespSocket } from "../services/SocketService";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -92,6 +93,7 @@ interface AuthContextType {
     country: string,
     city: string
   ) => Promise<true | string>;
+  socketData: RespSocket | null;
 }
 
 // === CONTEXTO ===
@@ -161,6 +163,9 @@ const fetchUserProfileFromBackend = async (
 
 // === PROVIDER ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // --- Socket.io integration ---
+  const socketService = React.useRef<SocketService | null>(null);
+  const [socketData, setSocketData] = useState<RespSocket | null>(null);
   useBeCoinsStoreHydration();
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -185,6 +190,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (user && user.email) {
       updateBeCoinsBalance(user.email);
+    }
+    // Conectar socket al iniciar sesión
+    if (user && user.id) {
+      const token = useAuthTokenStore.getState().token;
+      if (token) {
+        if (!socketService.current) {
+          socketService.current = new SocketService();
+          socketService.current.connect(token);
+          socketService.current.onBalanceUpdated((data: RespSocket) => {
+            setSocketData(data);
+            // Actualiza el balance si corresponde
+            if (data.success && typeof data.amount === "number") {
+              useBeCoinsStore.getState().setBalance(data.amount);
+            }
+          });
+          socketService.current.onTransactionReceived((data: RespSocket) => {
+            setSocketData(data);
+            // Puedes mostrar notificaciones, etc.
+          });
+        }
+      }
+    }
+    // Desconectar socket al cerrar sesión
+    if (!user && socketService.current) {
+      socketService.current.disconnect();
+      socketService.current = null;
+      setSocketData(null);
     }
   }, [user]);
 
@@ -406,6 +438,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     setUser(null);
     setIsDemo(false);
+    if (socketService.current) {
+      socketService.current.disconnect();
+      socketService.current = null;
+      setSocketData(null);
+    }
     await deleteToken();
   };
 
@@ -421,6 +458,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         loginAsDemo,
         loginWithEmailPassword,
         registerWithEmailPassword,
+        socketData,
       }}
     >
       {children}
