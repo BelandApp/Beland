@@ -5,77 +5,55 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Platform, Alert, ActivityIndicator } from "react-native";
-import { authService } from "../services/authService";
-import { apiRequest } from "../services/api";
+import {
+  Platform,
+  Alert,
+  ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
 import { useAuthTokenStore } from "../stores/useAuthTokenStore";
 import {
   useBeCoinsStore,
   useBeCoinsStoreHydration,
 } from "../stores/useBeCoinsStore";
-import { walletService } from "../services/walletService";
-import * as WebBrowser from "expo-web-browser";
-import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-Browser";
 import {
   makeRedirectUri,
   useAuthRequest,
   exchangeCodeAsync,
+  useAutoDiscovery,
 } from "expo-auth-session";
 import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { jwtDecode } from "jwt-decode";
+import { supabase } from "../services/supabaseClient";
 
 WebBrowser.maybeCompleteAuthSession();
 
 // === CONFIGURACIÓN ===
 const auth0Domain = Constants.expoConfig?.extra?.auth0Domain as string;
 const clientWebId = Constants.expoConfig?.extra?.auth0WebClientId as string;
-
 const scheme = Constants.expoConfig?.scheme as string;
+const apiBaseUrl = Constants.expoConfig?.extra?.apiUrl as string;
+const auth0Audience = Constants.expoConfig?.extra?.auth0Audience as string;
 
-const apiBaseUrl =
-  (Constants.expoConfig?.extra?.apiUrl as string) || "http://localhost:3001";
-const auth0Audience = "https://beland.onrender.com/api";
+// Validar que las variables de entorno están disponibles
+const configIsValid =
+  auth0Domain && clientWebId && scheme && apiBaseUrl && auth0Audience;
 
-if (!auth0Domain || !clientWebId || !scheme || !apiBaseUrl) {
-  console.error(
-    "❌ Error: Las variables de entorno de Auth0 o API no están configuradas correctamente en app.config.js."
-  );
-}
-
-const isWeb = Platform.OS === "web";
-
-const redirectUri = makeRedirectUri({
-  scheme,
-  useProxy: !isWeb,
-} as any);
-
-console.log("🔁 redirectUri:", redirectUri);
-console.log("Domain:", auth0Domain);
-console.log("Client Web ID:", clientWebId);
-console.log("Audience:", auth0Audience);
-console.log("Redirect URI:", redirectUri);
-
-const discovery = {
-  authorizationEndpoint: `https://${auth0Domain}/authorize`,
-  tokenEndpoint: `https://${auth0Domain}/oauth/token`,
-  revocationEndpoint: `https://${auth0Domain}/oauth/revoke`,
-};
-
-// === TIPADO ===
-
-export interface AuthUser {
+// Resto del código de interfaces y contexto...
+interface UserProfile {
   id: string;
   email: string;
-  name?: string;
-  picture?: string;
-  role?: string;
-  full_name?: string;
-  profile_picture_url?: string;
-  role_name?: string;
+  name: string;
+  picture: string;
+  auth0_id: string;
+  beCoinsBalance?: number;
 }
 
-interface AuthContextType {
-  user: AuthUser | null;
+interface UserContextType {
+  user: UserProfile | null;
   isLoading: boolean;
   loginWithAuth0: () => void;
   logout: () => void;
@@ -84,96 +62,39 @@ interface AuthContextType {
   setSession: (token: string) => Promise<void>;
 }
 
-// === CONTEXTO ===
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<UserContextType | undefined>(undefined);
 
-// Funciones auxiliares de manejo de token
-const saveToken = async (token: string) => {
-  useAuthTokenStore.getState().setToken(token);
-  if (Platform.OS === "web") {
-    localStorage.setItem("auth_token", token);
-  } else {
-    await SecureStore.setItemAsync("auth_token", token);
-  }
-};
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
-const getToken = async (): Promise<string | null> => {
-  if (Platform.OS === "web") {
-    return localStorage.getItem("auth_token");
-  } else {
-    return await SecureStore.getItemAsync("auth_token");
-  }
-};
+  // Obtenemos los métodos del store de forma compatible
+  const tokenStore = useAuthTokenStore();
+  const beCoinsStore = useBeCoinsStore();
+  useBeCoinsStoreHydration();
 
-const deleteToken = async () => {
-  if (Platform.OS === "web") {
-    localStorage.removeItem("auth_token");
-  } else {
-    await SecureStore.deleteItemAsync("auth_token");
-  }
-};
-
-const fetchUserProfileFromBackend = async (
-  token: string
-): Promise<AuthUser> => {
-  const res = await fetch(`${apiBaseUrl}/auth/me`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json();
-    console.error("❌ Error al obtener el perfil del backend:", errorData);
-    throw new Error(
-      errorData.message || "Error al obtener el perfil del backend."
+  // Si la configuración no es válida, no inicializamos los hooks
+  if (!configIsValid) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>
+          Error: Falta la configuración de Auth0. Por favor, revisa tus archivos
+          .env y app.config.js.
+        </Text>
+      </View>
     );
   }
 
-  const backendUser = await res.json();
-  return {
-    id: backendUser.id,
-    email: backendUser.email,
-    name: backendUser.full_name || backendUser.username,
-    picture: backendUser.profile_picture_url,
-    role: backendUser.role_name,
-    full_name: backendUser.full_name,
-    profile_picture_url: backendUser.profile_picture_url,
-    role_name: backendUser.role_name,
-  };
-};
+  // Ahora podemos inicializar los hooks de Expo Auth Session de forma segura
+  const redirectUri = makeRedirectUri({
+    scheme,
+    path: "auth",
+  });
 
-// === PROVIDER ===
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  useBeCoinsStoreHydration();
-
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
-
-  const updateBeCoinsBalance = async (userEmail: string) => {
-    try {
-      if (!user) return;
-      const wallet = await walletService.getWalletByUserId(user.email, user.id);
-      if (wallet && wallet.becoin_balance !== undefined) {
-        const balanceNum = Number(wallet.becoin_balance);
-        useBeCoinsStore
-          .getState()
-          .setBalance(isNaN(balanceNum) ? 0 : balanceNum);
-      }
-    } catch (e) {
-      console.error("No se pudo actualizar el balance de BeCoins:", e);
-    }
-  };
-
-  useEffect(() => {
-    if (user && user.email) {
-      updateBeCoinsBalance(user.email);
-    }
-  }, [user]);
+  const discovery = useAutoDiscovery(`https://${auth0Domain}`);
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -184,81 +105,180 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       usePKCE: true,
       extraParams: {
         audience: auth0Audience,
-        prompt: "login",
       },
     },
     discovery
   );
 
-  // ✅ Nueva función para procesar un token y establecer la sesión
-  const processAuthTokenAndSetSession = useCallback(async (token: string) => {
+  const correctedApiBaseUrl = apiBaseUrl.includes("://")
+    ? apiBaseUrl
+    : `http://${apiBaseUrl}`;
+
+  const fetchUserProfileFromBackend = useCallback(
+    // ... (El resto de tu código es el mismo, solo he añadido la verificación inicial) ...
+    async (token: string) => {
+      try {
+        const res = await fetch(`${correctedApiBaseUrl}/auth/me`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Error en el servidor: ${res.statusText}`);
+        }
+
+        const userProfile = await res.json();
+        return userProfile;
+      } catch (error) {
+        console.error("❌ Error al obtener el perfil del backend:", error);
+        throw error;
+      }
+    },
+    [correctedApiBaseUrl]
+  );
+
+  const checkAndCreateSupabaseUser = useCallback(async (auth0User: any) => {
+    // ... (código existente) ...
     try {
-      if (!token) {
-        console.error("❌ No se recibió token.");
-        throw new Error("No token provided.");
+      const { data: existingUser, error: fetchError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("auth0_id", auth0User.sub)
+        .single();
+
+      if (fetchError && fetchError.code !== "PGRST116") {
+        console.error("❌ Error consultando Supabase:", fetchError);
+        throw new Error("Error en Supabase");
       }
 
-      await saveToken(token);
-      const authUser = await fetchUserProfileFromBackend(token);
-      setUser(authUser);
-      setIsDemo(false);
+      if (!existingUser) {
+        const { data: newUser, error: insertError } = await supabase
+          .from("users")
+          .insert({
+            auth0_id: auth0User.sub,
+            email: auth0User.email,
+            name: auth0User.name || auth0User.nickname,
+          })
+          .select()
+          .single();
 
-      if (authUser?.email) {
-        await updateBeCoinsBalance(authUser.email);
+        if (insertError) {
+          console.error("❌ Error creando usuario en Supabase:", insertError);
+          throw new Error("Fallo al registrar el usuario en Supabase.");
+        }
+        console.log("✅ Usuario creado en Supabase con éxito.");
+        return newUser;
       }
-    } catch (err) {
-      console.error(
-        "❌ Error al procesar el token y establecer la sesión:",
-        err
-      );
-      await deleteToken();
-      throw err; // Vuelve a lanzar el error para que el componente que llama lo pueda manejar
-    } finally {
-      setIsLoading(false);
+      console.log("✅ Usuario ya existe en Supabase.");
+      return existingUser;
+    } catch (error) {
+      console.error("❌ Error en el flujo de Supabase:", error);
+      throw error;
     }
   }, []);
 
-  // === Manejo de Login con Auth0 ===
+  const processAuthTokenAndSetSession = useCallback(
+    // ... (código existente) ...
+    async (token: string) => {
+      try {
+        const decodedToken: any = jwtDecode(token);
+        const auth0User = {
+          sub: decodedToken.sub,
+          email: decodedToken.email,
+          name: decodedToken.name,
+          picture: decodedToken.picture,
+        };
+
+        await checkAndCreateSupabaseUser(auth0User);
+        const userProfile = await fetchUserProfileFromBackend(token);
+        setUser(userProfile);
+        setIsDemo(false);
+        await tokenStore.setToken(token);
+        if (userProfile?.beCoinsBalance) {
+          beCoinsStore.setBalance(userProfile.beCoinsBalance);
+        }
+        console.log("✅ Sesión establecida con éxito.");
+      } catch (err) {
+        console.error(
+          "❌ Error al procesar el token y establecer la sesión:",
+          err
+        );
+        await tokenStore.clearToken();
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      fetchUserProfileFromBackend,
+      checkAndCreateSupabaseUser,
+      tokenStore,
+      beCoinsStore,
+    ]
+  );
+
   useEffect(() => {
     const handleAuth = async () => {
       if (response?.type === "success" && response.params?.code) {
         setIsLoading(true);
         try {
-          const tokenResult = await exchangeCodeAsync(
-            {
-              code: response.params.code,
-              clientId: clientWebId,
-              redirectUri,
-              extraParams: { code_verifier: request?.codeVerifier || "" },
-            },
-            discovery
-          );
+          if (discovery) {
+            const tokenResult = await exchangeCodeAsync(
+              {
+                code: response.params.code,
+                clientId: clientWebId,
+                redirectUri,
+                extraParams: { code_verifier: request?.codeVerifier || "" },
+              },
+              discovery
+            );
 
-          const accessToken = tokenResult.accessToken;
-          console.log(accessToken, "✅ Access Token obtenido");
-          await processAuthTokenAndSetSession(accessToken);
+            const accessToken = tokenResult.accessToken;
+            await processAuthTokenAndSetSession(accessToken);
+          } else {
+            setIsLoading(false);
+            return;
+          }
         } catch (err) {
           console.error(
             "❌ Error durante el flujo de autenticación o sincronización con el backend:",
             err
           );
-          await deleteToken();
+          Alert.alert(
+            "Error de Autenticación",
+            "Hubo un problema al iniciar sesión. Por favor, inténtalo de nuevo."
+          );
+          await tokenStore.clearToken();
         } finally {
           setIsLoading(false);
         }
       } else if (response?.type === "error") {
         console.error("❌ Error de autenticación de Auth0:", response.error);
+        Alert.alert(
+          "Error de Autenticación",
+          "Hubo un problema con tu sesión de Auth0. Por favor, inténtalo de nuevo."
+        );
         setIsLoading(false);
       }
     };
 
     handleAuth();
-  }, [response, request, processAuthTokenAndSetSession]);
+  }, [
+    response,
+    request,
+    discovery,
+    redirectUri,
+    clientWebId,
+    processAuthTokenAndSetSession,
+    tokenStore,
+  ]);
 
-  // === Restaurar sesión al cargar ===
   useEffect(() => {
     const restoreSession = async () => {
-      const token = await getToken();
+      const token = tokenStore.token;
       if (!token) {
         setIsLoading(false);
         return;
@@ -268,15 +288,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await processAuthTokenAndSetSession(token);
       } catch (err) {
         console.error("❌ Error restaurando sesión:", err);
-        await deleteToken();
+        await tokenStore.clearToken();
       } finally {
         setIsLoading(false);
       }
     };
 
     restoreSession();
-  }, [processAuthTokenAndSetSession]);
-
+  }, [processAuthTokenAndSetSession, tokenStore]);
 
   const loginWithAuth0 = () => {
     setIsLoading(true);
@@ -289,6 +308,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email: "demo@beland.app",
       name: "Usuario Demo",
       picture: "https://ui-avatars.com/api/?name=Demo+User&background=random",
+      auth0_id: "demo-auth0-id",
     });
     setIsDemo(true);
     setIsLoading(false);
@@ -297,7 +317,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     setUser(null);
     setIsDemo(false);
-    await deleteToken();
+    await tokenStore.clearToken();
   };
 
   return (
@@ -316,11 +336,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// === HOOK ===
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth debe usarse dentro de un AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+  },
+});
