@@ -14,8 +14,10 @@ import {
   exchangeCodeAsync,
   useAutoDiscovery,
 } from "expo-auth-session";
-import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
+import { SocketService, RespSocket } from "../services/SocketService";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -42,56 +44,89 @@ export interface AuthUser {
   full_name: string;
   picture?: string;
   auth0_id?: string;
+  role?: string;
   role_name?: string;
   coins?: number;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
+  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
   isLoading: boolean;
-  isDemo: boolean;
   loginWithAuth0: () => void;
   logout: () => void;
-  loginAsDemo: () => void;
   fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// === Almacenamiento Seguro del Token ===
-const tokenStorageKey = "auth0_jwt_token";
-
+// === Almacenamiento híbrido de token y usuario ===
 const saveToken = async (token: string) => {
   if (Platform.OS === "web") {
-    await AsyncStorage.setItem(tokenStorageKey, token);
+    localStorage.setItem("auth_token", token);
   } else {
-    await SecureStore.setItemAsync(tokenStorageKey, token);
+    await AsyncStorage.setItem("auth_token", token);
   }
 };
 
 const getToken = async () => {
   if (Platform.OS === "web") {
-    return (await AsyncStorage.getItem(tokenStorageKey)) || null;
+    return localStorage.getItem("auth_token");
   } else {
-    return (await SecureStore.getItemAsync(tokenStorageKey)) || null;
+    return await AsyncStorage.getItem("auth_token");
   }
 };
 
 const deleteToken = async () => {
   if (Platform.OS === "web") {
-    await AsyncStorage.removeItem(tokenStorageKey);
+    localStorage.removeItem("auth_token");
   } else {
-    await SecureStore.deleteItemAsync(tokenStorageKey);
+    await AsyncStorage.removeItem("auth_token");
+  }
+};
+
+const saveUser = async (user: AuthUser) => {
+  const userStr = JSON.stringify(user);
+  if (Platform.OS === "web") {
+    localStorage.setItem("auth_user", userStr);
+  } else {
+    await AsyncStorage.setItem("auth_user", userStr);
+  }
+};
+
+const getUser = async (): Promise<AuthUser | null> => {
+  let userStr;
+  if (Platform.OS === "web") {
+    userStr = localStorage.getItem("auth_user");
+  } else {
+    userStr = await AsyncStorage.getItem("auth_user");
+  }
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
+};
+
+const deleteUser = async () => {
+  if (Platform.OS === "web") {
+    localStorage.removeItem("auth_user");
+  } else {
+    await AsyncStorage.removeItem("auth_user");
   }
 };
 
 // === PROVEEDOR ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // --- Socket.io integration (puedes re-agregarlo luego si lo necesitas) ---
+  // const socketService = React.useRef<SocketService | null>(null);
+  // const [socketData, setSocketData] = useState<RespSocket | null>(null);
+
   const [user, setUser] = useState<AuthUser | null>(null);
-  // Inicializamos isLoading en true para asegurar que la app esté en estado de carga
-  // hasta que hayamos terminado de comprobar la sesión.
   const [isLoading, setIsLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
+
+  // useEffect para socket y balance eliminado
 
   if (!configIsValid) {
     return (
@@ -117,6 +152,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       usePKCE: true,
       extraParams: {
         audience: auth0Audience,
+        prompt: "login", // Fuerza a que Auth0 muestre la pantalla de login
       },
     },
     discovery
@@ -149,36 +185,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error(`Error al obtener perfil: ${response.statusText}`);
       }
       const data = await response.json();
-      setUser(data);
+      const userObj = {
+        ...data,
+        picture: data.profile_picture_url,
+      };
+      setUser(userObj);
+      await saveUser(userObj);
       console.log("✅ Perfil de usuario obtenido exitosamente.");
     } catch (error) {
       console.error("❌ Error obteniendo perfil del usuario:", error);
       setUser(null);
       await deleteToken();
-      // Nota: Aquí no establecemos isLoading a false. Esto se maneja en el useEffect principal.
-      throw error; // Re-lanzar el error para que el bloque try-catch externo lo capture.
+      await deleteUser();
+      throw error;
     }
   }, [apiBaseUrl, fetchWithAuth]);
 
   // Se ha consolidado toda la lógica de inicialización en un solo useEffect.
   useEffect(() => {
     const initializeAuth = async () => {
-      // El bloque try-catch-finally asegura que isLoading se establezca en false
-      // solo al final de todo el proceso de inicialización, ya sea por éxito o fracaso.
       try {
-        // 1. Intentar restaurar la sesión desde el almacenamiento seguro.
+        // Restaurar sesión híbrida solo una vez al montar
         const token = await getToken();
-        if (token) {
-          console.log("🔄 Restaurando sesión...");
-          await getProfile();
+        const storedUser = await getUser();
+        if (token && storedUser) {
+          setUser(storedUser);
         } else {
-          console.log("🚫 No hay token almacenado.");
+          setUser(null);
         }
 
-        // 2. Manejar la respuesta del redireccionamiento de Auth0.
-        // Esto solo se ejecuta si el usuario acaba de iniciar sesión a través del flujo de Auth0.
+        // Procesar redireccionamiento de Auth0 solo si hay response
         if (response && response.type === "success" && discovery) {
-          console.log("🔄 Procesando redireccionamiento de Auth0...");
           const { code } = response.params;
           if (code) {
             const tokenResponse = await exchangeCodeAsync(
@@ -193,10 +230,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   }),
                 }),
                 extraParams: {
-                  code_verifier: request!.codeVerifier!,
+                  code_verifier: request?.codeVerifier || "",
                 },
               },
-              discovery!
+              discovery
             );
             if (tokenResponse.accessToken) {
               await saveToken(tokenResponse.accessToken);
@@ -207,65 +244,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch (err) {
-        console.error("❌ Error en la inicialización o autenticación:", err);
-        // Si hay un error, asegúrate de que el usuario no esté en un estado incorrecto.
         setUser(null);
         await deleteToken();
+        await deleteUser();
         Alert.alert(
           "Error de autenticación",
           "Fallo al iniciar sesión. Por favor, inténtelo de nuevo."
         );
       } finally {
-        // Este es el ÚNICO lugar donde isLoading se establece en false,
-        // garantizando que no haya parpadeos.
         setIsLoading(false);
-        console.log("✅ Proceso de carga finalizado.");
       }
     };
-
-    // No se usa una función auto-invocada, sino que se llama explícitamente
-    // para que la promesa sea manejada correctamente.
     initializeAuth();
-  }, [response, discovery, request, getProfile]); // Dependencias del efecto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [response]);
 
   const loginWithAuth0 = () => {
     // Es importante establecer isLoading en true antes de iniciar el flujo
     // para que la interfaz de usuario muestre el estado de carga.
     setIsLoading(true);
-    promptAsync({ useProxy: true } as any);
-  };
-
-  const loginAsDemo = () => {
-    setIsLoading(true); // Se inicia el estado de carga
-    // Se establece el usuario demo
-    setUser({
-      id: "demo-user",
-      email: "demo@beland.app",
-      full_name: "Usuario Demo",
-      picture: "https://ui-avatars.com/api/?full_name=Demo+User",
-    });
-    setIsDemo(true);
-    // Se finaliza el estado de carga solo después de que el usuario demo ha sido establecido.
-    setIsLoading(false);
+    promptAsync();
   };
 
   const logout = async () => {
     setUser(null);
-    setIsDemo(false);
     await deleteToken();
+    await deleteUser();
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isLoading,
         loginWithAuth0,
         logout,
-        isDemo,
-        loginAsDemo,
+
         fetchWithAuth,
-      }}>
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
