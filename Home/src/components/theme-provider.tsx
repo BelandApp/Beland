@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -24,6 +25,7 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = React.createContext<ThemeProviderState>(initialState)
 
+
 export function ThemeProvider({
   children,
   defaultTheme = "system",
@@ -31,6 +33,7 @@ export function ThemeProvider({
   attribute = "class",
   enableSystem = true,
 }: ThemeProviderProps) {
+
   const [theme, setTheme] = React.useState<Theme>(() => {
     if (typeof window === 'undefined') {
       return defaultTheme;
@@ -85,3 +88,4 @@ export const useTheme = () => {
 
   return context
 }
+
