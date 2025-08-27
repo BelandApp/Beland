@@ -1,71 +1,51 @@
-// notifications-socket.gateway.ts
 import {
   WebSocketGateway,
   WebSocketServer,
   OnGatewayConnection,
-  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable } from '@nestjs/common';
-// (opcional) tu AuthService para validar JWT
-// import { AuthService } from '../auth/auth.service';
+import * as jwt from 'jsonwebtoken';
 
-@Injectable()
+export interface respSocket {
+  wallet_id: string,
+  message: string;
+  amount: number;
+  success: boolean;
+  amount_payment_id_deleted?: string | null;
+}
+
 @WebSocketGateway({
-  namespace: '/realtime',
-  cors: { origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://beland.app',
-    'https://*-beland-8081.exp.direct',
-    'http://localhost:8081',
-    'https://auth.expo.io/@beland/Beland',
-    'belandnative://redirect',
-    'http://localhost:8081/api',
-    'https://eoy0nfm-beland-8081.exp.direct',
-    'https://nl6egxw-anonymous-8081.exp.direct',
-    'https://zef_jly-anonymous-8081.exp.direct',
-  ], credentials: true },
+  cors: { origin: '*' },
 })
-export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() io: Server;
-  // constructor(private authService: AuthService) {}
+export class NotificationsGateway implements OnGatewayConnection {
+  @WebSocketServer()
+  server: Server;
 
-  async handleConnection(socket: Socket) {
+  async handleConnection(client: Socket) {
     try {
-      // === Autenticación simple con token en auth ===
-      const bearer = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-      const token = bearer?.startsWith('Bearer ') ? bearer.slice(7) : bearer;
+      const token = client.handshake.auth.token || client.handshake.query.token;
+      if (!token) {
+        client.disconnect(true);
+        return;
+      }
 
-      // TODO: validar el token y extraer userId (recomendado)
-      // const payload = this.authService.verifySocketToken(token);
-      // const userId = payload.sub;
+      // 👇 Validar JWT (usá tu secret del backend)
+      const payload: any = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Si recién arrancás y no tenés JWT en sockets, podés probar con query:
-      const userId = (socket.handshake.query.userId as string) || 'unknown';
+      // Supongamos que el payload trae { sub: userId, email, role, ... }
+      const userId = payload.sub;
 
-      if (!userId) return socket.disconnect(true);
-
-      socket.data.userId = userId;
-      socket.join(`user:${userId}`);
-
-      // Opcional: log
-      // console.log(`Socket ${socket.id} conectado. Room: user:${userId}`);
-    } catch {
-      socket.disconnect(true);
+      // Unir al usuario a su sala única
+      client.join(`user_${userId}`);
+      console.log(`Usuario ${userId} conectado a sala user_${userId}`);
+    } catch (err) {
+      console.log('Error en handshake:', err);
+      client.disconnect(true);
     }
   }
-
-  handleDisconnect(socket: Socket) {
-    // console.log(`Socket ${socket.id} desconectado`);
-  }
-
-  // === Métodos para emitir ===
-  notifyCommerceByUserId(userId: string, payload: any) {
-    this.io.to(`user:${userId}`).emit('balanceUpdated', payload);
-  }
-
-  notifyTransactionReceived(userId: string, payload: any) {
-    this.io.to(`user:${userId}`).emit('transactionReceived', payload);
+  
+  // Método para notificar a un usuario
+  notifyUser(userId: string, payload: respSocket) {
+    this.server.to(`user_${userId}`).emit('payment-success', payload);
   }
 }

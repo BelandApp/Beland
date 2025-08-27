@@ -1,9 +1,11 @@
-import { IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PaymentWithRechargeDto {
   @ApiProperty({ example: 50.0, description: 'Amount in USD to recharge' })
   @IsNumber()
+  @Min(0)
+  @IsNotEmpty()
   amountUsd: number;
 
   @ApiProperty({

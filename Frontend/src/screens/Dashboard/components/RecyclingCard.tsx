@@ -25,10 +25,21 @@ export const RecyclingCard: React.FC<RecyclingCardProps> = ({
           <View>
             <Text style={recyclingCardStyles.recyclingTitle}>Reciclaste</Text>
             <View style={recyclingCardStyles.recyclingStats}>
-              <Text style={recyclingCardStyles.recyclingNumber}>
-                {bottlesRecycled}
-              </Text>
-              <Text style={recyclingCardStyles.recyclingLabel}>botellas</Text>
+              {bottlesRecycled > 0 ? (
+                <>
+                  <Text style={recyclingCardStyles.recyclingNumber}>
+                    {bottlesRecycled}
+                  </Text>
+                  <Text style={recyclingCardStyles.recyclingLabel}>
+                    botellas
+                  </Text>
+                </>
+              ) : (
+                <Text style={recyclingCardStyles.recyclingLabel}>
+                  Aún no has reciclado botellas. ¡Comienza a reciclar y verás tu
+                  progreso aquí!
+                </Text>
+              )}
             </View>
           </View>
         </View>

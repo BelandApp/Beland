@@ -9,7 +9,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from 'src/users/entities/users.entity'; // Importa la entidad User
+import { User } from '../../users/entities/users.entity'; // Importa la entidad User
 
 @Entity('testimonies') // Nombre de la tabla en la base de datos
 export class Testimony {

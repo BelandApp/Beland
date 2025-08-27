@@ -18,13 +18,17 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     if (transaction.type === "transfer") return "arrow-up-right";
     if (transaction.type === "recharge") return "plus-circle";
     if (transaction.type === "exchange") return "swap-horizontal";
+    if (transaction.type === "payment") return "credit-card-minus";
+    if (transaction.type === "collection") return "cash-plus";
     return "help-circle";
   };
 
   const getTransactionColor = () => {
     // Si es transferencia recibida, mostrar verde
-    if (transaction.type === "receive") return "#4caf50";
-    if (transaction.type === "transfer") return "#f44336";
+    if (transaction.type === "receive" || transaction.type === "collection")
+      return "#4caf50";
+    if (transaction.type === "transfer" || transaction.type === "payment")
+      return "#f44336";
     if (transaction.type === "recharge") return "#2196f3";
     if (transaction.type === "exchange") return "#ff9800";
     return "#666";
@@ -32,9 +36,15 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
   const getAmountPrefix = () => {
     // Si es transferencia recibida, mostrar '+'
-    if (transaction.type === "receive") return "+";
-    if (transaction.type === "transfer") return "-";
-    return "+";
+    if (
+      transaction.type === "receive" ||
+      transaction.type === "collection" ||
+      transaction.type === "recharge"
+    )
+      return "+";
+    if (transaction.type === "transfer" || transaction.type === "payment")
+      return "-";
+    return "";
   };
 
   const getStatusColor = () => {
@@ -52,7 +62,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
   // Forzar monto positivo para transferencias recibidas
   const displayAmount =
-    transaction.type === "receive"
+    transaction.type === "receive" || transaction.type === "collection"
       ? Math.abs(transaction.amount_beicon)
       : transaction.amount_beicon;
 
@@ -84,7 +94,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             <BeCoinIcon width={16} height={16} />
             <Text style={[styles.amount, { color: getTransactionColor() }]}>
               {getAmountPrefix()}
-              {displayAmount}
+              {String(Math.abs(displayAmount))}
             </Text>
           </View>
           <View

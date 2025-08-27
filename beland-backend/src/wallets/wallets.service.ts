@@ -21,8 +21,9 @@ import { User } from 'src/users/entities/users.entity';
 import { AmountToPayment } from 'src/amount-to-payment/entities/amount-to-payment.entity';
 import { RespCobroDto } from './dto/resp-cobro.dto';
 import { UserResource } from 'src/user-resources/entities/user-resource.entity';
-//import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
+import { NotificationsGateway } from 'src/notification-socket/notification-socket.gateway';
 import { RespTransferResult } from './dto/resp-tranfer-result.dto';
+import { UserEventBeland } from 'src/users/entities/users-event-beland.entity';
 
 @Injectable()
 export class WalletsService {
@@ -31,7 +32,8 @@ export class WalletsService {
   constructor(
     private readonly repository: WalletsRepository,
     private readonly superadminConfig: SuperadminConfigService,
-    private readonly dataSource: DataSource, // 👈 acá lo inyectás // private readonly notificationsGateway: NotificationsGateway,
+    private readonly dataSource: DataSource, // 👈 acá lo inyectás
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
   async findAll(
@@ -531,14 +533,15 @@ export class WalletsService {
       });
       if (!to) throw new NotFoundException('Billetera destino no existe');
 
-      const user: User = await queryRunner.manager.findOne(User, {
-        where: { id: user_id },
-      });
-      if (!user) throw new NotFoundException('Usuario destino no existe');
-
-      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de wallet
+      // 2 Bis) Si no se especifica el tipo de transaccion lo agrego segun el tipo de usuario
+      // de la wallet destino.
       if (!code_transaction_send) {
-        switch (user.role.name) {
+        const user: User = await queryRunner.manager.findOne(User, {
+          where: { wallet: { id: to.id } },
+        });
+        if (!user) throw new NotFoundException('Usuario destino no existe');
+
+        switch (user.role_name) {
           case 'COMMERCE':
             code_transaction_send = TransactionCode.PURCHASE;
             code_transaction_received = TransactionCode.SALE;
@@ -552,6 +555,12 @@ export class WalletsService {
           case 'SUPERADMIN':
             code_transaction_send = TransactionCode.PURCHASE_BELAND;
             code_transaction_received = TransactionCode.SALE_BELAND;
+            await queryRunner.manager.save(UserEventBeland, {
+              user_payment_id: user_id,
+              user_sale_id: user.id,
+              amount: dto.amountBecoin,
+              isRecycled: dto.amountBecoin === 0,
+            });
             break;
 
           default:
@@ -621,7 +630,7 @@ export class WalletsService {
       if (dto.amount_payment_id) {
         await queryRunner.manager.delete(AmountToPayment, {
           id: dto.amount_payment_id,
-        }); // <- FIX
+        });
       }
 
       // 10) Si vino user_resource_id entonces doy de baja el recurso.
@@ -639,16 +648,13 @@ export class WalletsService {
       // === EMITIR EVENTO AL COMERCIO (post-commit) ===
       // Identificá al comercio: según tu código, 'to' es la wallet del comercio:
       // const to = ... (ya lo tenías arriba)
-      // const payload:RespTransferResult = {
-      //   walletId: to.id,
-      //   success: true,
-      //   newBalance: to.becoin_balance,
-      //   message: 'Se acreditó tu pago',
-      //   amountPaymentIdDeleted: dto.amount_payment_id || null,
-      // };
-
-      // // Room por userId del comercio (recomendado)
-      // this.notificationsGateway.notifyCommerceByUserId(to.user_id, payload);
+      this.notificationsGateway.notifyUser(to.user_id, {
+        wallet_id: to.id,
+        message: "Cobro Realizado con Éxito",
+        amount: +dto.amountBecoin* +this.superadminConfig.getPriceOneBecoin(),
+        success: true,
+        amount_payment_id_deleted: dto.amount_payment_id || null,
+      });    
 
       // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };

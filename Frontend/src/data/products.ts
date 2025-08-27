@@ -12,7 +12,7 @@ export interface AvailableProduct {
 
 export const AVAILABLE_PRODUCTS: AvailableProduct[] = [
   {
-    id: "1",
+    id: "1", 
     name: "Red Label (750ml)",
     basePrice: 26.5,
     category: "Bebidas",
