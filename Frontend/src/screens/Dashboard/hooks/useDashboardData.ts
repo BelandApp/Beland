@@ -7,12 +7,12 @@ export const useDashboardData = () => {
 
   const userStats = {
     userName: "Zaire",
-    coinsAmount: balance, // Usar balance real del store
-    bottlesRecycled: 47,
+    coinsAmount: balance,
+    bottlesRecycled: 0, // Inicial para producción
   };
 
   const getRecentActivities = (): Activity[] => {
-    return RECENT_ACTIVITIES;
+    return []; // Inicial para producción
   };
 
   return {

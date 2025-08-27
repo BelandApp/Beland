@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Platform } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
 import {
   View,
   Text,
@@ -8,12 +9,11 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  FlatList,
   Alert,
   Image,
 } from "react-native";
-
 import { walletService } from "../../services/walletService";
+import { convertUSDToBeCoins } from "../../constants/currency";
 import { useNavigation } from "@react-navigation/native";
 
 const CobrarScreen = () => {
@@ -21,16 +21,25 @@ const CobrarScreen = () => {
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(""); // USD
   const [amounts, setAmounts] = useState<any[]>([]);
   const [loadingAmounts, setLoadingAmounts] = useState(false);
   const [creating, setCreating] = useState(false);
   const [presets, setPresets] = useState<any[]>([]);
   const [loadingPresets, setLoadingPresets] = useState(false);
-  const [presetAmount, setPresetAmount] = useState("");
+  const [presetAmount, setPresetAmount] = useState(""); // USD
   const [presetName, setPresetName] = useState("");
   const [presetMessage, setPresetMessage] = useState("");
   const IS_WEB = Platform.OS && String(Platform.OS).toLowerCase() === "web";
+
+  // Helper para formatear monto USD
+  const formatUSD = (value: string | number) => {
+    if (!value) return "$0.00";
+    return `$${Number(value).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   // Componente auxiliar para renderizar <a> en web con icono
   const WebDownloadButton = ({ qrImage }: { qrImage: string }) => {
@@ -50,9 +59,7 @@ const CobrarScreen = () => {
           fontFamily: "sans-serif",
         }}
       >
-        {/* @ts-ignore */}
         <span style={{ display: "flex", alignItems: "center" }}>
-          {/* @ts-ignore */}
           <svg
             width="20"
             height="20"
@@ -92,10 +99,8 @@ const CobrarScreen = () => {
     setLoadingAmounts(true);
     try {
       const res = await walletService.getAmountsToPayment();
-      console.log("[CobrarScreen] Montos obtenidos:", res);
       setAmounts(Array.isArray(res) ? res[0] : res || []);
     } catch (err) {
-      console.error("[CobrarScreen] Error al obtener montos:", err);
       Alert.alert("Error", "No se pudieron cargar los montos");
     } finally {
       setLoadingAmounts(false);
@@ -113,7 +118,7 @@ const CobrarScreen = () => {
       const res = await walletService.getPresetAmounts();
       setPresets(Array.isArray(res) ? res[0] : res || []);
     } catch (err) {
-      console.error("[CobrarScreen] Error al obtener presets:", err);
+      // No alert, solo log
     } finally {
       setLoadingPresets(false);
     }
@@ -165,13 +170,10 @@ const CobrarScreen = () => {
   };
 
   const handleDeleteAmount = async (id: string) => {
-    console.log("[CobrarScreen] Intentando eliminar monto con id:", id);
     try {
       await walletService.deleteAmountToPayment(id);
-      console.log("[CobrarScreen] Monto eliminado correctamente");
       fetchAmounts();
     } catch (err) {
-      console.error("[CobrarScreen] Error al eliminar monto:", err);
       Alert.alert("Error", "No se pudo eliminar el monto");
     }
   };
@@ -188,20 +190,45 @@ const CobrarScreen = () => {
         <View style={styles.container}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 24,
+              padding: 8,
+              marginBottom: 8,
+              marginLeft: 4,
+              shadowColor: "#007AFF",
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 2,
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "#E0E7EF",
+            }}
           >
-            <Text style={styles.backText}>{"<"}</Text>
+            <Icon name="arrow-back" size={24} color="#007AFF" />
+            <Text
+              style={{
+                color: "#007AFF",
+                fontWeight: "bold",
+                fontSize: 16,
+                marginLeft: 4,
+              }}
+            >
+              Atrás
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Cobrar BeCoins</Text>
+          <Text style={styles.title}>Cobrar en USD</Text>
           {/* Presets de monto */}
           <View
             style={{
               marginTop: 16,
               backgroundColor: "#f7fbfc",
-              borderColor: "#00bcd4",
+              borderColor: "#007AFF",
               borderWidth: 1,
               borderRadius: 16,
-              shadowColor: "#00bcd4",
+              shadowColor: "#007AFF",
               shadowOpacity: 0.08,
               shadowRadius: 8,
               elevation: 2,
@@ -212,18 +239,18 @@ const CobrarScreen = () => {
           >
             <Text
               style={{
-                color: "#00bcd4",
-                fontSize: 18,
+                color: "#007AFF",
+                fontSize: 20,
                 fontWeight: "bold",
                 marginBottom: 10,
                 textAlign: "center",
                 letterSpacing: 0.5,
               }}
             >
-              Presets de monto rápido
+              Presets de monto rápido (USD)
             </Text>
             {loadingPresets ? (
-              <ActivityIndicator size="small" color="#00bcd4" />
+              <ActivityIndicator size="small" color="#007AFF" />
             ) : (
               <View
                 style={{
@@ -243,15 +270,28 @@ const CobrarScreen = () => {
                       paddingHorizontal: 22,
                       margin: 4,
                       borderWidth: 2,
-                      borderColor: "#00bcd4",
-                      shadowColor: "#00bcd4",
+                      borderColor: "#007AFF",
+                      shadowColor: "#007AFF",
                       shadowOpacity: 0.12,
                       shadowRadius: 4,
                       elevation: 2,
                       marginRight: idx % 2 === 0 ? 8 : 0,
                       marginBottom: 8,
                     }}
-                    onPress={() => setAmount(String(preset.amount))}
+                    onPress={async () => {
+                      setAmount(String(preset.amount));
+                      setPresetMessage(preset.message || "");
+                      setPresetName(preset.name || "");
+                      // Crear venta automáticamente
+                      try {
+                        await walletService.createAmountToPayment(
+                          Number(preset.amount)
+                        );
+                        fetchAmounts();
+                      } catch (err) {
+                        Alert.alert("Error", "No se pudo crear la venta");
+                      }
+                    }}
                   >
                     <Text
                       style={{
@@ -261,7 +301,8 @@ const CobrarScreen = () => {
                         letterSpacing: 0.5,
                       }}
                     >
-                      {preset.name || preset.amount} BeCoins
+                      {preset.name ? preset.name + " - " : ""}
+                      {formatUSD(preset.amount)}
                     </Text>
                     {preset.message ? (
                       <Text
@@ -283,7 +324,7 @@ const CobrarScreen = () => {
               <TextInput
                 style={{
                   borderWidth: 1,
-                  borderColor: "#00bcd4",
+                  borderColor: "#007AFF",
                   borderRadius: 10,
                   padding: 10,
                   backgroundColor: "#fff",
@@ -297,14 +338,14 @@ const CobrarScreen = () => {
               <TextInput
                 style={{
                   borderWidth: 1,
-                  borderColor: "#00bcd4",
+                  borderColor: "#007AFF",
                   borderRadius: 10,
                   padding: 10,
                   backgroundColor: "#fff",
                   fontSize: 16,
                   marginBottom: 8,
                 }}
-                placeholder="Monto"
+                placeholder="Monto en USD"
                 keyboardType="numeric"
                 value={presetAmount}
                 onChangeText={setPresetAmount}
@@ -312,7 +353,7 @@ const CobrarScreen = () => {
               <TextInput
                 style={{
                   borderWidth: 1,
-                  borderColor: "#00bcd4",
+                  borderColor: "#007AFF",
                   borderRadius: 10,
                   padding: 10,
                   backgroundColor: "#fff",
@@ -325,7 +366,7 @@ const CobrarScreen = () => {
               />
               <TouchableOpacity
                 style={{
-                  backgroundColor: "#00bcd4",
+                  backgroundColor: "#007AFF",
                   paddingVertical: 10,
                   paddingHorizontal: 24,
                   borderRadius: 10,
@@ -345,18 +386,26 @@ const CobrarScreen = () => {
           {/* Input de monto y botón */}
           <View style={[styles.section, styles.amountSection]}>
             <Text
-              style={[styles.sectionTitle, { color: "#007AFF", fontSize: 18 }]}
+              style={[styles.sectionTitle, { color: "#007AFF", fontSize: 20 }]}
             >
-              1. Ingresa el monto a cobrar
+              1. Ingresa el monto a cobrar (USD)
             </Text>
             <View style={[styles.row, { marginTop: 12 }]}>
               <TextInput
-                style={styles.input}
-                placeholder="Monto en BeCoins"
+                style={[
+                  styles.input,
+                  {
+                    fontSize: 18,
+                    borderColor: "#007AFF",
+                    backgroundColor: "#fff",
+                  },
+                ]}
+                placeholder="Monto en USD"
                 keyboardType="numeric"
                 value={amount}
                 onChangeText={setAmount}
               />
+
               <TouchableOpacity
                 style={styles.button}
                 onPress={handleCreateAmount}
@@ -368,6 +417,51 @@ const CobrarScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Conversión a BeCoins */}
+
+          {amount && !isNaN(Number(amount)) && Number(amount) > 0 ? (
+            <View
+              style={{
+                backgroundColor: "#f4fff7",
+                borderRadius: 14,
+                paddingVertical: 12,
+                paddingHorizontal: 22,
+                marginTop: 18,
+                alignSelf: "center",
+                alignItems: "center",
+                borderWidth: 1.5,
+                borderColor: "#43b86a",
+                maxWidth: 260,
+                shadowColor: "#43b86a",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.13,
+                shadowRadius: 6,
+                elevation: 3,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 22,
+                  color: "#2e7d32",
+                  fontWeight: "700",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {convertUSDToBeCoins(Number(amount))} BeCoins
+              </Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#43b86a",
+                  marginTop: 4,
+                  fontWeight: "500",
+                }}
+              >
+                Conversión automática según tasa actual
+              </Text>
+            </View>
+          ) : null}
           {/* QR para cobrar */}
           <View style={[styles.section, styles.qrSection]}>
             <Text
@@ -391,7 +485,9 @@ const CobrarScreen = () => {
           </View>
           {/* Montos creados */}
           <View style={[styles.section, styles.createdSection]}>
-            <Text style={styles.sectionTitle}>Historial de montos creados</Text>
+            <Text style={styles.sectionTitle}>
+              Historial de montos creados (USD)
+            </Text>
             {loadingAmounts ? (
               <ActivityIndicator size="small" color="#007AFF" />
             ) : (
@@ -401,7 +497,7 @@ const CobrarScreen = () => {
                     <View style={styles.amountRow} key={item.id || idx}>
                       <View>
                         <Text style={styles.amountText}>
-                          {item.amount} BeCoins
+                          {formatUSD(item.amount)}
                         </Text>
                         <Text style={styles.amountDate}>
                           {new Date(item.created_at).toLocaleString()}
@@ -432,23 +528,47 @@ const CobrarScreen = () => {
   // Mobile y otros
   return (
     <ScrollView style={styles.container}>
-      {/* ...existing code... */}
       <TouchableOpacity
         onPress={() => navigation.goBack()}
-        style={styles.backButton}
+        style={{
+          backgroundColor: "#fff",
+          borderRadius: 24,
+          padding: 8,
+          marginBottom: 8,
+          marginLeft: 4,
+          shadowColor: "#007AFF",
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 2,
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          borderWidth: 1,
+          borderColor: "#E0E7EF",
+        }}
       >
-        <Text style={styles.backText}>{"<"}</Text>
+        <Icon name="arrow-back" size={24} color="#007AFF" />
+        <Text
+          style={{
+            color: "#007AFF",
+            fontWeight: "bold",
+            fontSize: 16,
+            marginLeft: 4,
+          }}
+        >
+          Atrás
+        </Text>
       </TouchableOpacity>
-      <Text style={styles.title}>Cobrar BeCoins</Text>
+      <Text style={styles.title}>Cobrar en USD</Text>
       {/* Presets de monto */}
       <View
         style={{
           marginTop: 16,
           backgroundColor: "#f7fbfc",
-          borderColor: "#00bcd4",
+          borderColor: "#007AFF",
           borderWidth: 1,
           borderRadius: 16,
-          shadowColor: "#00bcd4",
+          shadowColor: "#007AFF",
           shadowOpacity: 0.08,
           shadowRadius: 8,
           elevation: 2,
@@ -459,18 +579,18 @@ const CobrarScreen = () => {
       >
         <Text
           style={{
-            color: "#00bcd4",
-            fontSize: 18,
+            color: "#007AFF",
+            fontSize: 20,
             fontWeight: "bold",
             marginBottom: 10,
             textAlign: "center",
             letterSpacing: 0.5,
           }}
         >
-          Presets de monto rápido
+          Presets de monto rápido (USD)
         </Text>
         {loadingPresets ? (
-          <ActivityIndicator size="small" color="#00bcd4" />
+          <ActivityIndicator size="small" color="#007AFF" />
         ) : (
           <View
             style={{
@@ -490,8 +610,8 @@ const CobrarScreen = () => {
                   paddingHorizontal: 22,
                   margin: 4,
                   borderWidth: 2,
-                  borderColor: "#00bcd4",
-                  shadowColor: "#00bcd4",
+                  borderColor: "#007AFF",
+                  shadowColor: "#007AFF",
                   shadowOpacity: 0.12,
                   shadowRadius: 4,
                   elevation: 2,
@@ -508,7 +628,8 @@ const CobrarScreen = () => {
                     letterSpacing: 0.5,
                   }}
                 >
-                  {preset.name || preset.amount} BeCoins
+                  {preset.name ? preset.name + " - " : ""}
+                  {formatUSD(preset.amount)}
                 </Text>
                 {preset.message ? (
                   <Text
@@ -530,7 +651,7 @@ const CobrarScreen = () => {
           <TextInput
             style={{
               borderWidth: 1,
-              borderColor: "#00bcd4",
+              borderColor: "#007AFF",
               borderRadius: 10,
               padding: 10,
               backgroundColor: "#fff",
@@ -544,14 +665,14 @@ const CobrarScreen = () => {
           <TextInput
             style={{
               borderWidth: 1,
-              borderColor: "#00bcd4",
+              borderColor: "#007AFF",
               borderRadius: 10,
               padding: 10,
               backgroundColor: "#fff",
               fontSize: 16,
               marginBottom: 8,
             }}
-            placeholder="Monto"
+            placeholder="Monto en USD"
             keyboardType="numeric"
             value={presetAmount}
             onChangeText={setPresetAmount}
@@ -559,7 +680,7 @@ const CobrarScreen = () => {
           <TextInput
             style={{
               borderWidth: 1,
-              borderColor: "#00bcd4",
+              borderColor: "#007AFF",
               borderRadius: 10,
               padding: 10,
               backgroundColor: "#fff",
@@ -572,7 +693,7 @@ const CobrarScreen = () => {
           />
           <TouchableOpacity
             style={{
-              backgroundColor: "#00bcd4",
+              backgroundColor: "#007AFF",
               paddingVertical: 10,
               paddingHorizontal: 24,
               borderRadius: 10,
@@ -589,13 +710,16 @@ const CobrarScreen = () => {
       </View>
       {/* Input de monto y botón */}
       <View style={[styles.section, styles.amountSection]}>
-        <Text style={[styles.sectionTitle, { color: "#007AFF", fontSize: 18 }]}>
-          1. Ingresa el monto a cobrar
+        <Text style={[styles.sectionTitle, { color: "#007AFF", fontSize: 20 }]}>
+          1. Ingresa el monto a cobrar (USD)
         </Text>
         <View style={[styles.row, { marginTop: 12 }]}>
           <TextInput
-            style={styles.input}
-            placeholder="Monto en BeCoins"
+            style={[
+              styles.input,
+              { fontSize: 18, borderColor: "#007AFF", backgroundColor: "#fff" },
+            ]}
+            placeholder="Monto en USD"
             keyboardType="numeric"
             value={amount}
             onChangeText={setAmount}
@@ -668,7 +792,9 @@ const CobrarScreen = () => {
       </View>
       {/* Montos creados */}
       <View style={[styles.section, styles.createdSection]}>
-        <Text style={styles.sectionTitle}>Historial de montos creados</Text>
+        <Text style={styles.sectionTitle}>
+          Historial de montos creados (USD)
+        </Text>
         {loadingAmounts ? (
           <ActivityIndicator size="small" color="#007AFF" />
         ) : (
@@ -677,7 +803,9 @@ const CobrarScreen = () => {
               amounts.map((item, idx) => (
                 <View style={styles.amountRow} key={item.id || idx}>
                   <View>
-                    <Text style={styles.amountText}>{item.amount} BeCoins</Text>
+                    <Text style={styles.amountText}>
+                      {formatUSD(item.amount)}
+                    </Text>
                     <Text style={styles.amountDate}>
                       {new Date(item.created_at).toLocaleString()}
                     </Text>
@@ -725,9 +853,12 @@ const styles = StyleSheet.create({
     color: "#007AFF",
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#333",
+    color: "#007AFF",
+    marginVertical: 12,
+    textAlign: "center",
+    letterSpacing: 0.5,
   },
   section: {
     margin: 16,
@@ -764,35 +895,49 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 8,
+    borderColor: "#007AFF",
+    borderRadius: 10,
+    padding: 12,
     marginRight: 8,
-    backgroundColor: "#f7f7f7",
+    backgroundColor: "#fff",
+    fontSize: 18,
+    flex: 1,
   },
   button: {
     backgroundColor: "#007AFF",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    shadowColor: "#007AFF",
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   amountRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f7f7f7",
-    borderRadius: 8,
-    marginVertical: 4,
-    padding: 12,
+    backgroundColor: "#F3F6FA",
+    borderRadius: 12,
+    marginVertical: 6,
+    padding: 16,
+    shadowColor: "#007AFF",
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 1,
   },
   amountText: {
     fontWeight: "bold",
-    fontSize: 16,
-    color: "#333",
+    fontSize: 18,
+    color: "#007AFF",
+    marginBottom: 2,
   },
   deleteButton: {
     padding: 4,
@@ -801,57 +946,18 @@ const styles = StyleSheet.create({
     color: "#E53E3E",
     fontSize: 13,
   },
-  presetsSection: {
-    marginTop: 16,
-    backgroundColor: "#f0f8ff",
-    borderColor: "#00bcd4",
-    borderWidth: 1,
+  amountDate: {
+    fontSize: 12,
+    color: "#888",
   },
-  presetsTitle: {
-    color: "#00bcd4",
-    fontSize: 16,
-    marginBottom: 8,
+  qrHint: {
+    color: "#888",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
   },
-  presetsList: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  presetButton: {
-    backgroundColor: "#e0f7fa",
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    margin: 4,
-    borderWidth: 1,
-    borderColor: "#00bcd4",
-  },
-  presetText: {
-    color: "#007AFF",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
-  presetInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#00bcd4",
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: "#fff",
-    fontSize: 16,
-    marginRight: 8,
-  },
-  presetAddButton: {
-    backgroundColor: "#00bcd4",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  presetAddText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
+  createdSection: {
+    marginTop: 8,
   },
   amountSection: {
     marginTop: 24,
@@ -865,21 +971,6 @@ const styles = StyleSheet.create({
     borderColor: "#FFD700",
     borderWidth: 1,
     alignItems: "center",
-  },
-
-  qrHint: {
-    color: "#888",
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  createdSection: {
-    marginTop: 8,
-  },
-
-  amountDate: {
-    fontSize: 12,
-    color: "#888",
   },
 });
 

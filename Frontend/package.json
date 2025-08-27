@@ -66,6 +66,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/jwt-decode": "^2.2.1",
     "@types/react": "~19.0.10",
+    "@types/react-native-vector-icons": "^6.4.18",
     "@types/uuid": "^10.0.0",
     "eas-cli": "^16.17.4",
     "typescript": "~5.8.3"

@@ -18,12 +18,21 @@ export const ActivitySection: React.FC<ActivitySectionProps> = ({
     <View style={activityStyles.activitySection}>
       <View style={activityStyles.activityHeader}>
         <Text style={activityStyles.activityTitle}>Última actividad</Text>
-        <Button title="Ver todo" variant="link" onPress={onViewHistory} />
       </View>
-
-      {activities.map((activity) => (
-        <ActivityCard key={activity.id} activity={activity} />
-      ))}
+      {activities.length === 0 ? (
+        <View style={{ padding: 16, alignItems: "center" }}>
+          <Text style={{ color: "#888", fontSize: 15 }}>
+            Sin actividad registrada
+          </Text>
+          <Text style={{ color: "#888", fontSize: 13, marginTop: 4 }}>
+            Tu actividad aparecerá aquí cuando uses la app.
+          </Text>
+        </View>
+      ) : (
+        activities.map((activity) => (
+          <ActivityCard key={activity.id} activity={activity} />
+        ))
+      )}
     </View>
   );
 };
