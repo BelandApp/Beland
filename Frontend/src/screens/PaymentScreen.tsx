@@ -27,13 +27,31 @@ type PaymentScreenProps = {
   route: {
     params: {
       paymentData: PaymentData;
+      amount_to_payment_id?: string | null;
     };
   };
 };
 
 export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
-  const { paymentData } = route.params;
+  const { paymentData, amount_to_payment_id } = route.params;
+  const PRESET_AMOUNTS = [10, 25, 50, 100, 200, 500];
+  const [amount, setAmount] = useState(
+    paymentData.amount && Number(paymentData.amount) > 0
+      ? String(Number(paymentData.amount))
+      : ""
+  );
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const isFreeEntry = amount_to_payment_id && Number(paymentData.amount) === 0;
+  const isAmountEditable =
+    amount_to_payment_id &&
+    (!paymentData.amount || Number(paymentData.amount) === 0) &&
+    !isFreeEntry;
+  const canEdit = !amount_to_payment_id || isAmountEditable;
+  const isAmountValid =
+    !canEdit ||
+    (/^\d+$/.test(amount) && Number(amount) >= 1 && Number(amount) <= 99999999);
+  const canPay = (canEdit && isAmountValid) || isFreeEntry;
 
   // Función para cargar el script Payphone en web
   function loadPayphoneScript(): Promise<void> {
@@ -64,26 +82,38 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
 
   // Handler para pago con Payphone en web
   const handlePayphoneWeb = async () => {
+    // Si es pago QR (tiene amount_to_payment_id o wallet_id), seteo la bandera
+    if (paymentData.wallet_id || amount_to_payment_id) {
+      localStorage.setItem("payphone_is_qr_payment", "true");
+      if (paymentData.wallet_id) {
+        localStorage.setItem("payphone_to_wallet_id", paymentData.wallet_id);
+      }
+    } else {
+      localStorage.removeItem("payphone_is_qr_payment");
+      localStorage.removeItem("payphone_to_wallet_id");
+    }
+    if (!isAmountValid) {
+      setAmountError("El monto debe ser un entero entre 1 y 99999999");
+      return;
+    }
     setIsLoading(true);
+    setAmountError(null);
     const ppDiv = document.getElementById("pp-button");
-
     if (ppDiv) ppDiv.innerHTML = "";
     try {
       await loadPayphoneScript();
-
       const payphoneToken = process.env.EXPO_PUBLIC_PAYPHONE_TOKEN;
       localStorage.setItem("payphone_token", payphoneToken);
       // @ts-ignore
       const payphoneConfig = {
         token: payphoneToken,
         clientTransactionId: `TX-${Date.now()}`,
-        amount: paymentData.amount * 100,
-        amountWithoutTax: paymentData.amount * 100,
+        amount: Number(amount) * 100,
+        amountWithoutTax: Number(amount) * 100,
         currency: "USD",
         storeId: process.env.EXPO_PUBLIC_PAYPHONE_STOREID,
         reference: "Pago QR Beland",
       };
-
       // @ts-ignore
       new window.PPaymentButtonBox(payphoneConfig).render("pp-button");
     } catch (err) {
@@ -93,92 +123,285 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+    <div
+      style={{
+        background: "#f0f9ff",
+        minHeight: "100vh",
+        fontFamily: "'Inter', 'Roboto', 'Segoe UI', sans-serif",
+        overflowY: "auto",
+        padding: 0,
+      }}
     >
-      <View style={styles.cardMain}>
-        <View style={styles.headerIconWrap}>
-          <View style={styles.iconCircle}>
-            <Text style={styles.icon}>💸</Text>
-          </View>
-        </View>
-        <Text style={styles.title}>Pago QR</Text>
-        <View style={styles.amountWrap}>
-          <Text style={styles.label}>Monto a pagar</Text>
-          <Text style={styles.value}>
-            {paymentData.amount} <Text style={styles.coin}>BeCoins</Text>
-          </Text>
-        </View>
-        {paymentData.message ? (
-          <Text style={styles.message}>{paymentData.message}</Text>
-        ) : null}
-        {paymentData.resource && paymentData.resource.length > 0 && (
-          <View style={styles.resourceSection}>
-            <Text style={styles.label}>Recursos y descuentos</Text>
-            {paymentData.resource.map((res: Resource) => (
-              <View key={res.id} style={styles.resourceItem}>
-                <Text style={styles.resourceName}>{res.resource_name}</Text>
-                <Text style={styles.resourceDesc}>{res.resource_desc}</Text>
-                <Text style={styles.resourceQty}>
-                  Cantidad: {res.resource_quanity}
-                </Text>
-                <Text style={styles.resourceDiscount}>
-                  Descuento: {res.resource_discount}%
-                </Text>
-              </View>
-            ))}
-          </View>
+      <div
+        style={{
+          maxWidth: 420,
+          margin: "40px auto",
+          background: "#fff",
+          borderRadius: 24,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          padding: 32,
+        }}
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", marginBottom: 32 }}
+        >
+          <span
+            style={{
+              fontSize: 24,
+              fontWeight: 700,
+              color: "#007AFF",
+              letterSpacing: 1,
+            }}
+          >
+            Pago QR
+          </span>
+        </div>
+        <div style={{ marginBottom: 24 }}>
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              color: "#007AFF",
+              marginBottom: 12,
+              display: "block",
+            }}
+          >
+            Monto a pagar
+          </span>
+          {canEdit ? (
+            <>
+              <input
+                type="number"
+                value={amount}
+                min={1}
+                max={99999999}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (/^\d{0,8}$/.test(val)) {
+                    setAmount(val);
+                    setAmountError(null);
+                  } else {
+                    setAmountError(
+                      "El monto debe ser un entero entre 1 y 99999999"
+                    );
+                  }
+                }}
+                style={{
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "#007AFF",
+                  background: "#f5faff",
+                  border: amountError
+                    ? "2px solid #E53E3E"
+                    : "2px solid #007AFF",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                  width: "100%",
+                  maxWidth: 380,
+                  marginTop: 8,
+                  outline: "none",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                  transition: "border 0.2s",
+                }}
+              />
+              {amountError && (
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: "#E53E3E",
+                    marginTop: 4,
+                    display: "block",
+                  }}
+                >
+                  {amountError}
+                </span>
+              )}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  marginTop: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                {PRESET_AMOUNTS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    style={{
+                      flex: "1 1 30%",
+                      padding: "10px 0",
+                      background:
+                        Number(amount) === preset ? "#007AFF" : "#f0f9ff",
+                      color: Number(amount) === preset ? "#fff" : "#007AFF",
+                      border: "2px solid",
+                      borderColor:
+                        Number(amount) === preset ? "#007AFF" : "#e0f2fe",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      fontSize: 15,
+                      cursor: "pointer",
+                      marginBottom: 6,
+                      transition: "all 0.2s",
+                    }}
+                    onClick={() => setAmount(String(preset))}
+                  >
+                    ${preset}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : isFreeEntry ? (
+            <span
+              style={{
+                fontSize: 18,
+                color: "#6BA43A",
+                fontWeight: 700,
+                display: "block",
+                marginTop: 12,
+              }}
+            >
+              Pagado (entrada gratuita)
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 20,
+                color: "#007AFF",
+                fontWeight: 700,
+                display: "block",
+                marginTop: 12,
+              }}
+            >
+              ${amount}
+            </span>
+          )}
+        </div>
+        {paymentData.message && (
+          <div style={{ marginBottom: 16, color: "#333", fontSize: 15 }}>
+            {paymentData.message}
+          </div>
         )}
-        <View style={styles.buttonRow}>
-          {Platform.OS === "web" ? (
+        {paymentData.resource && paymentData.resource.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: "#007AFF",
+                marginBottom: 8,
+                display: "block",
+              }}
+            >
+              Recursos y descuentos
+            </span>
+            {paymentData.resource.map((res: Resource) => (
+              <div
+                key={res.id}
+                style={{
+                  background: "#f5faff",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{ fontWeight: 600, color: "#6BA43A", fontSize: 15 }}
+                >
+                  {res.resource_name}
+                </div>
+                <div style={{ color: "#666", fontSize: 13 }}>
+                  {res.resource_desc}
+                </div>
+                <div style={{ color: "#333", fontSize: 13 }}>
+                  Cantidad: {res.resource_quanity}
+                </div>
+                <div style={{ color: "#F88D2A", fontSize: 13 }}>
+                  Descuento: {res.resource_discount}%
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ marginBottom: 24 }}>
+          {isFreeEntry ? (
             <button
               style={{
-                backgroundColor: "#007AFF",
-                borderRadius: 10,
-                padding: 12,
-                width: "100%",
-                marginRight: 8,
+                background: "#6BA43A",
                 color: "#fff",
-                fontWeight: "bold",
-                fontSize: 16,
-                letterSpacing: 0.5,
+                fontWeight: 700,
+                fontSize: 18,
+                padding: "16px 0",
+                borderRadius: 12,
                 border: "none",
-                cursor: isLoading ? "not-allowed" : "pointer",
-                opacity: isLoading ? 0.7 : 1,
+                boxShadow: "0 4px 16px rgba(107,164,58,0.15)",
+                cursor: !isLoading ? "pointer" : "not-allowed",
+                opacity: !isLoading ? 1 : 0.6,
+                width: "100%",
+                marginBottom: 8,
+                transition: "all 0.2s",
+              }}
+              onClick={() => {
+                /* Aquí puedes llamar a la lógica de registro, NO Payphone */
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? "Procesando..." : "Pagar"}
+            </button>
+          ) : (
+            <button
+              style={{
+                background: canPay && !isLoading ? "#007AFF" : "#ccc",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 18,
+                padding: "16px 0",
+                borderRadius: 12,
+                border: "none",
+                boxShadow:
+                  canPay && !isLoading
+                    ? "0 4px 16px rgba(0,122,255,0.15)"
+                    : "none",
+                cursor: canPay && !isLoading ? "pointer" : "not-allowed",
+                opacity: canPay && !isLoading ? 1 : 0.6,
+                width: "100%",
+                marginBottom: 8,
+                transition: "all 0.2s",
               }}
               onClick={handlePayphoneWeb}
-              disabled={isLoading}
+              disabled={!canPay || isLoading}
             >
               {isLoading ? "Procesando..." : "Confirmar pago"}
             </button>
-          ) : (
-            <View style={styles.buttonPrimary}>
-              <Text style={styles.buttonText}>Confirmar pago</Text>
-            </View>
           )}
-          <View style={styles.buttonSecondary}>
-            <Text style={styles.buttonTextSec}>Cancelar</Text>
-          </View>
-        </View>
-        {/* Widget Payphone solo en web, sin botón extra */}
-        {Platform.OS === "web" && (
-          <View style={{ width: "100%", marginTop: 24 }}>
-            <View id="pp-button" style={{ marginBottom: 16 }}></View>
-          </View>
+          <button
+            style={{
+              background: "#fff",
+              color: "#007AFF",
+              fontWeight: 600,
+              fontSize: 16,
+              padding: "12px 0",
+              borderRadius: 12,
+              border: "2px solid #007AFF",
+              width: "100%",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              cursor: "pointer",
+              marginBottom: 4,
+            }}
+            onClick={() => window.history.back()}
+          >
+            Cancelar
+          </button>
+        </div>
+        {!isFreeEntry && (
+          <div style={{ width: "100%", marginTop: 24 }}>
+            <div id="pp-button" style={{ marginBottom: 16 }}></div>
+          </div>
         )}
-        {/* Placeholder para mobile */}
-        {Platform.OS !== "web" && (
-          <View style={{ width: "100%", marginTop: 24 }}>
-            <View style={styles.buttonPrimary}>
-              <Text style={styles.buttonText}>
-                Pagar con Payphone (próximamente)
-              </Text>
-            </View>
-          </View>
-        )}
-      </View>
-    </ScrollView>
+      </div>
+    </div>
   );
 };
 

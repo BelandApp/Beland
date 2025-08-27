@@ -51,8 +51,11 @@ export const QRScannerScreen = () => {
           localStorage.removeItem("payphone_is_qr_payment");
           localStorage.removeItem("payphone_to_wallet_id");
         }
+        // Incluyo amount_to_payment_id en el objeto
+        paymentData.amount_to_payment_id =
+          paymentData.amount_to_payment_id ?? null;
         setLoading(false);
-        navigation.navigate("PaymentScreen", { paymentData } as any);
+        navigation.navigate("PaymentScreen", { paymentData });
       } catch (err) {
         setLoading(false);
         console.error("[QRScanner] Error al obtener datos de pago:", err);

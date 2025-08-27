@@ -543,7 +543,14 @@ export class UsersService {
     }
 
     // Aplicar otras propiedades actualizables
-    Object.assign(userToUpdate, updateUserDto); // Esto sobreescribe propiedades si están en updateUserDto
+    // Evita sobrescribir role_id si se acaba de actualizar
+    if (!updateUserDto.role) {
+      Object.assign(userToUpdate, updateUserDto);
+    } else {
+      // Si se actualiza el rol, no sobrescribir role_id
+      const { role, ...restDto } = updateUserDto;
+      Object.assign(userToUpdate, restDto);
+    }
 
     const updatedUser = await this.usersRepository.save(userToUpdate);
     this.logger.log(`update(): Usuario ${id} actualizado exitosamente.`);
