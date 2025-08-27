@@ -13,34 +13,40 @@ import { NotificationsService } from './notification-socket.service';
 
 @WebSocketGateway({
   namespace: '/realtime',
-  cors: { origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://beland.app',
-    'https://*-beland-8081.exp.direct',
-    'http://localhost:8081',
-    'https://auth.expo.io/@beland/Beland',
-    'belandnative://redirect',
-    'http://localhost:8081/api',
-    'https://eoy0nfm-beland-8081.exp.direct',
-    'https://nl6egxw-anonymous-8081.exp.direct',
-    'https://zef_jly-anonymous-8081.exp.direct', 
-  ], credentials: true },
+  cors: {
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://beland.app',
+      'https://*-beland-8081.exp.direct',
+      'http://localhost:8081',
+      'https://auth.expo.io/@beland/Beland',
+      'belandnative://redirect',
+      'http://localhost:8081/api',
+      'https://eoy0nfm-beland-8081.exp.direct',
+      'https://nl6egxw-anonymous-8081.exp.direct',
+      'https://zef_jly-anonymous-8081.exp.direct',
+    ],
+    credentials: true,
+  },
 })
 export class NotificationsGateway implements OnModuleInit {
-  
-  @WebSocketServer() 
+  // Método para emitir notificación al comercio
+  notifyCommerceByUserId(userId: string, payload: any) {
+    this.server.to(`user:${userId}`).emit('balanceUpdated', payload);
+  }
+
+  @WebSocketServer()
   server: Server;
-  
+
   constructor(private notificationsService: NotificationsService) {}
 
-  onModuleInit (){
-    this.server.on("connection", (socket: Socket) => {
-      console.log('Cliente conectado.')
-    })
+  onModuleInit() {
+    this.server.on('connection', (socket: Socket) => {
+      console.log('Cliente conectado.');
+    });
   }
-  
-  
+
   // async handleConnection(socket: Socket) {
   //   try {
   //     // === Autenticación simple con token en auth ===

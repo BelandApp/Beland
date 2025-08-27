@@ -45,13 +45,15 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
   const isFreeEntry = amount_to_payment_id && Number(paymentData.amount) === 0;
   const isAmountEditable =
     amount_to_payment_id &&
-    (!paymentData.amount || Number(paymentData.amount) === 0) &&
-    !isFreeEntry;
-  const canEdit = !amount_to_payment_id || isAmountEditable;
+    (!paymentData.amount || Number(paymentData.amount) === 0);
+  const canEdit = isAmountEditable;
   const isAmountValid =
     !canEdit ||
     (/^\d+$/.test(amount) && Number(amount) >= 1 && Number(amount) <= 99999999);
-  const canPay = (canEdit && isAmountValid) || isFreeEntry;
+  const canPay =
+    (canEdit && isAmountValid) ||
+    isFreeEntry ||
+    (!canEdit && amount && Number(amount) >= 1 && Number(amount) <= 99999999);
 
   // Función para cargar el script Payphone en web
   function loadPayphoneScript(): Promise<void> {
@@ -104,6 +106,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
       await loadPayphoneScript();
       const payphoneToken = process.env.EXPO_PUBLIC_PAYPHONE_TOKEN;
       localStorage.setItem("payphone_token", payphoneToken);
+
       // @ts-ignore
       const payphoneConfig = {
         token: payphoneToken,
@@ -168,6 +171,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
           >
             Monto a pagar
           </span>
+          {/* Solo mostrar input y presets si el monto es editable. Si viene definido, solo muestro el monto fijo. */}
           {canEdit ? (
             <>
               <input
