@@ -33,13 +33,6 @@ export const useWalletData = () => {
           ? 0
           : wallet.becoin_balance || 0;
 
-      console.log(
-        "💰 Balance del backend:",
-        wallet.becoin_balance,
-        "-> convertido a:",
-        backendBalance
-      );
-
       // Actualizar el store con el balance real del backend
       setBalance(backendBalance);
       // Guardar los datos completos de la wallet
@@ -66,13 +59,6 @@ export const useWalletData = () => {
     estimatedValue: formatUSDPrice(balance * 0.05), // Valor estimado en USD (solo conversión directa)
     alias: fullWalletData?.alias ?? undefined,
   };
-
-  // Debug log para verificar cálculos
-  console.log("🔍 WalletData debug:", {
-    balance: balance,
-    beCoinsInUSD: balance * 0.05,
-    estimatedValue: formatUSDPrice(balance * 0.05),
-  });
 
   return {
     walletData,

@@ -75,6 +75,7 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
+  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
   isLoading: boolean;
   loginWithAuth0: () => void;
   logout: () => void;
@@ -412,6 +413,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         isLoading,
         loginWithAuth0,
         logout,

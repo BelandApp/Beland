@@ -118,7 +118,7 @@ const AppContent = () => {
 
   // Configuración de linking para rutas web
   const linking = {
-    prefixes: ["http://localhost:8081", "https://tudominio.com"],
+    prefixes: ["http://localhost:8081", "https://beland-project.netlify.app"],
     config: {
       screens: {
         MainTabs: "",

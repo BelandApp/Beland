@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
+import BelandLogo2 from "../icons/BelandLogo2";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "src/hooks/AuthContext";
 import { LogOut, LayoutDashboard, Store } from "lucide-react-native";
@@ -21,8 +22,15 @@ type AppHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
 
 export const AppHeader = () => {
   const navigation = useNavigation<AppHeaderNavigationProp>();
-  const { user, isLoading, isDemo, loginWithAuth0, logout, loginAsDemo } =
-    useAuth();
+  const {
+    user,
+    isLoading,
+    isDemo,
+    loginWithAuth0,
+    logout,
+    loginAsDemo,
+    setUser,
+  } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [showCommerceAlert, setShowCommerceAlert] = useState(false);
   const [isChangingRole, setIsChangingRole] = useState(false);
@@ -55,7 +63,10 @@ export const AppHeader = () => {
         "Tu perfil ha sido actualizado y ahora puedes recibir pagos por QR.",
         "OK"
       );
-      // Opcional: recargar usuario/contexto
+      // Actualizar el usuario en el contexto para reflejar el cambio de rol
+      if (user) {
+        setUser({ ...user, role: "COMMERCE", role_name: "Comerciante" });
+      }
     } catch (err) {
       setShowCommerceAlert(false);
       showErrorAlert(
@@ -72,7 +83,7 @@ export const AppHeader = () => {
   if (isLoading) {
     return (
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Beland</Text>
+        <BelandLogo2 width={120} height={32} />
         <ActivityIndicator size="small" color="#1E90FF" />
       </View>
     );
@@ -101,19 +112,12 @@ export const AppHeader = () => {
 
   return (
     <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>Beland</Text>
+      <BelandLogo2 width={120} height={32} />
 
       {!isLoggedIn ? (
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
             <Text style={styles.loginButtonText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}
-          >
-            <Text style={styles.loginButtonText}>Modo demo</Text>
           </TouchableOpacity>
         </View>
       ) : (
