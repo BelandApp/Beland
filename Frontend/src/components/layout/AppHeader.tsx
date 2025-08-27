@@ -11,11 +11,10 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "src/hooks/AuthContext";
-import { LogOut, LayoutDashboard, Store } from "lucide-react-native";
+import { LogOut, LayoutDashboard } from "lucide-react-native";
 import { RootStackParamList } from "./RootStackNavigator";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { showSuccessAlert, showErrorAlert } from "src/utils/alertHelpers";
-import { authService } from "src/services/authService";
 
 type AppHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -25,9 +24,12 @@ export const AppHeader = () => {
     useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
   const [showCommerceAlert, setShowCommerceAlert] = useState(false);
-  const [isChangingRole, setIsChangingRole] = useState(false);
+
+  // No necesitamos un estado local de carga, ya usamos el del AuthContext.
+  // const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleLogin = async () => {
+    // La función loginWithAuth0() del hook ya actualiza isLoading
     await loginWithAuth0();
   };
 
@@ -40,225 +42,139 @@ export const AppHeader = () => {
     loginAsDemo();
   };
 
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+  };
+
   const handleNavigateToDashboard = () => {
     setMenuVisible(false);
-    navigation.navigate("UserDashboardScreen");
-  };
-
-  const handleChangeRoleToCommerce = async () => {
-    setIsChangingRole(true);
-    try {
-      const resp = await authService.changeRoleToCommerce();
-      setShowCommerceAlert(false);
-      showSuccessAlert(
-        "¡Ya eres comerciante!",
-        "Tu perfil ha sido actualizado y ahora puedes recibir pagos por QR.",
-        "OK"
-      );
-      // Opcional: recargar usuario/contexto
-    } catch (err) {
-      setShowCommerceAlert(false);
-      showErrorAlert(
-        "Error",
-        String(err) || "No se pudo cambiar el rol. Intenta nuevamente.",
-        "OK"
-      );
-    } finally {
-      setIsChangingRole(false);
-    }
-  };
-
-  // Nuevo: Mostrar un spinner de carga si la sesión está en proceso de restauración.
-  if (isLoading) {
-    return (
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Beland</Text>
-        <ActivityIndicator size="small" color="#1E90FF" />
-      </View>
-    );
-  }
-
-  const isLoggedIn = !!user;
-  const userName = user?.name ?? "Usuario";
-  const userPicture = user?.picture;
-
-  // NUEVO: Función para obtener el estilo del badge según el rol
-  const getRoleBadgeStyle = () => {
-    switch (user?.role) {
-      case "SUPERADMIN":
-        return { backgroundColor: "#FFD700", color: "#333" }; // Dorado
-      case "ADMIN":
-        return { backgroundColor: "#00BFFF", color: "#fff" }; // Azul cielo
-      case "LEADER":
-        return { backgroundColor: "#32CD32", color: "#fff" }; // Verde
-      case "EMPRESA":
-        return { backgroundColor: "#FF6347", color: "#fff" }; // Rojo tomate
-      case "USER":
-      default:
-        return { backgroundColor: "#D3D3D3", color: "#555" }; // Gris
+    if (user?.role_name === "Comercio") {
+      navigation.navigate("CommerceDashboard");
+    } else {
+      setShowCommerceAlert(true);
     }
   };
 
   return (
-    <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>Beland</Text>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.logoContainer}
+        onPress={() => navigation.navigate("Home")}>
+        <Image style={styles.logo} />
+        <Text style={styles.appName}>Beland</Text>
+      </TouchableOpacity>
 
-      {!isLoggedIn ? (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Iniciar sesión</Text>
+      {/* Usamos el mismo isLoading para todo el proceso */}
+      {isLoading ? (
+        <ActivityIndicator size="small" color="#2196F3" />
+      ) : user ? (
+        <View style={styles.loginContainer}>
+          <TouchableOpacity onPress={toggleMenu} style={styles.avatarContainer}>
+            <Image
+              source={{
+                uri: user.picture || "https://ui-avatars.com/api/?name=User",
+              }}
+              style={styles.avatar}
+            />
+            <View>
+              <Text style={styles.userName}>
+                {user.full_name?.split(" ")[0]}
+              </Text>
+              {user.role_name && (
+                <View
+                  style={[
+                    styles.roleBadge,
+                    {
+                      backgroundColor:
+                        user.role_name === "Comercio" ? "#4CAF50" : "#2196F3",
+                    },
+                  ]}>
+                  <Text style={[styles.roleBadgeText, { color: "#fff" }]}>
+                    {user.role_name}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.loginButton, { backgroundColor: "#aaa" }]}
-            onPress={handleDemoLogin}
-          >
-            <Text style={styles.loginButtonText}>Modo demo</Text>
-          </TouchableOpacity>
+          <Modal
+            transparent={true}
+            visible={menuVisible}
+            onRequestClose={toggleMenu}>
+            <Pressable style={styles.modalOverlay} onPress={toggleMenu}>
+              <View style={styles.menuDropdown}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleNavigateToDashboard}>
+                  <LayoutDashboard size={20} color="#333" />
+                  <Text style={styles.menuItemText}>Dashboard</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleLogout}>
+                  <LogOut size={20} color="#E53935" />
+                  <Text style={[styles.menuItemText, { color: "#E53935" }]}>
+                    Cerrar sesión
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Modal>
         </View>
       ) : (
         <View style={styles.loginContainer}>
-          {userPicture && (
-            <Image source={{ uri: userPicture }} style={styles.avatar} />
-          )}
-
-          {/* NUEVO: Contenedor para el nombre y el badge de rol */}
-          <View style={{ alignItems: "flex-end" }}>
-            <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)}>
-              <Text style={styles.userName}>
-                {user?.full_name || user?.email.split("@")[0]}
-              </Text>
-            </TouchableOpacity>
-            {/* NUEVO: Badge de rol con estilo dinámico */}
-            {user?.role && (
-              <View style={[styles.roleBadge, getRoleBadgeStyle()]}>
-                <Text
-                  style={[
-                    styles.roleBadgeText,
-                    { color: getRoleBadgeStyle().color },
-                  ]}
-                >
-                  {user.role_name || user.role}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <Modal transparent={true} visible={menuVisible} animationType="fade">
-            <Pressable
-              style={styles.overlay}
-              onPress={() => setMenuVisible(false)}
-            />
-            <View style={styles.menuDropdown}>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={handleNavigateToDashboard}
-              >
-                <LayoutDashboard size={18} style={styles.menuItemIcon} />
-                <Text style={styles.menuItemText}>Dashboard</Text>
-              </TouchableOpacity>
-
-              {/* Mostrar opción solo si el usuario NO es comerciante */}
-              {user?.role !== "COMMERCE" && (
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => setShowCommerceAlert(true)}
-                >
-                  <Store size={18} style={styles.menuItemIcon} />
-                  <Text style={styles.menuItemText}>Hacerme comerciante</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-                <LogOut size={18} style={styles.menuItemIcon} />
-                <Text style={styles.menuItemText}>Cerrar sesión</Text>
-              </TouchableOpacity>
-            </View>
-          </Modal>
+          <TouchableOpacity onPress={handleLogin}>
+            <Text style={styles.loginButton}>Iniciar Sesión</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleDemoLogin}>
+            <Text style={styles.demoButton}>Modo Demo</Text>
+          </TouchableOpacity>
         </View>
-      )}
-
-      {showCommerceAlert && (
-        <Modal
-          transparent={true}
-          visible={showCommerceAlert}
-          animationType="fade"
-        >
-          <Pressable
-            style={styles.overlay}
-            onPress={() => setShowCommerceAlert(false)}
-          />
-          <View style={[styles.menuDropdown, { top: 120 }]}>
-            <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 8 }}>
-              ¿Quieres convertirte en comerciante?
-            </Text>
-            <Text style={{ marginBottom: 16 }}>
-              Esto actualizará tu perfil y habilitará la recepción de pagos por
-              QR.
-            </Text>
-            <TouchableOpacity
-              style={[styles.menuItem, { backgroundColor: "#1E90FF" }]}
-              onPress={handleChangeRoleToCommerce}
-              disabled={isChangingRole}
-            >
-              <Text style={[styles.menuItemText, { color: "#fff" }]}>
-                Confirmar
-              </Text>
-              {isChangingRole && (
-                <ActivityIndicator
-                  size="small"
-                  color="#fff"
-                  style={{ marginLeft: 8 }}
-                />
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.menuItem, { marginTop: 8 }]}
-              onPress={() => setShowCommerceAlert(false)}
-            >
-              <Text style={styles.menuItemText}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        </Modal>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    height: 80,
-    backgroundColor: "#fff",
-    paddingHorizontal: 16,
-    paddingTop: 30,
+  container: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1E90FF",
-  },
-  loginButton: {
-    backgroundColor: "#1E90FF",
-    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 50,
+    paddingBottom: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  loginButtonText: {
-    color: "#fff",
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logo: {
+    width: 30,
+    height: 30,
+    resizeMode: "contain",
+    marginRight: 8,
+  },
+  appName: {
+    fontSize: 20,
     fontWeight: "bold",
   },
   loginContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  loginButton: {
+    color: "#2196F3",
+    fontWeight: "bold",
+  },
+  demoButton: {
+    color: "#4CAF50",
+    fontWeight: "bold",
+  },
+  avatarContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
@@ -272,7 +188,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
-  // NUEVO: Estilos para el badge de rol
   roleBadge: {
     borderRadius: 10,
     paddingHorizontal: 6,
@@ -284,17 +199,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textTransform: "uppercase",
   },
-  menuIcon: {
-    padding: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  menuDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#000",
-    marginVertical: 1,
+  modalOverlay: {
+    flex: 1,
   },
   menuDropdown: {
     position: "absolute",
@@ -312,29 +218,16 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    zIndex: 10,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  menuItemIcon: {
-    marginRight: 10,
-    color: "#333",
+    paddingHorizontal: 10,
+    gap: 8,
   },
   menuItemText: {
     fontSize: 16,
-    color: "#333",
-  },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    fontWeight: "500",
   },
 });
-export default AppHeader;
