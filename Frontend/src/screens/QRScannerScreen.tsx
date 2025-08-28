@@ -55,7 +55,7 @@ export const QRScannerScreen = () => {
         paymentData.amount_to_payment_id =
           paymentData.amount_to_payment_id ?? null;
         setLoading(false);
-        navigation.navigate("PaymentScreen", { paymentData });
+        navigation.navigate("PaymentScreen", { paymentData } as any);
       } catch (err) {
         setLoading(false);
         console.error("[QRScanner] Error al obtener datos de pago:", err);

@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { useAuthTokenStore } from "../stores/useAuthTokenStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Configuración base para los servicios de API
 const API_BASE_URL =
@@ -12,14 +12,16 @@ const defaultHeaders = {
   "Content-Type": "application/json",
 };
 
-// Función auxiliar para obtener el token desde zustand (compatible web/mobile)
-function getAuthToken() {
-  try {
-    // Acceso directo al estado de zustand
-    const token = useAuthTokenStore.getState().token;
-    return token;
-  } catch {
-    return null;
+// Función auxiliar para obtener el token desde localStorage (web) o AsyncStorage (móvil)
+async function getAuthToken() {
+  if (typeof window !== "undefined" && window.localStorage) {
+    return window.localStorage.getItem("auth_token");
+  } else {
+    try {
+      return await AsyncStorage.getItem("auth_token");
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -27,8 +29,8 @@ function getAuthToken() {
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Obtener token de zustand (web o mobile)
-  const token = getAuthToken();
+  // Obtener token de localStorage o AsyncStorage
+  const token = await getAuthToken();
   const headers = {
     ...defaultHeaders,
     ...(options.headers || {}),
@@ -61,7 +63,6 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
 
     return data;
   } catch (error) {
-    // Silenciado para evitar logs de error en app móvil
     throw error;
   }
 };

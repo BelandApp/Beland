@@ -91,7 +91,14 @@ export class WalletsService {
     const wallet = await this.dataSource
       .getRepository(Wallet)
       .findOne({ where: { id: wallet_id } });
-    if (!wallet) throw new NotFoundException('No se encuentra la billetera');
+
+    // LOG: Mostrar el resultado de la búsqueda
+    if (!wallet) {
+      console.log('[dataPayment] No se encontró wallet con id:', wallet_id);
+      throw new NotFoundException('No se encuentra la billetera');
+    } else {
+      console.log('[dataPayment] Wallet encontrada:', wallet.id);
+    }
 
     respPayment.wallet_id = wallet.id;
 
@@ -650,11 +657,11 @@ export class WalletsService {
       // const to = ... (ya lo tenías arriba)
       this.notificationsGateway.notifyUser(to.user_id, {
         wallet_id: to.id,
-        message: "Cobro Realizado con Éxito",
-        amount: +dto.amountBecoin* +this.superadminConfig.getPriceOneBecoin(),
+        message: 'Cobro Realizado con Éxito',
+        amount: +dto.amountBecoin * +this.superadminConfig.getPriceOneBecoin(),
         success: true,
         amount_payment_id_deleted: dto.amount_payment_id || null,
-      });    
+      });
 
       // se debe eliminar del front el amount to payment eliminado
       return { wallet: walletUpdate };

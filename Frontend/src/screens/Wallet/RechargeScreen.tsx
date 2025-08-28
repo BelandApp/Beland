@@ -76,6 +76,27 @@ export default function RechargeScreen() {
             padding: 32,
           }}
         >
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "#fff",
+              border: "2px solid #F88D2A",
+              color: "#F88D2A",
+              fontWeight: 600,
+              fontSize: 16,
+              borderRadius: 8,
+              padding: "8px 16px",
+              cursor: "pointer",
+              marginBottom: 24,
+              boxShadow: "0 2px 8px rgba(248,141,42,0.08)",
+              transition: "all 0.2s",
+            }}
+            onClick={() => window.history.back()}
+          >
+            ← Volver
+          </button>
           <div
             style={{ display: "flex", alignItems: "center", marginBottom: 32 }}
           >
@@ -134,14 +155,30 @@ export default function RechargeScreen() {
               ))}
             </div>
           </div>
-          <div style={{ marginBottom: 24 }}>
+          <div
+            style={{
+              background: "#fff",
+              border: "2px solid #F88D2A",
+              borderRadius: 16,
+              boxShadow: "0 2px 8px rgba(248,141,42,0.08)",
+              padding: "clamp(12px,2vw,20px) clamp(8px,4vw,24px)",
+              marginBottom: 8,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "clamp(8px,2vw,16px)",
+              width: "85%",
+              maxWidth: 420,
+            }}
+          >
             <span
               style={{
-                fontSize: 16,
-                fontWeight: 600,
+                fontSize: 18,
+                fontWeight: 700,
                 color: "#F88D2A",
                 marginBottom: 12,
                 display: "block",
+                letterSpacing: 0.5,
               }}
             >
               Monto personalizado
@@ -150,17 +187,15 @@ export default function RechargeScreen() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                background: "#fff",
-                borderRadius: 12,
-                border: "2px solid #F88D2A",
-                padding: "12px 16px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                gap: "clamp(10px,3vw,24px)",
+                width: "100%",
+                justifyContent: "center",
               }}
             >
               <span
                 style={{
-                  fontSize: 20,
-                  fontWeight: 600,
+                  fontSize: "clamp(16px,2vw,22px)",
+                  fontWeight: 700,
                   color: "#F88D2A",
                   marginRight: 8,
                 }}
@@ -170,25 +205,45 @@ export default function RechargeScreen() {
               <input
                 style={{
                   flex: 1,
-                  fontSize: 20,
-                  fontWeight: 600,
+                  fontSize: "clamp(18px,4vw,28px)",
+                  fontWeight: 700,
                   color: "#333",
                   border: "none",
                   outline: "none",
                   background: "transparent",
+                  maxWidth: "clamp(80px,30vw,180px)",
+                  minWidth: "clamp(50px,15vw,80px)",
+                  textAlign: "center",
+                  boxSizing: "border-box",
+                  borderBottom: "2px solid #F88D2A",
+                  borderRadius: 0,
+                  padding: "clamp(4px,1vw,8px) 0",
+                  appearance: "textfield",
+                  transition: "border-color 0.2s",
                 }}
+                inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                type="number"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, "");
+                  setAmount(val);
+                }}
+                min="0"
                 maxLength={10}
+                onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                onKeyDown={(e) =>
+                  (e.key === "-" || e.key === "+" || e.key === "e") &&
+                  e.preventDefault()
+                }
               />
               <span
                 style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  color: "#6BA43A",
-                  marginLeft: 8,
+                  fontSize: "clamp(12px,2vw,18px)",
+                  fontWeight: 700,
+                  color: "#6ba43a",
+                  marginLeft: 12,
+                  whiteSpace: "nowrap",
                 }}
               >
                 USD
@@ -302,6 +357,12 @@ export default function RechargeScreen() {
                     transition: "all 0.2s",
                   }}
                   onClick={async () => {
+                    // Limpiar variables QR antes de iniciar recarga
+                    localStorage.removeItem("payphone_to_wallet_id");
+                    localStorage.removeItem("payphone_amount_to_payment_id");
+                    localStorage.removeItem("payphone_is_qr_payment");
+                    sessionStorage.removeItem("payphone_to_wallet_id");
+                    sessionStorage.removeItem("payphone_amount_to_payment_id");
                     const ppDiv = document.getElementById("pp-button");
                     if (ppDiv) ppDiv.innerHTML = "";
                     setIsLoading(true);

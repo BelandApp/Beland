@@ -5,15 +5,19 @@ export const productStyles = StyleSheet.create({
   // Product grid
   productGrid: {
     paddingHorizontal: 4,
+    width: "100%",
+    boxSizing: "border-box",
   },
   productRow: {
     flexDirection: "row" as const,
     justifyContent: "flex-start" as const,
     marginBottom: 16,
+    flexWrap: "wrap",
     ...(Platform.OS === "web"
       ? {
           gap: 16,
           justifyContent: "center",
+          width: "100%",
         }
       : {}),
   },
@@ -33,7 +37,10 @@ export const productStyles = StyleSheet.create({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          width: "20%",
+          minWidth: 140,
+          maxWidth: 220,
+          width: "100%",
+          boxSizing: "border-box",
         }
       : {
           flex: 1,

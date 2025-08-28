@@ -35,9 +35,14 @@ export const RecyclingCard: React.FC<RecyclingCardProps> = ({
                   </Text>
                 </>
               ) : (
-                <Text style={recyclingCardStyles.recyclingLabel}>
-                  Aún no has reciclado botellas. ¡Comienza a reciclar y verás tu
-                  progreso aquí!
+                <Text
+                  style={[
+                    recyclingCardStyles.recyclingLabel,
+                    { width: "100%", flexShrink: 1 },
+                  ]}
+                >
+                  Aún no has reciclado botellas. {"\n"}¡Comienza a reciclar y
+                  verás tu progreso aquí!
                 </Text>
               )}
             </View>

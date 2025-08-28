@@ -187,7 +187,7 @@ const SendScreen = () => {
 
         {/* Monto */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Monto a enviar (BeCoins)</Text>
+          <Text style={styles.sectionTitle}>Monto a enviar </Text>
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.amountInput}
@@ -197,9 +197,6 @@ const SendScreen = () => {
               keyboardType="numeric"
               maxLength={10}
             />
-            <View style={styles.currencySelector}>
-              <Text style={styles.currencyText}>BECOINS</Text>
-            </View>
           </View>
         </View>
 
@@ -326,17 +323,23 @@ const styles = StyleSheet.create({
   currencySelector: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     backgroundColor: "#f0f9ff",
     borderRadius: 8,
-    marginRight: 4,
+    marginRight: 2,
+    width: 50,
+    flex: 1,
+    flexWrap: "wrap",
   },
   currencyText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
     color: "#4ecdc4",
-    marginRight: 4,
+    marginRight: 2,
+    maxWidth: 45,
+    overflow: "hidden",
+    textAlign: "center",
   },
   recipientContainer: {
     flexDirection: "row",
@@ -464,16 +467,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   successTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "600",
     color: "#4ecdc4",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  successSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
+    marginRight: 4,
+    maxWidth: 55,
+    overflow: "hidden",
+    textAlign: "right",
+
     marginBottom: 24,
   },
   closeButton: {

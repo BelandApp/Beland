@@ -40,7 +40,7 @@ const AppContent = () => {
       typeof window !== "undefined" &&
       window.innerWidth < 600
     ) {
-      const tabbarHeight = 70;
+      const tabbarHeight = 30;
       const extraBottom =
         typeof window.visualViewport !== "undefined" && window.visualViewport
           ? window.innerHeight - window.visualViewport.height
@@ -135,7 +135,7 @@ const AppContent = () => {
         HistoryScreen: "history",
         UserDashboardScreen: "user-dashboard",
         GroupsScreen: "Groups",
-        // Agrega aquí todas las rutas que tienes en RootStackParamList
+        PaymentScreen: "payment",
       },
     },
   };
