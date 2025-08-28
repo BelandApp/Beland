@@ -85,7 +85,7 @@ export const MainTabNavigator = () => {
               bottom: 0,
               left: 0,
               right: 0,
-              height: 70,
+              height: 90, // Altura aumentada para dejar más espacio
               paddingBottom: 0,
               zIndex: 9999,
             };
@@ -107,15 +107,14 @@ export const MainTabNavigator = () => {
         },
         headerShown: false,
         tabBarHideOnKeyboard: true,
-      })}>
-      
-      
-        <Tab.Screen
-          name="Home"
-          component={DashboardScreen}
-          options={{ tabBarLabel: "Dashboard" }}
-        />
-      
+      })}
+    >
+      <Tab.Screen
+        name="Home"
+        component={DashboardScreen}
+        options={{ tabBarLabel: "Dashboard" }}
+      />
+
       <Tab.Screen
         name="Wallet"
         component={WalletScreen}

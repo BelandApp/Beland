@@ -1,5 +1,5 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet, View } from "react-native";
+import { TouchableOpacity, StyleSheet, View, Platform } from "react-native";
 import { QRIcon } from "../icons";
 import { colors } from "../../styles/colors";
 
@@ -10,9 +10,17 @@ interface FloatingQRButtonProps {
 export const FloatingQRButton: React.FC<FloatingQRButtonProps> = ({
   onPress,
 }) => {
+  let bottom = 80;
+  if (
+    typeof window !== "undefined" &&
+    window.innerWidth < 600 &&
+    Platform.OS === "web"
+  ) {
+    bottom = 106; // Altura del tabBar (90) + margen extra (16)
+  }
   return (
     <TouchableOpacity
-      style={styles.floatingButton}
+      style={{ ...styles.floatingButton, bottom }}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -26,7 +34,6 @@ export const FloatingQRButton: React.FC<FloatingQRButtonProps> = ({
 const styles = StyleSheet.create({
   floatingButton: {
     position: "absolute",
-    bottom: 55,
     right: 5,
     width: 56,
     height: 56,
@@ -34,9 +41,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.belandOrange,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 9999,
+    zIndex: 10000,
     borderWidth: 4,
     borderColor: "#FFFFFF",
+    // El valor de bottom se aplica inline en el componente
   },
   buttonContent: {
     width: "100%",
