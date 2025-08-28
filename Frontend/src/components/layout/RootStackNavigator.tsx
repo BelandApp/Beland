@@ -52,7 +52,7 @@ export type RootStackParamList = {
     };
     amount_to_payment_id?: string | null;
   };
-  PayphoneSuccess: undefined;
+  PayphoneSuccess: { toWalletId: string; amountPaymentId: string };
   // Añade aquí cualquier otra ruta que falte.
 };
 

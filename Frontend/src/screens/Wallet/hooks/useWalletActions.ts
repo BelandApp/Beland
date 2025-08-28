@@ -14,8 +14,6 @@ export const useWalletActions = () => {
 
   // Obtener rol del usuario
   const { user } = require("../../../hooks/AuthContext").useAuth();
-  console.log("[WalletActions] user:", user);
-  console.log("[WalletActions] user.role:", user?.role);
 
   // Acciones principales del wallet
   const mainWalletActions: WalletAction[] = [

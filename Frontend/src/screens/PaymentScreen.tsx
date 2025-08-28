@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../components/layout/RootStackNavigator";
 import {
   View,
   Text,
@@ -21,6 +24,7 @@ type PaymentData = {
   message?: string;
   resource?: Resource[];
   wallet_id?: string;
+  amount_to_payment_id?: string | null;
 };
 
 type PaymentScreenProps = {
@@ -34,6 +38,17 @@ type PaymentScreenProps = {
 
 export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
   const { paymentData, amount_to_payment_id } = route.params;
+  // LOGS DE DEPURACIÓN
+  console.log("[PaymentScreen] paymentData:", paymentData);
+  console.log("[PaymentScreen] amount_to_payment_id:", amount_to_payment_id);
+  console.log(
+    "[PaymentScreen] localStorage.payphone_is_qr_payment:",
+    localStorage.getItem("payphone_is_qr_payment")
+  );
+  console.log(
+    "[PaymentScreen] localStorage.payphone_to_wallet_id:",
+    localStorage.getItem("payphone_to_wallet_id")
+  );
   const PRESET_AMOUNTS = [10, 25, 50, 100, 200, 500];
   const [amount, setAmount] = useState(
     paymentData.amount && Number(paymentData.amount) > 0
@@ -82,17 +97,27 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
     });
   }
 
-  // Handler para pago con Payphone en web
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const handlePayphoneWeb = async () => {
-    // Si es pago QR (tiene amount_to_payment_id o wallet_id), seteo la bandera
-    if (paymentData.wallet_id || amount_to_payment_id) {
-      localStorage.setItem("payphone_is_qr_payment", "true");
-      if (paymentData.wallet_id) {
-        localStorage.setItem("payphone_to_wallet_id", paymentData.wallet_id);
-      }
+    console.log("[Payphone] paymentData:", paymentData);
+    // Guardar datos QR en sessionStorage para que PayphoneSuccessScreen los lea después del pago
+    if (paymentData.wallet_id || paymentData.amount_to_payment_id) {
+      sessionStorage.setItem(
+        "payphone_to_wallet_id",
+        paymentData.wallet_id || ""
+      );
+      sessionStorage.setItem(
+        "payphone_amount_to_payment_id",
+        paymentData.amount_to_payment_id || ""
+      );
+      console.log("[Payphone][SessionStorage] Set QR Payment:", {
+        wallet_id: paymentData.wallet_id,
+        amount_to_payment_id: paymentData.amount_to_payment_id,
+      });
     } else {
-      localStorage.removeItem("payphone_is_qr_payment");
-      localStorage.removeItem("payphone_to_wallet_id");
+      sessionStorage.removeItem("payphone_to_wallet_id");
+      sessionStorage.removeItem("payphone_amount_to_payment_id");
+      console.log("[Payphone][SessionStorage] Limpieza de datos QR");
     }
     if (!isAmountValid) {
       setAmountError("El monto debe ser un entero entre 1 y 99999999");
@@ -116,6 +141,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
         currency: "USD",
         storeId: process.env.EXPO_PUBLIC_PAYPHONE_STOREID,
         reference: "Pago QR Beland",
+        // Redirigir al usuario a la URL de éxito después del pago
+        callback: `${window.location.origin}/wallet/payphone-success`,
       };
       // @ts-ignore
       new window.PPaymentButtonBox(payphoneConfig).render("pp-button");
