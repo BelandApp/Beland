@@ -135,7 +135,7 @@ const AppContent = () => {
         HistoryScreen: "history",
         UserDashboardScreen: "user-dashboard",
         GroupsScreen: "Groups",
-        // Agrega aquí todas las rutas que tienes en RootStackParamList
+        PaymentScreen: "payment",
       },
     },
   };
