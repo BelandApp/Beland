@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import { colors } from "../../styles/colors";
 import CryptoJS from "crypto-js";
 import { v4 as uuidv4 } from "uuid";
@@ -12,8 +13,12 @@ export default function PayphoneSuccessScreen() {
   const [status, setStatus] = useState<string>("Pendiente");
   const [loading, setLoading] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const [isPayment, setIsPayment] = useState(false); // Solo para lógica interna, no para render
-  const [toWalletId, setToWalletId] = useState<string | null>(null);
+  // Leer los datos QR desde sessionStorage
+  const finalToWalletId =
+    sessionStorage.getItem("payphone_to_wallet_id") || null;
+  const finalAmountPaymentId =
+    sessionStorage.getItem("payphone_amount_to_payment_id") || null;
+  const isPayment = !!finalToWalletId && !!finalAmountPaymentId;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -22,15 +27,23 @@ export default function PayphoneSuccessScreen() {
     setId(idParam);
     setClientTxId(clientTxIdParam);
 
-    // Detectar si es pago QR por bandera en localStorage
-    const isQrPayment =
-      localStorage.getItem("payphone_is_qr_payment") === "true";
-    setIsPayment(isQrPayment); // Solo para lógica interna
+    // Lógica robusta para distinguir pago QR usando Zustand
     setStatus("Pendiente");
-    const toWalletId = localStorage.getItem("payphone_to_wallet_id");
-    setToWalletId(toWalletId);
-
+    console.log("[PayphoneSuccess][SessionStorage] State:", {
+      isPayment,
+      finalToWalletId,
+      finalAmountPaymentId,
+    });
     async function confirmarTransaccion() {
+      // LOGS DE DEPURACIÓN
+      console.log(
+        "[PayphoneSuccess] sessionStorage.payphone_to_wallet_id:",
+        finalToWalletId
+      );
+      console.log(
+        "[PayphoneSuccess] sessionStorage.payphone_amount_to_payment_id:",
+        finalAmountPaymentId
+      );
       try {
         const jwtToken = localStorage.getItem("auth_token");
         const payphoneToken = localStorage.getItem("payphone_token");
@@ -57,12 +70,14 @@ export default function PayphoneSuccessScreen() {
         const payphoneData = await payphoneRes.json();
 
         if (payphoneData.transactionStatus === "Approved") {
-          // Limpiar bandera de pago QR para evitar que quede en true
+          // Limpiar datos de pago QR para evitar falsos positivos
+          localStorage.removeItem("payphone_to_wallet_id");
+          localStorage.removeItem("payphone_amount_to_payment_id");
           localStorage.removeItem("payphone_is_qr_payment");
-          localStorage.setItem(
-            "payphone_last_success",
-            JSON.stringify(payphoneData)
-          );
+          // localStorage.setItem(
+          //   "payphone_last_success",
+          //   JSON.stringify(payphoneData)
+          // );
 
           // 2. Obtener el wallet_id del usuario
           if (!user?.email || !user?.id) {
@@ -91,18 +106,28 @@ export default function PayphoneSuccessScreen() {
             return;
           }
           let backendRes, backendResult;
-          if (isPayment && toWalletId) {
+          if (isPayment && finalToWalletId) {
+            console.log("[PayphoneSuccess] Payload pago QR:", {
+              amountUsd,
+              referenceCode: payphoneData.reference,
+              payphone_transactionId: payphoneData.transactionId,
+              clientTransactionId: generatedClientTxId,
+              wallet_id: finalToWalletId,
+              amount_payment_id: finalAmountPaymentId,
+            });
             // Pago QR
+
             const payload = {
               amountUsd,
               referenceCode: payphoneData.reference,
               payphone_transactionId: payphoneData.transactionId,
               clientTransactionId: generatedClientTxId,
-              wallet_id: toWalletId,
+              wallet_id: finalToWalletId,
+              amount_payment_id: finalAmountPaymentId,
             };
 
             backendRes = await fetch(
-              `${process.env.EXPO_PUBLIC_API_URL}/wallets/purchase-recharge/${toWalletId}`,
+              `${process.env.EXPO_PUBLIC_API_URL}/wallets/purchase-recharge/${finalToWalletId}`,
               {
                 method: "POST",
                 headers: {
@@ -201,7 +226,8 @@ export default function PayphoneSuccessScreen() {
           }, 100);
         } else {
           setStatus("Transacción rechazada o cancelada");
-          localStorage.removeItem("payphone_is_qr_payment");
+          localStorage.removeItem("payphone_to_wallet_id");
+          localStorage.removeItem("payphone_amount_to_payment_id");
         }
       } finally {
         setLoading(false);

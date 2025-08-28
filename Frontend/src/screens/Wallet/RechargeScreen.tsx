@@ -357,6 +357,12 @@ export default function RechargeScreen() {
                     transition: "all 0.2s",
                   }}
                   onClick={async () => {
+                    // Limpiar variables QR antes de iniciar recarga
+                    localStorage.removeItem("payphone_to_wallet_id");
+                    localStorage.removeItem("payphone_amount_to_payment_id");
+                    localStorage.removeItem("payphone_is_qr_payment");
+                    sessionStorage.removeItem("payphone_to_wallet_id");
+                    sessionStorage.removeItem("payphone_amount_to_payment_id");
                     const ppDiv = document.getElementById("pp-button");
                     if (ppDiv) ppDiv.innerHTML = "";
                     setIsLoading(true);
