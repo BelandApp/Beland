@@ -37,7 +37,21 @@ export type RootStackParamList = {
   Catalog: undefined;
   Groups: undefined;
   UserDashboardScreen: undefined;
-  PaymentScreen: undefined;
+  PaymentScreen: {
+    paymentData: {
+      amount: number;
+      message?: string;
+      resource?: {
+        id: string;
+        resource_name: string;
+        resource_desc: string;
+        resource_quanity: number;
+        resource_discount: number;
+      }[];
+      wallet_id?: string;
+    };
+    amount_to_payment_id?: string | null;
+  };
   PayphoneSuccess: undefined;
   // Añade aquí cualquier otra ruta que falte.
 };
@@ -48,7 +62,8 @@ export const RootStackNavigator = () => {
   return (
     <Stack.Navigator
       initialRouteName="MainTabs"
-      screenOptions={{ headerShown: false }}>
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
       <Stack.Screen name="CanjearScreen" component={CanjearScreen} />
       <Stack.Screen name="SendScreen" component={SendScreen} />
@@ -96,14 +111,16 @@ export const RootStackNavigator = () => {
         component={CobrarScreen}
         options={{ headerShown: false, title: "Cobrar" }}
       />
-      {/* <Stack.Screen name="PaymentScreen" component={PaymentScreen} options={{ headerShown: false }} /> */}
+      <Stack.Screen
+        name="PaymentScreen"
+        component={PaymentScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Catalog"
         component={CatalogScreen}
         options={{ headerShown: false }}
       />
-      {/* 2. Renombra la pantalla para que coincida con el AppHeader */}
-      
     </Stack.Navigator>
   );
 };

@@ -14,6 +14,8 @@ export const useWalletActions = () => {
 
   // Obtener rol del usuario
   const { user } = require("../../../hooks/AuthContext").useAuth();
+  console.log("[WalletActions] user:", user);
+  console.log("[WalletActions] user.role:", user?.role);
 
   // Acciones principales del wallet
   const mainWalletActions: WalletAction[] = [
@@ -31,8 +33,12 @@ export const useWalletActions = () => {
       backgroundColor: "#FFFFFF",
       onPress: () => navigation.navigate("SendScreen" as never),
     },
-    // Mostrar solo a admin/comerciante
-    ...(user?.role === "ADMIN" || user?.role === "COMMERCE"
+    // Mostrar solo a admin/comerciante (acepta role_name y role.name)
+    ...(user?.role?.name === "ADMIN" ||
+    user?.role?.name === "COMMERCE" ||
+    user?.role?.name === "Comercio" ||
+    user?.role_name === "COMMERCE" ||
+    user?.role_name === "Comercio"
       ? [
           {
             id: "cobrar",
@@ -59,6 +65,8 @@ export const useWalletActions = () => {
       onPress: () => navigation.navigate("CanjearScreen" as never),
     },
   ];
+
+  console.log("[WalletActions] mainWalletActions:", mainWalletActions);
 
   // Acciones secundarias - sin historial ya que está integrado en la vista principal
   const secondaryWalletActions: WalletAction[] = [];

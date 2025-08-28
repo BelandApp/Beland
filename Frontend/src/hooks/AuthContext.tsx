@@ -17,6 +17,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { SocketService, RespSocket } from "../services/SocketService";
+import { useAuthTokenStore } from "src/stores/useAuthTokenStore";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -51,7 +52,8 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
+  setUser: (user: AuthUser | null) => void;
+  clearUser: () => void;
   isLoading: boolean;
   loginWithAuth0: () => void;
   logout: () => void;
@@ -85,45 +87,15 @@ const deleteToken = async () => {
   }
 };
 
-const saveUser = async (user: AuthUser) => {
-  const userStr = JSON.stringify(user);
-  if (Platform.OS === "web") {
-    localStorage.setItem("auth_user", userStr);
-  } else {
-    await AsyncStorage.setItem("auth_user", userStr);
-  }
-};
-
-const getUser = async (): Promise<AuthUser | null> => {
-  let userStr;
-  if (Platform.OS === "web") {
-    userStr = localStorage.getItem("auth_user");
-  } else {
-    userStr = await AsyncStorage.getItem("auth_user");
-  }
-  if (!userStr) return null;
-  try {
-    return JSON.parse(userStr);
-  } catch {
-    return null;
-  }
-};
-
-const deleteUser = async () => {
-  if (Platform.OS === "web") {
-    localStorage.removeItem("auth_user");
-  } else {
-    await AsyncStorage.removeItem("auth_user");
-  }
-};
-
 // === PROVEEDOR ===
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // --- Socket.io integration (puedes re-agregarlo luego si lo necesitas) ---
   // const socketService = React.useRef<SocketService | null>(null);
   // const [socketData, setSocketData] = useState<RespSocket | null>(null);
 
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const user = useAuthTokenStore((state) => state.user);
+  const setUser = useAuthTokenStore((state) => state.setUser);
+  const clearUser = useAuthTokenStore((state) => state.clearUser);
   const [isLoading, setIsLoading] = useState(true);
 
   // useEffect para socket y balance eliminado
@@ -190,13 +162,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         picture: data.profile_picture_url,
       };
       setUser(userObj);
-      await saveUser(userObj);
       console.log("✅ Perfil de usuario obtenido exitosamente.");
     } catch (error) {
       console.error("❌ Error obteniendo perfil del usuario:", error);
-      setUser(null);
+      clearUser();
       await deleteToken();
-      await deleteUser();
       throw error;
     }
   }, [apiBaseUrl, fetchWithAuth]);
@@ -207,12 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         // Restaurar sesión híbrida solo una vez al montar
         const token = await getToken();
-        const storedUser = await getUser();
-        if (token && storedUser) {
-          setUser(storedUser);
-        } else {
-          setUser(null);
-        }
+        if (!token) clearUser();
 
         // Procesar redireccionamiento de Auth0 solo si hay response
         if (response && response.type === "success" && discovery) {
@@ -244,9 +209,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
       } catch (err) {
-        setUser(null);
+        clearUser();
         await deleteToken();
-        await deleteUser();
         Alert.alert(
           "Error de autenticación",
           "Fallo al iniciar sesión. Por favor, inténtelo de nuevo."
@@ -267,9 +231,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    setUser(null);
+    clearUser();
     await deleteToken();
-    await deleteUser();
   };
 
   return (
@@ -277,10 +240,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       value={{
         user,
         setUser,
+        clearUser,
         isLoading,
         loginWithAuth0,
         logout,
-
         fetchWithAuth,
       }}
     >

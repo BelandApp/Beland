@@ -22,13 +22,23 @@ type AppHeaderNavigationProp = StackNavigationProp<RootStackParamList>;
 
 export const AppHeader = () => {
   const navigation = useNavigation<AppHeaderNavigationProp>();
-  const { user, isLoading, loginWithAuth0, logout, setUser } = useAuth();
+  const { user, isLoading, loginWithAuth0, logout, setUser, fetchWithAuth } =
+    useAuth();
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [showCommerceAlert, setShowCommerceAlert] = useState(false);
   const [isChangingRole, setIsChangingRole] = useState(false);
 
-  // No necesitamos un estado local de carga, ya usamos el del AuthContext.
-  // const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const getProfile = async () => {
+    try {
+      const response = await fetchWithAuth(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/me`
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      setUser({ ...data, picture: data.profile_picture_url });
+    } catch {}
+  };
 
   const handleLogin = async () => {
     // La función loginWithAuth0() del hook ya actualiza isLoading
@@ -60,10 +70,7 @@ export const AppHeader = () => {
         "Tu perfil ha sido actualizado y ahora puedes recibir pagos por QR.",
         "OK"
       );
-      // Actualizar el usuario en el contexto para reflejar el cambio de rol
-      if (user) {
-        setUser({ ...user, role: "COMMERCE", role_name: "Comerciante" });
-      }
+      await getProfile(); // Refresca el usuario desde el backend
     } catch (err) {
       setShowCommerceAlert(false);
       showErrorAlert(
@@ -116,12 +123,18 @@ export const AppHeader = () => {
                     styles.roleBadge,
                     {
                       backgroundColor:
-                        user.role_name === "Comercio" ? "#4CAF50" : "#2196F3",
+                        user.role_name === "COMMERCE" ||
+                        user.role_name === "Comercio"
+                          ? "#4CAF50"
+                          : "#2196F3",
                     },
                   ]}
                 >
                   <Text style={[styles.roleBadgeText, { color: "#fff" }]}>
-                    {user.role_name}
+                    {user.role_name === "COMMERCE" ||
+                    user.role_name === "Comercio"
+                      ? "Comerciante"
+                      : user.role_name}
                   </Text>
                 </View>
               )}
@@ -144,7 +157,10 @@ export const AppHeader = () => {
                 </TouchableOpacity>
 
                 {/* Mostrar opción solo si el usuario NO es comerciante */}
-                {user?.role_name !== "COMMERCE" && (
+                {!(
+                  user?.role_name === "COMMERCE" ||
+                  user?.role_name === "Comercio"
+                ) && (
                   <TouchableOpacity
                     style={styles.menuItem}
                     onPress={() => setShowCommerceAlert(true)}
