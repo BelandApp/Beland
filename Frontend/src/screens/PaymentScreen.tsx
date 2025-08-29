@@ -399,14 +399,14 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
                 if (isLoading) return;
                 try {
                   setIsLoading(true);
-                  // Lógica para transfer gratis
+                  // Lógica para compra gratuita (monto 0)
                   // Construir objeto con los datos requeridos por el backend
-                  const transferData: any = {
+                  const purchaseData: any = {
                     toWalletId: paymentData.wallet_id,
                     amountBecoin: 0,
                   };
                   if (paymentData.amount_to_payment_id) {
-                    transferData.amount_payment_id =
+                    purchaseData.amount_payment_id =
                       paymentData.amount_to_payment_id;
                   }
                   if (
@@ -414,10 +414,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
                     paymentData.resource.length > 0 &&
                     paymentData.resource[0].id
                   ) {
-                    transferData.user_resource_id = paymentData.resource[0].id;
+                    purchaseData.user_resource_id = paymentData.resource[0].id;
                   }
-                  await require("../services/walletService").walletService.createTransfer(
-                    transferData
+                  await require("../services/walletService").walletService.createPurchaseBecoin(
+                    purchaseData
                   );
                   Alert.alert(
                     "Compra registrada",
