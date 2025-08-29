@@ -50,24 +50,32 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
     localStorage.getItem("payphone_to_wallet_id")
   );
   const PRESET_AMOUNTS = [10, 25, 50, 100, 200, 500];
+  // Lógica según reglas del usuario:
+  // Si amount === 0 y amount_to_payment_id existe => entrada gratuita
+  // Si amount === 0 y NO existe amount_to_payment_id => monto editable
+  // Si amount > 0 => monto fijo
+  const isPresetFreeEntry =
+    Number(paymentData.amount) === 0 && !!paymentData.amount_to_payment_id;
+  const isEditableZero =
+    Number(paymentData.amount) === 0 && !paymentData.amount_to_payment_id;
+  const isFixedAmount = Number(paymentData.amount) > 0;
+
   const [amount, setAmount] = useState(
-    paymentData.amount && Number(paymentData.amount) > 0
+    isPresetFreeEntry
+      ? "0"
+      : isFixedAmount
       ? String(Number(paymentData.amount))
       : ""
   );
   const [amountError, setAmountError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const isFreeEntry = amount_to_payment_id && Number(paymentData.amount) === 0;
-  const isAmountEditable =
-    amount_to_payment_id &&
-    (!paymentData.amount || Number(paymentData.amount) === 0);
-  const canEdit = isAmountEditable;
+  const canEdit = isEditableZero;
   const isAmountValid =
     !canEdit ||
     (/^\d+$/.test(amount) && Number(amount) >= 1 && Number(amount) <= 99999999);
   const canPay =
     (canEdit && isAmountValid) ||
-    isFreeEntry ||
+    (isPresetFreeEntry && amount === "0") ||
     (!canEdit && amount && Number(amount) >= 1 && Number(amount) <= 99999999);
 
   // Función para cargar el script Payphone en web
@@ -284,18 +292,31 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
                 ))}
               </div>
             </>
-          ) : isFreeEntry ? (
-            <span
-              style={{
-                fontSize: 18,
-                color: "#6BA43A",
-                fontWeight: 700,
-                display: "block",
-                marginTop: 12,
-              }}
-            >
-              Pagado (entrada gratuita)
-            </span>
+          ) : isPresetFreeEntry ? (
+            <div style={{ marginTop: 12, marginBottom: 12 }}>
+              <span
+                style={{
+                  fontSize: 18,
+                  color: "#6BA43A",
+                  fontWeight: 700,
+                  display: "block",
+                  marginBottom: 4,
+                }}
+              >
+                Entrada gratuita
+              </span>
+              <span
+                style={{
+                  fontSize: 22,
+                  color: "#007AFF",
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  display: "block",
+                }}
+              >
+                $0.00
+              </span>
+            </div>
           ) : (
             <span
               style={{
@@ -357,7 +378,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
           </div>
         )}
         <div style={{ marginBottom: 24 }}>
-          {isFreeEntry ? (
+          {isPresetFreeEntry && amount === "0" ? (
             <button
               style={{
                 background: "#6BA43A",
@@ -374,12 +395,51 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
                 marginBottom: 8,
                 transition: "all 0.2s",
               }}
-              onClick={() => {
-                /* Aquí puedes llamar a la lógica de registro, NO Payphone */
+              onClick={async () => {
+                if (isLoading) return;
+                try {
+                  setIsLoading(true);
+                  // Lógica para transfer gratis
+                  // Construir objeto con los datos requeridos por el backend
+                  const transferData: any = {
+                    toWalletId: paymentData.wallet_id,
+                    amountBecoin: 0,
+                  };
+                  if (paymentData.amount_to_payment_id) {
+                    transferData.amount_payment_id =
+                      paymentData.amount_to_payment_id;
+                  }
+                  if (
+                    paymentData.resource &&
+                    paymentData.resource.length > 0 &&
+                    paymentData.resource[0].id
+                  ) {
+                    transferData.user_resource_id = paymentData.resource[0].id;
+                  }
+                  await require("../services/walletService").walletService.createTransfer(
+                    transferData
+                  );
+                  Alert.alert(
+                    "Compra registrada",
+                    "La entrada gratuita fue registrada correctamente."
+                  );
+
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "MainTabs", params: { screen: "Home" } }],
+                  });
+                } catch (err) {
+                  Alert.alert(
+                    "Error",
+                    "No se pudo registrar la entrada gratuita"
+                  );
+                } finally {
+                  setIsLoading(false);
+                }
               }}
               disabled={isLoading}
             >
-              {isLoading ? "Procesando..." : "Pagar"}
+              {isLoading ? "Procesando..." : "Registrar entrada gratuita"}
             </button>
           ) : (
             <button
@@ -426,7 +486,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
             Cancelar
           </button>
         </div>
-        {!isFreeEntry && (
+        {!isPresetFreeEntry && (
           <div style={{ width: "100%", marginTop: 24 }}>
             <div id="pp-button" style={{ marginBottom: 16 }}></div>
           </div>
