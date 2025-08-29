@@ -1,17 +1,20 @@
 import { WalletAction } from "../types";
 import {
   ExchangeIcon,
-  TransactionIcon,
   SendIcon,
   ReceiveIcon,
   RechargeIcon,
-  SettingsIcon,
 } from "../../../components/icons";
 import { useNavigation } from "@react-navigation/native";
 
-export const useWalletActions = () => {
+export const useWalletActions = (
+  showCustomAlert?: (
+    title: string,
+    message: string,
+    type?: "success" | "error" | "info"
+  ) => void
+) => {
   const navigation = useNavigation();
-
   // Obtener rol del usuario
   const { user } = require("../../../hooks/AuthContext").useAuth();
 
@@ -31,40 +34,49 @@ export const useWalletActions = () => {
       backgroundColor: "#FFFFFF",
       onPress: () => navigation.navigate("SendScreen" as never),
     },
-    // Mostrar solo a admin/comerciante (acepta role_name y role.name)
-    ...(user?.role?.name === "ADMIN" ||
-    user?.role?.name === "COMMERCE" ||
-    user?.role?.name === "Comercio" ||
-    user?.role_name === "COMMERCE" ||
-    user?.role_name === "Comercio"
-      ? [
-          {
-            id: "cobrar",
-            label: "Cobrar",
-            icon: ReceiveIcon,
-            backgroundColor: "#FFFFFF",
-            onPress: () => navigation.navigate("CobrarScreen" as never),
-          },
-        ]
-      : [
-          {
-            id: "receive",
-            label: "Recibir",
-            icon: ReceiveIcon,
-            backgroundColor: "#FFFFFF",
-            onPress: () => navigation.navigate("ReceiveScreen" as never),
-          },
-        ]),
     {
-      id: "exchange",
-      label: "Canjear",
-      icon: ExchangeIcon,
+      id: "receive",
+      label: "Recibir",
+      icon: ReceiveIcon,
       backgroundColor: "#FFFFFF",
-      onPress: () => navigation.navigate("CanjearScreen" as never),
+      onPress: () => navigation.navigate("ReceiveScreen" as never),
     },
   ];
 
-  console.log("[WalletActions] mainWalletActions:", mainWalletActions);
+  // Agregar botón Cobrar solo para roles permitidos
+  if (
+    (typeof user?.role_name === "string" &&
+      ["COMMERCE", "ADMIN"].includes(user.role_name.toUpperCase())) ||
+    (user?.role &&
+      typeof user.role === "object" &&
+      user.role.name &&
+      user.role.name.toUpperCase() !== "USER")
+  ) {
+    mainWalletActions.push({
+      id: "cobrar",
+      label: "Cobrar",
+      icon: require("../../../components/icons").CobrarIcon,
+      backgroundColor: "#FFFFFF",
+      onPress: () => navigation.navigate("CobrarScreen" as never),
+    });
+  }
+
+  // Acción final
+  mainWalletActions.push({
+    id: "exchange",
+    label: "Canjear",
+    icon: ExchangeIcon,
+    backgroundColor: "#FFFFFF",
+    onPress: () => {
+      if (showCustomAlert) {
+        showCustomAlert(
+          "Funcionalidad en progreso",
+          "Esta funcionalidad estará disponible próximamente.",
+          "info"
+        );
+      }
+    },
+  });
 
   // Acciones secundarias - sin historial ya que está integrado en la vista principal
   const secondaryWalletActions: WalletAction[] = [];

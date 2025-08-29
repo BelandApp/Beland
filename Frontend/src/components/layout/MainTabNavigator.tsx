@@ -17,6 +17,7 @@ import {
   CatalogIcon,
   GiftIcon,
   GroupIcon,
+  CommunityIcon,
 } from "../icons";
 
 const Tab = createBottomTabNavigator();
@@ -42,7 +43,7 @@ export const MainTabNavigator = () => {
             case "Wallet":
               return <WalletIcon {...iconProps} />;
             case "Rewards":
-              return <GiftIcon {...iconProps} />;
+              return <CommunityIcon {...iconProps} />;
             case "Catalog":
               return <CatalogIcon {...iconProps} />;
             case "Groups":
@@ -123,7 +124,7 @@ export const MainTabNavigator = () => {
       <Tab.Screen
         name="Rewards"
         component={RewardsScreen}
-        options={{ tabBarLabel: "Premios" }}
+        options={{ tabBarLabel: "Comunidad" }}
       />
       <Tab.Screen
         name="Catalog"

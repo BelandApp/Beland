@@ -102,10 +102,13 @@ class WalletService {
   // Crear monto a cobrar
   async createAmountToPayment(amount: number): Promise<any> {
     try {
+      const payload = { amount };
+      console.log("[createAmountToPayment] Payload enviado:", payload);
       const response = await apiRequest("/amount-to-payment", {
         method: "POST",
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify(payload),
       });
+      console.log("[createAmountToPayment] Respuesta backend:", response);
       return response;
     } catch (error) {
       console.error("Error al crear monto a cobrar:", error);
@@ -405,7 +408,10 @@ class WalletService {
       return null;
     }
     try {
-      const resp = await apiRequest("/wallets/qr", { method: "GET" });
+      const resp = await apiRequest("/wallets/qr", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (resp?.qr) return resp.qr;
       return null;
     } catch (error) {

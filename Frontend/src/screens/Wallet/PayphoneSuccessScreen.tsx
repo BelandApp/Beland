@@ -70,10 +70,7 @@ export default function PayphoneSuccessScreen() {
         const payphoneData = await payphoneRes.json();
 
         if (payphoneData.transactionStatus === "Approved") {
-          // Limpiar datos de pago QR para evitar falsos positivos
-          localStorage.removeItem("payphone_to_wallet_id");
-          localStorage.removeItem("payphone_amount_to_payment_id");
-          localStorage.removeItem("payphone_is_qr_payment");
+          // Los datos de pago QR se borran solo después de la petición exitosa al backend
           // localStorage.setItem(
           //   "payphone_last_success",
           //   JSON.stringify(payphoneData)
@@ -116,7 +113,6 @@ export default function PayphoneSuccessScreen() {
               amount_payment_id: finalAmountPaymentId,
             });
             // Pago QR
-
             const payload = {
               amountUsd,
               referenceCode: payphoneData.reference,
@@ -125,6 +121,19 @@ export default function PayphoneSuccessScreen() {
               wallet_id: finalToWalletId,
               amount_payment_id: finalAmountPaymentId,
             };
+            if (typeof window !== "undefined" && window.sessionStorage) {
+              try {
+                window.sessionStorage.setItem(
+                  "payphone_backend_qr_payload",
+                  JSON.stringify(payload)
+                );
+              } catch (e) {
+                console.warn(
+                  "No se pudo guardar el payload en sessionStorage",
+                  e
+                );
+              }
+            }
 
             backendRes = await fetch(
               `${process.env.EXPO_PUBLIC_API_URL}/wallets/purchase-recharge/${finalToWalletId}`,
@@ -138,6 +147,27 @@ export default function PayphoneSuccessScreen() {
               }
             );
             backendResult = await backendRes.json().catch(() => null);
+            console.log(
+              "[PayphoneSuccess] Respuesta backend pago QR:",
+              backendResult
+            );
+            if (typeof window !== "undefined" && window.sessionStorage) {
+              try {
+                window.sessionStorage.setItem(
+                  "payphone_backend_qr_response",
+                  JSON.stringify(backendResult)
+                );
+              } catch (e) {
+                console.warn(
+                  "No se pudo guardar la respuesta en sessionStorage",
+                  e
+                );
+              }
+            }
+            // Ahora sí, limpiar los datos de pago QR
+            localStorage.removeItem("payphone_to_wallet_id");
+            localStorage.removeItem("payphone_amount_to_payment_id");
+            localStorage.removeItem("payphone_is_qr_payment");
           } else {
             // Recarga
             const payload = {
@@ -163,10 +193,18 @@ export default function PayphoneSuccessScreen() {
 
           if (
             backendResult &&
-            backendResult.wallet &&
-            typeof backendResult.wallet.becoin_balance === "number"
+            ((backendResult.wallet &&
+              typeof backendResult.wallet.becoin_balance === "number") ||
+              typeof backendResult.becoin_balance === "number")
           ) {
-            setWalletBalance(backendResult.wallet.becoin_balance);
+            if (
+              backendResult.wallet &&
+              typeof backendResult.wallet.becoin_balance === "number"
+            ) {
+              setWalletBalance(backendResult.wallet.becoin_balance);
+            } else if (typeof backendResult.becoin_balance === "number") {
+              setWalletBalance(backendResult.becoin_balance);
+            }
           }
 
           if (!backendResult || !backendResult.wallet) {

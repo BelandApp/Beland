@@ -1,63 +1,57 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { Group } from "../../../types";
+import { Group } from "../../../types/Group";
 import { GroupService } from "../../../services/groupService";
-import { groupStorage } from "../../../services/groupStorage";
-import { MOCK_GROUPS } from "../../../data/mockData";
 
 export const useGroups = () => {
+  const [groups, setGroups] = useState<Group[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Suscribirse a cambios en el storage
-  useEffect(() => {
-    const unsubscribe = groupStorage.subscribe(() => {
-      setRefreshKey((prev) => prev + 1);
-    });
-
-    return unsubscribe;
+  const fetchGroups = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const apiResponse = await GroupService.getGroupsFromApi();
+      setGroups(apiResponse.groups || []);
+    } catch (err: any) {
+      setError(err.message || "Error al cargar los grupos desde la API.");
+      setGroups([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Refrescar cuando se enfoca la pantalla
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups, refreshKey]);
+
   useFocusEffect(
     useCallback(() => {
       setRefreshKey((prev) => prev + 1);
     }, [])
   );
 
-  const getAllGroups = (): Group[] => {
-    const storageGroups = GroupService.getAllGroups();
-    const storageIds = new Set(storageGroups.map((group) => group.id));
+  const getAllGroups = () => groups;
 
-    // Solo incluir grupos mockeados que no estén ya en el storage
-    const uniqueMockGroups = MOCK_GROUPS.filter(
-      (group) => !storageIds.has(group.id)
+  const getActiveGroups = () =>
+    groups.filter(
+      (group) => group.status === "active" || group.status === "pending"
     );
 
-    return [...uniqueMockGroups, ...storageGroups];
-  };
+  const getCompletedGroups = () =>
+    groups.filter((group) => group.status === "completed");
 
-  const getActiveGroups = (): Group[] => {
-    const allGroups = getAllGroups();
-    return allGroups.filter(
-      (group) => group.status === "active" || group.status === "pending_payment"
-    );
-  };
-
-  const getCompletedGroups = (): Group[] => {
-    const allGroups = getAllGroups();
-    return allGroups.filter((group) => group.status === "completed");
-  };
-
-  const getGroupById = (id: string): Group | undefined => {
-    const allGroups = getAllGroups();
-    return allGroups.find((group) => group.id === id);
-  };
+  const getGroupById = (id: string) => groups.find((group) => group.id === id);
 
   return {
     getAllGroups,
     getActiveGroups,
     getCompletedGroups,
     getGroupById,
-    refreshKey, // Para forzar re-render cuando sea necesario
+    refreshKey,
+    loading,
+    error,
   };
 };
