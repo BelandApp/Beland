@@ -103,7 +103,7 @@ export default function PayphoneSuccessScreen() {
             return;
           }
           let backendRes, backendResult;
-          if (isPayment && finalToWalletId) {
+          if (finalToWalletId) {
             console.log("[PayphoneSuccess] Payload pago QR:", {
               amountUsd,
               referenceCode: payphoneData.reference,
@@ -113,14 +113,23 @@ export default function PayphoneSuccessScreen() {
               amount_payment_id: finalAmountPaymentId,
             });
             // Pago QR
-            const payload = {
+            const payload: {
+              amountUsd: number;
+              referenceCode: any;
+              payphone_transactionId: any;
+              clientTransactionId: string;
+              wallet_id: string;
+              amount_payment_id?: string;
+            } = {
               amountUsd,
               referenceCode: payphoneData.reference,
               payphone_transactionId: payphoneData.transactionId,
               clientTransactionId: generatedClientTxId,
               wallet_id: finalToWalletId,
-              amount_payment_id: finalAmountPaymentId,
             };
+            if (finalAmountPaymentId) {
+              payload.amount_payment_id = finalAmountPaymentId;
+            }
             if (typeof window !== "undefined" && window.sessionStorage) {
               try {
                 window.sessionStorage.setItem(
@@ -176,7 +185,6 @@ export default function PayphoneSuccessScreen() {
               payphone_transactionId: payphoneData.transactionId,
               clientTransactionId: generatedClientTxId,
             };
-
             backendRes = await fetch(
               `${process.env.EXPO_PUBLIC_API_URL}/wallets/recharge`,
               {
@@ -257,7 +265,7 @@ export default function PayphoneSuccessScreen() {
           }
           setLoading(false);
           setTimeout(() => {
-            setStatus(isPayment ? "Pago exitoso" : "Recarga exitosa");
+            setStatus(finalToWalletId ? "Pago exitoso" : "Recarga exitosa");
             setTimeout(() => {
               window.location.href = "/wallet/main";
             }, 1500);
