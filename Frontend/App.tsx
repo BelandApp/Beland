@@ -20,8 +20,11 @@ import {
 import { FloatingQRButton } from "./src/components/ui/FloatingQRButton";
 import { useAuth } from "src/hooks/AuthContext";
 import { AuthProvider } from "src/hooks/AuthContext";
+import { NotificationProvider } from "./src/hooks/NotificationContext";
+import { NotificationBanner } from "./src/components/ui/NotificationBanner";
 import PayphoneSuccessScreen from "./src/screens/Wallet/PayphoneSuccessScreen";
 import SocketStatus from "./src/components/SocketStatus";
+import { usePaymentSocket } from "src/hooks/usePaymentSocket";
 
 const AppContent = () => {
   // Declarar todos los hooks al inicio, sin condicionales
@@ -32,6 +35,8 @@ const AppContent = () => {
   const [currentRoute, setCurrentRoute] = useState<string | undefined>(
     undefined
   );
+  // Conexión global a sockets para notificaciones
+  usePaymentSocket(() => {});
 
   // Padding dinámico para web móvil
   const dynamicPaddingBottom = useMemo(() => {
@@ -170,8 +175,11 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <SocketStatus />
-        <AppContent />
+        <NotificationProvider>
+          <SocketStatus />
+          <AppContent />
+          <NotificationBanner />
+        </NotificationProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

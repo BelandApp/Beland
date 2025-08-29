@@ -46,6 +46,25 @@ export interface PendingTransferRequest {
 }
 
 class WalletService {
+  // Crear compra de BeCoins (registro correcto de tipo de transferencia)
+  async createPurchaseBecoin(purchaseData: {
+    toWalletId: string;
+    amountBecoin: number;
+    description?: string;
+  }): Promise<any> {
+    try {
+      console.log("🛒 Creando compra de BeCoins:", purchaseData);
+      const response = await apiRequest("/wallets/purchase-becoin", {
+        method: "POST",
+        body: JSON.stringify(purchaseData),
+      });
+      console.log("✅ Compra registrada:", response);
+      return response;
+    } catch (error) {
+      console.error("❌ Error creando compra de BeCoins:", error);
+      throw error;
+    }
+  }
   // Eliminar preset de monto
   async deletePresetAmount(id: string): Promise<any> {
     try {
