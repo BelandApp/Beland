@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePaymentSocket } from "../../hooks/usePaymentSocket";
 import { Platform } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import {
@@ -17,6 +18,14 @@ import { convertUSDToBeCoins } from "../../constants/currency";
 import { useNavigation } from "@react-navigation/native";
 
 const CobrarScreen = () => {
+  // Actualizar historial de montos en tiempo real al recibir pago por socket
+  usePaymentSocket((data) => {
+    if (data && data.amount_payment_id_deleted) {
+      setAmounts((prev) =>
+        prev.filter((item) => item.id !== data.amount_payment_id_deleted)
+      );
+    }
+  });
   const [showPresetForm, setShowPresetForm] = useState(false);
   const navigation = useNavigation();
   const [qrImage, setQrImage] = useState<string | null>(null);
