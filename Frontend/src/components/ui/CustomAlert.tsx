@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Platform,
 } from "react-native";
 import { colors } from "../../styles/colors";
 
@@ -68,6 +69,98 @@ export const CustomAlert = ({
     }
   };
 
+  if (!visible) return null;
+
+  // Render web mejorado
+  if (Platform.OS === "web") {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          background: "rgba(0,0,0,0.45)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "Inter, Roboto, Segoe UI, Arial, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 20,
+            padding: "40px 32px 32px 32px",
+            minWidth: 320,
+            maxWidth: 400,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            textAlign: "center",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 54,
+              marginBottom: 18,
+              color: getColorByType(),
+              filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.10))",
+              fontFamily:
+                "Segoe UI Emoji, Apple Color Emoji, Noto Color Emoji, Arial, sans-serif",
+            }}
+          >
+            {getIconByType()}
+          </div>
+          <div
+            style={{
+              fontWeight: 800,
+              fontSize: 24,
+              marginBottom: 10,
+              color: "#222",
+              letterSpacing: 0.5,
+              fontFamily: "Inter, Roboto, Segoe UI, Arial, sans-serif",
+            }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              fontSize: 17,
+              color: "#555",
+              marginBottom: 28,
+              lineHeight: 1.5,
+              fontWeight: 500,
+              fontFamily: "Inter, Roboto, Segoe UI, Arial, sans-serif",
+            }}
+          >
+            {message}
+          </div>
+          <button
+            style={{
+              background: getColorByType(),
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              padding: "12px 38px",
+              fontWeight: 700,
+              fontSize: 17,
+              cursor: "pointer",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.10)",
+              transition: "background 0.2s",
+              letterSpacing: 0.2,
+            }}
+            onClick={onClose}
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render mobile (native)
   return (
     <Modal
       transparent
@@ -84,10 +177,8 @@ export const CustomAlert = ({
               {getIconByType()}
             </Text>
           </View>
-
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-
           {/* Solo mostrar botones si no hay autoClose o si hay botones definidos */}
           {(!autoCloseDelay || primaryButton || secondaryButton) && (
             <View
@@ -106,7 +197,6 @@ export const CustomAlert = ({
                   </Text>
                 </TouchableOpacity>
               )}
-
               <TouchableOpacity
                 style={[
                   styles.button,

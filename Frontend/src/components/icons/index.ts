@@ -1,3 +1,4 @@
+export { CommunityIcon } from "./CommunityIcon";
 export { BottleIcon } from "./BottleIcon";
 export { TreesIcon } from "./TreesIcon";
 export { HomeIcon } from "./HomeIcon";
@@ -21,3 +22,4 @@ export { GroupIcon } from "./GroupIcon";
 export { RecyclingMarker } from "./RecyclingMarker";
 export { PhoneMapSVG } from "./PhoneMapSVG";
 export { RechargeIcon, SettingsIcon } from "./WalletIcons";
+export { CobrarIcon } from "./CobrarIcon";

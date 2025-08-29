@@ -17,6 +17,7 @@ import { convertUSDToBeCoins } from "../../constants/currency";
 import { useNavigation } from "@react-navigation/native";
 
 const CobrarScreen = () => {
+  const [showPresetForm, setShowPresetForm] = useState(false);
   const navigation = useNavigation();
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
@@ -178,657 +179,709 @@ const CobrarScreen = () => {
     }
   };
 
-  if (Platform.OS === "web") {
+  if (IS_WEB) {
     return (
-      <div
-        style={{
-          height: "100vh",
-          overflowY: "auto",
-          background: "#F7F8FA",
-        }}
-      >
-        <View style={styles.container}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 24,
-              padding: 8,
-              marginBottom: 8,
-              marginLeft: 4,
-              shadowColor: "#007AFF",
-              shadowOpacity: 0.15,
-              shadowRadius: 4,
-              elevation: 2,
-              alignSelf: "flex-start",
-              flexDirection: "row",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#E0E7EF",
-            }}
+      <div style={{ height: "100vh", overflowY: "auto", width: "100%" }}>
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            style={styles.container}
+            contentContainerStyle={{ paddingBottom: 32 }}
           >
-            <Icon name="arrow-back" size={24} color="#007AFF" />
-            <Text
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               style={{
-                color: "#007AFF",
-                fontWeight: "bold",
-                fontSize: 16,
+                backgroundColor: "#fff",
+                borderRadius: 24,
+                padding: 8,
+                marginBottom: 8,
                 marginLeft: 4,
-              }}
-            >
-              Atrás
-            </Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Cobrar en USD</Text>
-          {/* Presets de monto */}
-          <View
-            style={{
-              marginTop: 16,
-              backgroundColor: "#f7fbfc",
-              borderColor: "#007AFF",
-              borderWidth: 1,
-              borderRadius: 16,
-              shadowColor: "#007AFF",
-              shadowOpacity: 0.08,
-              shadowRadius: 8,
-              elevation: 2,
-              paddingBottom: 18,
-              margin: 16,
-              padding: 16,
-            }}
-          >
-            <Text
-              style={{
-                color: "#007AFF",
-                fontSize: 20,
-                fontWeight: "bold",
-                marginBottom: 10,
-                textAlign: "center",
-                letterSpacing: 0.5,
-              }}
-            >
-              Presets de monto rápido (USD)
-            </Text>
-            {loadingPresets ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  marginBottom: 10,
-                }}
-              >
-                {presets.map((preset, idx) => (
-                  <TouchableOpacity
-                    key={preset.id}
-                    style={{
-                      backgroundColor: "#e0f7fa",
-                      borderRadius: 20,
-                      paddingVertical: 10,
-                      paddingHorizontal: 22,
-                      margin: 4,
-                      borderWidth: 2,
-                      borderColor: "#007AFF",
-                      shadowColor: "#007AFF",
-                      shadowOpacity: 0.12,
-                      shadowRadius: 4,
-                      elevation: 2,
-                      marginRight: idx % 2 === 0 ? 8 : 0,
-                      marginBottom: 8,
-                    }}
-                    onPress={async () => {
-                      setAmount(String(preset.amount));
-                      setPresetMessage(preset.message || "");
-                      setPresetName(preset.name || "");
-                      // Crear venta automáticamente
-                      try {
-                        await walletService.createAmountToPayment(
-                          Number(preset.amount)
-                        );
-                        fetchAmounts();
-                      } catch (err) {
-                        Alert.alert("Error", "No se pudo crear la venta");
-                      }
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: "#007AFF",
-                        fontWeight: "bold",
-                        fontSize: 16,
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {preset.name ? preset.name + " - " : ""}
-                      {formatUSD(preset.amount)}
-                    </Text>
-                    {preset.message ? (
-                      <Text
-                        style={{
-                          color: "#0097a7",
-                          fontSize: 12,
-                          marginTop: 2,
-                          textAlign: "center",
-                        }}
-                      >
-                        {preset.message}
-                      </Text>
-                    ) : null}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            <View style={{ marginTop: 8 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#007AFF",
-                  borderRadius: 10,
-                  padding: 10,
-                  backgroundColor: "#fff",
-                  fontSize: 16,
-                  marginBottom: 8,
-                }}
-                placeholder="Nombre del preset"
-                value={presetName}
-                onChangeText={setPresetName}
-              />
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#007AFF",
-                  borderRadius: 10,
-                  padding: 10,
-                  backgroundColor: "#fff",
-                  fontSize: 16,
-                  marginBottom: 8,
-                }}
-                placeholder="Monto en USD"
-                keyboardType="numeric"
-                value={presetAmount}
-                onChangeText={setPresetAmount}
-              />
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#007AFF",
-                  borderRadius: 10,
-                  padding: 10,
-                  backgroundColor: "#fff",
-                  fontSize: 16,
-                  marginBottom: 8,
-                }}
-                placeholder="Mensaje (opcional)"
-                value={presetMessage}
-                onChangeText={setPresetMessage}
-              />
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#007AFF",
-                  paddingVertical: 10,
-                  paddingHorizontal: 24,
-                  borderRadius: 10,
-                  alignItems: "center",
-                  marginTop: 4,
-                }}
-                onPress={handleCreatePreset}
-              >
-                <Text
-                  style={{ color: "#fff", fontWeight: "bold", fontSize: 15 }}
-                >
-                  Agregar preset
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {/* Input de monto y botón */}
-          <View style={[styles.section, styles.amountSection]}>
-            <Text
-              style={[styles.sectionTitle, { color: "#007AFF", fontSize: 20 }]}
-            >
-              1. Ingresa el monto a cobrar (USD)
-            </Text>
-            <View style={[styles.row, { marginTop: 12 }]}>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    fontSize: 18,
-                    borderColor: "#007AFF",
-                    backgroundColor: "#fff",
-                  },
-                ]}
-                placeholder="Monto en USD"
-                keyboardType="numeric"
-                value={amount}
-                onChangeText={setAmount}
-              />
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleCreateAmount}
-                disabled={creating}
-              >
-                <Text style={styles.buttonText}>
-                  {creating ? "Guardando..." : "Crear Venta"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Conversión a BeCoins */}
-
-          {amount && !isNaN(Number(amount)) && Number(amount) > 0 ? (
-            <View
-              style={{
-                backgroundColor: "#f4fff7",
-                borderRadius: 14,
-                paddingVertical: 12,
-                paddingHorizontal: 22,
-                marginTop: 18,
-                alignSelf: "center",
+                shadowColor: "#007AFF",
+                shadowOpacity: 0.15,
+                shadowRadius: 4,
+                elevation: 2,
+                alignSelf: "flex-start",
+                flexDirection: "row",
                 alignItems: "center",
-                borderWidth: 1.5,
-                borderColor: "#43b86a",
-                maxWidth: 260,
-                shadowColor: "#43b86a",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.13,
-                shadowRadius: 6,
-                elevation: 3,
+                borderWidth: 1,
+                borderColor: "#E0E7EF",
               }}
             >
+              <Icon name="arrow-back" size={24} color="#007AFF" />
               <Text
                 style={{
-                  fontSize: 22,
-                  color: "#2e7d32",
-                  fontWeight: "700",
-                  letterSpacing: 0.5,
+                  color: "#007AFF",
+                  fontWeight: "bold",
+                  fontSize: 16,
+                  marginLeft: 4,
                 }}
               >
-                {convertUSDToBeCoins(Number(amount))} BeCoins
+                Atrás
               </Text>
-              <Text
-                style={{
-                  fontSize: 14,
-                  color: "#43b86a",
-                  marginTop: 4,
-                  fontWeight: "500",
-                }}
-              >
-                Conversión automática según tasa actual
-              </Text>
-            </View>
-          ) : null}
-          {/* QR para cobrar */}
-          <View style={[styles.section, styles.qrSection]}>
-            <Text
-              style={[styles.sectionTitle, { color: "#FFD700", fontSize: 18 }]}
-            >
-              2. QR para cobrar
-            </Text>
-            {qrLoading ? (
-              <ActivityIndicator size="large" color="#FFD700" />
-            ) : qrImage ? (
-              <>
-                <Image source={{ uri: qrImage }} style={styles.qrImage} />
-                <WebDownloadButton qrImage={qrImage} />
-              </>
-            ) : (
-              <Text style={styles.errorText}>{qrError}</Text>
-            )}
-            <Text style={styles.qrHint}>
-              El cliente debe escanear este QR para pagar el monto ingresado.
-            </Text>
-          </View>
-          {/* Montos creados */}
-          <View style={[styles.section, styles.createdSection]}>
-            <Text style={styles.sectionTitle}>
-              Historial de montos creados (USD)
-            </Text>
-            {loadingAmounts ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <View>
-                {amounts && amounts.length > 0 ? (
-                  amounts.map((item, idx) => (
-                    <View style={styles.amountRow} key={item.id || idx}>
-                      <View>
-                        <Text style={styles.amountText}>
-                          {formatUSD(item.amount)}
-                        </Text>
-                        <Text style={styles.amountDate}>
-                          {new Date(item.created_at).toLocaleString()}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteAmount(item.id)}
-                        style={styles.deleteButton}
-                      >
-                        <Text style={styles.deleteText}>Eliminar</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                ) : (
-                  <Text
-                    style={{ textAlign: "center", color: "#888", marginTop: 8 }}
-                  >
-                    No hay montos creados.
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
-        </View>
-      </div>
-    );
-  }
-  // Mobile y otros
-  return (
-    <ScrollView style={styles.container}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={{
-          backgroundColor: "#fff",
-          borderRadius: 24,
-          padding: 8,
-          marginBottom: 8,
-          marginLeft: 4,
-          shadowColor: "#007AFF",
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          elevation: 2,
-          alignSelf: "flex-start",
-          flexDirection: "row",
-          alignItems: "center",
-          borderWidth: 1,
-          borderColor: "#E0E7EF",
-        }}
-      >
-        <Icon name="arrow-back" size={24} color="#007AFF" />
-        <Text
-          style={{
-            color: "#007AFF",
-            fontWeight: "bold",
-            fontSize: 16,
-            marginLeft: 4,
-          }}
-        >
-          Atrás
-        </Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Cobrar en USD</Text>
-      {/* Presets de monto */}
-      <View
-        style={{
-          marginTop: 16,
-          backgroundColor: "#f7fbfc",
-          borderColor: "#007AFF",
-          borderWidth: 1,
-          borderRadius: 16,
-          shadowColor: "#007AFF",
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
-          elevation: 2,
-          paddingBottom: 18,
-          margin: 16,
-          padding: 16,
-        }}
-      >
-        <Text
-          style={{
-            color: "#007AFF",
-            fontSize: 20,
-            fontWeight: "bold",
-            marginBottom: 10,
-            textAlign: "center",
-            letterSpacing: 0.5,
-          }}
-        >
-          Presets de monto rápido (USD)
-        </Text>
-        {loadingPresets ? (
-          <ActivityIndicator size="small" color="#007AFF" />
-        ) : (
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              marginBottom: 10,
-            }}
-          >
-            {presets.map((preset, idx) => (
-              <TouchableOpacity
-                key={preset.id}
-                style={{
-                  backgroundColor: "#e0f7fa",
-                  borderRadius: 20,
-                  paddingVertical: 10,
-                  paddingHorizontal: 22,
-                  margin: 4,
-                  borderWidth: 2,
-                  borderColor: "#007AFF",
-                  shadowColor: "#007AFF",
-                  shadowOpacity: 0.12,
-                  shadowRadius: 4,
-                  elevation: 2,
-                  marginRight: idx % 2 === 0 ? 8 : 0,
-                  marginBottom: 8,
-                }}
-                onPress={() => setAmount(String(preset.amount))}
-              >
+            </TouchableOpacity>
+            <Text style={styles.title}>Cobrar en USD</Text>
+            {/* Mostrar presets arriba del formulario de monto a cobrar */}
+            {presets.length > 0 && (
+              <View style={{ marginTop: 16, marginBottom: 8 }}>
                 <Text
                   style={{
                     color: "#007AFF",
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    marginBottom: 6,
+                  }}
+                >
+                  Presets disponibles
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
+                  {presets.map((preset, idx) => (
+                    <TouchableOpacity
+                      key={preset.id}
+                      style={{
+                        backgroundColor: "#e0f7fa",
+                        borderRadius: 20,
+                        paddingVertical: 10,
+                        paddingHorizontal: 22,
+                        margin: 4,
+                        borderWidth: 2,
+                        borderColor: "#007AFF",
+                        shadowColor: "#007AFF",
+                        shadowOpacity: 0.12,
+                        shadowRadius: 4,
+                        elevation: 2,
+                        marginRight: idx % 2 === 0 ? 8 : 0,
+                        marginBottom: 8,
+                      }}
+                      onPress={() => setAmount(String(preset.amount))}
+                    >
+                      <Text
+                        style={{
+                          color: "#007AFF",
+                          fontWeight: "bold",
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        {preset.name ? preset.name + " - " : ""}
+                        {formatUSD(preset.amount)}
+                      </Text>
+                      {preset.message ? (
+                        <Text
+                          style={{
+                            color: "#0097a7",
+                            fontSize: 12,
+                            marginTop: 2,
+                            textAlign: "center",
+                          }}
+                        >
+                          {preset.message}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Botón para mostrar/ocultar el formulario de presets */}
+            <View
+              style={{ alignItems: "center", marginBottom: 16, marginTop: 8 }}
+            >
+              <TouchableOpacity
+                style={{
+                  backgroundColor: showPresetForm ? "#E53E3E" : "#007AFF",
+                  paddingVertical: 12,
+                  paddingHorizontal: 32,
+                  borderRadius: 16,
+                  shadowColor: showPresetForm ? "#E53E3E" : "#007AFF",
+                  shadowOpacity: 0.18,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  alignItems: "center",
+                  minWidth: 180,
+                }}
+                onPress={() => setShowPresetForm((prev) => !prev)}
+              >
+                <Text
+                  style={{
+                    color: "#fff",
                     fontWeight: "bold",
                     fontSize: 16,
                     letterSpacing: 0.5,
                   }}
                 >
-                  {preset.name ? preset.name + " - " : ""}
-                  {formatUSD(preset.amount)}
+                  {showPresetForm
+                    ? "Ocultar formulario de preset"
+                    : "Agregar preset"}
                 </Text>
-                {preset.message ? (
+              </TouchableOpacity>
+            </View>
+
+            {/* Formulario de presets solo si showPresetForm está activo */}
+            {showPresetForm && (
+              <View style={{ marginBottom: 16 }}>
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#007AFF",
+                    borderRadius: 10,
+                    padding: 10,
+                    backgroundColor: "#fff",
+                    fontSize: 16,
+                    marginBottom: 8,
+                  }}
+                  placeholder="Nombre del preset"
+                  value={presetName}
+                  onChangeText={setPresetName}
+                />
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#007AFF",
+                    borderRadius: 10,
+                    padding: 10,
+                    backgroundColor: "#fff",
+                    fontSize: 16,
+                    marginBottom: 8,
+                  }}
+                  placeholder="Monto en USD"
+                  keyboardType="numeric"
+                  value={presetAmount}
+                  onChangeText={setPresetAmount}
+                />
+                <TextInput
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#007AFF",
+                    borderRadius: 10,
+                    padding: 10,
+                    backgroundColor: "#fff",
+                    fontSize: 16,
+                    marginBottom: 8,
+                  }}
+                  placeholder="Mensaje (opcional)"
+                  value={presetMessage}
+                  onChangeText={setPresetMessage}
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: "#007AFF",
+                    paddingVertical: 10,
+                    paddingHorizontal: 24,
+                    borderRadius: 10,
+                    alignItems: "center",
+                    marginTop: 4,
+                  }}
+                  onPress={handleCreatePreset}
+                >
+                  <Text
+                    style={{ color: "#fff", fontWeight: "bold", fontSize: 15 }}
+                  >
+                    Agregar preset
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <View style={[styles.section, styles.amountSection]}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: "#007AFF", fontSize: 20 },
+                ]}
+              >
+                1. Ingresa el monto a cobrar (USD)
+              </Text>
+              <View style={[styles.row, { marginTop: 12 }]}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      fontSize: 18,
+                      borderColor: "#007AFF",
+                      backgroundColor: "#fff",
+                    },
+                  ]}
+                  placeholder="Monto en USD"
+                  keyboardType="numeric"
+                  value={amount}
+                  onChangeText={setAmount}
+                />
+
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={handleCreateAmount}
+                  disabled={creating}
+                >
+                  <Text style={styles.buttonText}>
+                    {creating ? "Guardando..." : "Crear Venta"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Conversión a BeCoins */}
+
+            {amount && !isNaN(Number(amount)) && Number(amount) > 0 ? (
+              <View
+                style={{
+                  backgroundColor: "#f4fff7",
+                  borderRadius: 14,
+                  paddingVertical: 12,
+                  paddingHorizontal: 22,
+                  marginTop: 18,
+                  alignSelf: "center",
+                  alignItems: "center",
+                  borderWidth: 1.5,
+                  borderColor: "#43b86a",
+                  maxWidth: 260,
+                  shadowColor: "#43b86a",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.13,
+                  shadowRadius: 6,
+                  elevation: 3,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 22,
+                    color: "#2e7d32",
+                    fontWeight: "700",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {convertUSDToBeCoins(Number(amount))} BeCoins
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: "#43b86a",
+                    marginTop: 4,
+                    fontWeight: "500",
+                  }}
+                >
+                  Conversión automática según tasa actual
+                </Text>
+              </View>
+            ) : null}
+            {/* QR para cobrar */}
+            <View style={[styles.section, styles.qrSection]}>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: "#FFD700", fontSize: 18 },
+                ]}
+              >
+                2. QR para cobrar
+              </Text>
+              {qrLoading ? (
+                <ActivityIndicator size="large" color="#FFD700" />
+              ) : qrImage ? (
+                <>
+                  <Image source={{ uri: qrImage }} style={styles.qrImage} />
+                  <WebDownloadButton qrImage={qrImage} />
+                </>
+              ) : (
+                <Text style={styles.errorText}>{qrError}</Text>
+              )}
+              <Text style={styles.qrHint}>
+                El cliente debe escanear este QR para pagar el monto ingresado.
+              </Text>
+            </View>
+            {/* Montos creados */}
+            <View style={[styles.section, styles.createdSection]}>
+              <Text style={styles.sectionTitle}>
+                Historial de montos creados (USD)
+              </Text>
+              {loadingAmounts ? (
+                <ActivityIndicator size="small" color="#007AFF" />
+              ) : (
+                <View>
+                  {amounts && amounts.length > 0 ? (
+                    amounts.map((item, idx) => (
+                      <View style={styles.amountRow} key={item.id || idx}>
+                        <View>
+                          <Text style={styles.amountText}>
+                            {formatUSD(item.amount)}
+                          </Text>
+                          <Text style={styles.amountDate}>
+                            {new Date(item.created_at).toLocaleString()}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteAmount(item.id)}
+                          style={styles.deleteButton}
+                        >
+                          <Text style={styles.deleteText}>Eliminar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  ) : (
+                    <Text
+                      style={{
+                        textAlign: "center",
+                        color: "#888",
+                        marginTop: 8,
+                      }}
+                    >
+                      No hay montos creados.
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </div>
+    );
+  }
+
+  // Un solo return para ambas plataformas
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{
+            backgroundColor: "#fff",
+            borderRadius: 24,
+            padding: 8,
+            marginBottom: 8,
+            marginLeft: 4,
+            shadowColor: "#007AFF",
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 2,
+            alignSelf: "flex-start",
+            flexDirection: "row",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: "#E0E7EF",
+          }}
+        >
+          <Icon name="arrow-back" size={24} color="#007AFF" />
+          <Text
+            style={{
+              color: "#007AFF",
+              fontWeight: "bold",
+              fontSize: 16,
+              marginLeft: 4,
+            }}
+          >
+            Atrás
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Cobrar en USD</Text>
+        {/* Mostrar presets arriba del formulario de monto a cobrar */}
+        {presets.length > 0 && (
+          <View style={{ marginTop: 16, marginBottom: 8 }}>
+            <Text
+              style={{
+                color: "#007AFF",
+                fontSize: 16,
+                fontWeight: "bold",
+                marginBottom: 6,
+              }}
+            >
+              Presets disponibles
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              {presets.map((preset, idx) => (
+                <TouchableOpacity
+                  key={preset.id}
+                  style={{
+                    backgroundColor: "#e0f7fa",
+                    borderRadius: 20,
+                    paddingVertical: 10,
+                    paddingHorizontal: 22,
+                    margin: 4,
+                    borderWidth: 2,
+                    borderColor: "#007AFF",
+                    shadowColor: "#007AFF",
+                    shadowOpacity: 0.12,
+                    shadowRadius: 4,
+                    elevation: 2,
+                    marginRight: idx % 2 === 0 ? 8 : 0,
+                    marginBottom: 8,
+                  }}
+                  onPress={() => setAmount(String(preset.amount))}
+                >
                   <Text
                     style={{
-                      color: "#0097a7",
-                      fontSize: 12,
-                      marginTop: 2,
-                      textAlign: "center",
+                      color: "#007AFF",
+                      fontWeight: "bold",
+                      fontSize: 16,
+                      letterSpacing: 0.5,
                     }}
                   >
-                    {preset.message}
+                    {preset.name ? preset.name + " - " : ""}
+                    {formatUSD(preset.amount)}
                   </Text>
-                ) : null}
-              </TouchableOpacity>
-            ))}
+                  {preset.message ? (
+                    <Text
+                      style={{
+                        color: "#0097a7",
+                        fontSize: 12,
+                        marginTop: 2,
+                        textAlign: "center",
+                      }}
+                    >
+                      {preset.message}
+                    </Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         )}
-        <View style={{ marginTop: 8 }}>
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: "#007AFF",
-              borderRadius: 10,
-              padding: 10,
-              backgroundColor: "#fff",
-              fontSize: 16,
-              marginBottom: 8,
-            }}
-            placeholder="Nombre del preset"
-            value={presetName}
-            onChangeText={setPresetName}
-          />
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: "#007AFF",
-              borderRadius: 10,
-              padding: 10,
-              backgroundColor: "#fff",
-              fontSize: 16,
-              marginBottom: 8,
-            }}
-            placeholder="Monto en USD"
-            keyboardType="numeric"
-            value={presetAmount}
-            onChangeText={setPresetAmount}
-          />
-          <TextInput
-            style={{
-              borderWidth: 1,
-              borderColor: "#007AFF",
-              borderRadius: 10,
-              padding: 10,
-              backgroundColor: "#fff",
-              fontSize: 16,
-              marginBottom: 8,
-            }}
-            placeholder="Mensaje (opcional)"
-            value={presetMessage}
-            onChangeText={setPresetMessage}
-          />
+
+        {/* Botón para mostrar/ocultar el formulario de presets */}
+        <View style={{ alignItems: "center", marginBottom: 16, marginTop: 8 }}>
           <TouchableOpacity
             style={{
-              backgroundColor: "#007AFF",
-              paddingVertical: 10,
-              paddingHorizontal: 24,
-              borderRadius: 10,
+              backgroundColor: showPresetForm ? "#E53E3E" : "#007AFF",
+              paddingVertical: 12,
+              paddingHorizontal: 32,
+              borderRadius: 16,
+              shadowColor: showPresetForm ? "#E53E3E" : "#007AFF",
+              shadowOpacity: 0.18,
+              shadowRadius: 6,
+              elevation: 3,
               alignItems: "center",
-              marginTop: 4,
+              minWidth: 180,
             }}
-            onPress={handleCreatePreset}
+            onPress={() => setShowPresetForm((prev) => !prev)}
           >
-            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 15 }}>
-              Agregar preset
+            <Text
+              style={{
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 16,
+                letterSpacing: 0.5,
+              }}
+            >
+              {showPresetForm
+                ? "Ocultar formulario de preset"
+                : "Agregar preset"}
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-      {/* Input de monto y botón */}
-      <View style={[styles.section, styles.amountSection]}>
-        <Text style={[styles.sectionTitle, { color: "#007AFF", fontSize: 20 }]}>
-          1. Ingresa el monto a cobrar (USD)
-        </Text>
-        <View style={[styles.row, { marginTop: 12 }]}>
-          <TextInput
-            style={[
-              styles.input,
-              { fontSize: 18, borderColor: "#007AFF", backgroundColor: "#fff" },
-            ]}
-            placeholder="Monto en USD"
-            keyboardType="numeric"
-            value={amount}
-            onChangeText={setAmount}
-          />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleCreateAmount}
-            disabled={creating}
-          >
-            <Text style={styles.buttonText}>
-              {creating ? "Guardando..." : "Crear Venta"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      {/* QR para cobrar */}
-      <View style={[styles.section, styles.qrSection]}>
-        <Text style={[styles.sectionTitle, { color: "#FFD700", fontSize: 18 }]}>
-          2. QR para cobrar
-        </Text>
-        {qrLoading ? (
-          <ActivityIndicator size="large" color="#FFD700" />
-        ) : qrImage ? (
-          <>
-            <Image source={{ uri: qrImage }} style={styles.qrImage} />
-            {IS_WEB ? (
-              <WebDownloadButton qrImage={qrImage} />
-            ) : (
-              <TouchableOpacity
-                style={{
-                  backgroundColor: "#FFD700",
-                  padding: 10,
-                  borderRadius: 8,
-                  marginTop: 8,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                onPress={async () => {
-                  if (!qrImage) return;
-                  try {
-                    const FileSystem = require("expo-file-system");
-                    const filename = `qr-beland-${Date.now()}.png`;
-                    const downloadResumable = FileSystem.downloadAsync(
-                      qrImage,
-                      FileSystem.documentDirectory + filename
-                    );
-                    await downloadResumable;
-                    Alert.alert(
-                      "Descarga exitosa",
-                      "El QR se guardó en tus archivos."
-                    );
-                  } catch (err) {
-                    Alert.alert("Error", "No se pudo descargar el QR");
-                  }
-                }}
-              >
-                <Text style={{ color: "#fff", marginLeft: 8 }}>
-                  Descargar QR
-                </Text>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <Text style={styles.errorText}>{qrError}</Text>
-        )}
-        <Text style={styles.qrHint}>
-          El cliente debe escanear este QR para pagar el monto ingresado.
-        </Text>
-      </View>
-      {/* Montos creados */}
-      <View style={[styles.section, styles.createdSection]}>
-        <Text style={styles.sectionTitle}>
-          Historial de montos creados (USD)
-        </Text>
-        {loadingAmounts ? (
-          <ActivityIndicator size="small" color="#007AFF" />
-        ) : (
-          <View>
-            {amounts && amounts.length > 0 ? (
-              amounts.map((item, idx) => (
-                <View style={styles.amountRow} key={item.id || idx}>
-                  <View>
-                    <Text style={styles.amountText}>
-                      {formatUSD(item.amount)}
-                    </Text>
-                    <Text style={styles.amountDate}>
-                      {new Date(item.created_at).toLocaleString()}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteAmount(item.id)}
-                    style={styles.deleteButton}
-                  >
-                    <Text style={styles.deleteText}>Eliminar</Text>
-                  </TouchableOpacity>
-                </View>
-              ))
-            ) : (
-              <Text
-                style={{ textAlign: "center", color: "#888", marginTop: 8 }}
-              >
-                No hay montos creados.
+
+        {/* Formulario de presets solo si showPresetForm está activo */}
+        {showPresetForm && (
+          <View style={{ marginBottom: 16 }}>
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: "#007AFF",
+                borderRadius: 10,
+                padding: 10,
+                backgroundColor: "#fff",
+                fontSize: 16,
+                marginBottom: 8,
+              }}
+              placeholder="Nombre del preset"
+              value={presetName}
+              onChangeText={setPresetName}
+            />
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: "#007AFF",
+                borderRadius: 10,
+                padding: 10,
+                backgroundColor: "#fff",
+                fontSize: 16,
+                marginBottom: 8,
+              }}
+              placeholder="Monto en USD"
+              keyboardType="numeric"
+              value={presetAmount}
+              onChangeText={setPresetAmount}
+            />
+            <TextInput
+              style={{
+                borderWidth: 1,
+                borderColor: "#007AFF",
+                borderRadius: 10,
+                padding: 10,
+                backgroundColor: "#fff",
+                fontSize: 16,
+                marginBottom: 8,
+              }}
+              placeholder="Mensaje (opcional)"
+              value={presetMessage}
+              onChangeText={setPresetMessage}
+            />
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#007AFF",
+                paddingVertical: 10,
+                paddingHorizontal: 24,
+                borderRadius: 10,
+                alignItems: "center",
+                marginTop: 4,
+              }}
+              onPress={handleCreatePreset}
+            >
+              <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 15 }}>
+                Agregar preset
               </Text>
-            )}
+            </TouchableOpacity>
           </View>
         )}
-      </View>
-    </ScrollView>
+        <View style={[styles.section, styles.amountSection]}>
+          <Text
+            style={[styles.sectionTitle, { color: "#007AFF", fontSize: 20 }]}
+          >
+            1. Ingresa el monto a cobrar (USD)
+          </Text>
+          <View style={[styles.row, { marginTop: 12 }]}>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  fontSize: 18,
+                  borderColor: "#007AFF",
+                  backgroundColor: "#fff",
+                },
+              ]}
+              placeholder="Monto en USD"
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleCreateAmount}
+              disabled={creating}
+            >
+              <Text style={styles.buttonText}>
+                {creating ? "Guardando..." : "Crear Venta"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Conversión a BeCoins */}
+
+        {amount && !isNaN(Number(amount)) && Number(amount) > 0 ? (
+          <View
+            style={{
+              backgroundColor: "#f4fff7",
+              borderRadius: 14,
+              paddingVertical: 12,
+              paddingHorizontal: 22,
+              marginTop: 18,
+              alignSelf: "center",
+              alignItems: "center",
+              borderWidth: 1.5,
+              borderColor: "#43b86a",
+              maxWidth: 260,
+              shadowColor: "#43b86a",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.13,
+              shadowRadius: 6,
+              elevation: 3,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 22,
+                color: "#2e7d32",
+                fontWeight: "700",
+                letterSpacing: 0.5,
+              }}
+            >
+              {convertUSDToBeCoins(Number(amount))} BeCoins
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                color: "#43b86a",
+                marginTop: 4,
+                fontWeight: "500",
+              }}
+            >
+              Conversión automática según tasa actual
+            </Text>
+          </View>
+        ) : null}
+        {/* QR para cobrar */}
+        <View style={[styles.section, styles.qrSection]}>
+          <Text
+            style={[styles.sectionTitle, { color: "#FFD700", fontSize: 18 }]}
+          >
+            2. QR para cobrar
+          </Text>
+          {qrLoading ? (
+            <ActivityIndicator size="large" color="#FFD700" />
+          ) : qrImage ? (
+            <>
+              <Image source={{ uri: qrImage }} style={styles.qrImage} />
+              <WebDownloadButton qrImage={qrImage} />
+            </>
+          ) : (
+            <Text style={styles.errorText}>{qrError}</Text>
+          )}
+          <Text style={styles.qrHint}>
+            El cliente debe escanear este QR para pagar el monto ingresado.
+          </Text>
+        </View>
+        {/* Montos creados */}
+        <View style={[styles.section, styles.createdSection]}>
+          <Text style={styles.sectionTitle}>
+            Historial de montos creados (USD)
+          </Text>
+          {loadingAmounts ? (
+            <ActivityIndicator size="small" color="#007AFF" />
+          ) : (
+            <View>
+              {amounts && amounts.length > 0 ? (
+                amounts.map((item, idx) => (
+                  <View style={styles.amountRow} key={item.id || idx}>
+                    <View>
+                      <Text style={styles.amountText}>
+                        {formatUSD(item.amount)}
+                      </Text>
+                      <Text style={styles.amountDate}>
+                        {new Date(item.created_at).toLocaleString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteAmount(item.id)}
+                      style={styles.deleteButton}
+                    >
+                      <Text style={styles.deleteText}>Eliminar</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              ) : (
+                <Text
+                  style={{ textAlign: "center", color: "#888", marginTop: 8 }}
+                >
+                  No hay montos creados.
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 

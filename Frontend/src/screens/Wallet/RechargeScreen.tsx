@@ -59,6 +59,8 @@ export default function RechargeScreen() {
     return (
       <div
         style={{
+          width: "100vw",
+          height: "100vh",
           background: "#f0f9ff",
           minHeight: "100vh",
           padding: 0,
