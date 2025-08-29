@@ -1,13 +1,18 @@
 import React from "react";
+import "../../styles/notificationBanner.css";
 import { useNotification } from "../../hooks/NotificationContext";
 
 export const NotificationBanner: React.FC = () => {
   const { notification } = useNotification();
 
-  if (!notification || !notification.visible) return null;
+  if (!notification) return null;
+
+  // Usar clases CSS importadas para animación
+  const className = notification.visible ? "bounce-in" : "bounce-out";
 
   return (
     <div
+      className={className}
       style={{
         position: "fixed",
         top: 24,
@@ -22,7 +27,6 @@ export const NotificationBanner: React.FC = () => {
         border: "2px solid #2ecc40",
         color: "#222",
         fontFamily: "Montserrat, Arial, sans-serif",
-        transition: "opacity 0.3s",
         opacity: notification.visible ? 1 : 0,
         pointerEvents: notification.visible ? "auto" : "none",
       }}

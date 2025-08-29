@@ -16,11 +16,11 @@ export function usePaymentSocket(onPaymentSuccess: (data: any) => void) {
     socketService.current = new SocketService();
     socketService.current.connect(token);
     socketService.current.onPaymentSuccess(
-      (data: { amount: number; [key: string]: any }) => {
+      (data: { amount: number; message?: string; [key: string]: any }) => {
         console.log("Notificación recibida:", data);
         showNotification({
           title: "¡Venta recibida!",
-          message: `Has recibido un pago exitoso.`,
+          message: data?.message || `Has recibido un pago exitoso.`,
           amount: data?.amount,
         });
         onPaymentSuccess(data);
