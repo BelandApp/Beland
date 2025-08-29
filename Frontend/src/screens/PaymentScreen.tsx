@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { CustomAlert } from "../components/ui/CustomAlert";
 
 type Resource = {
   id: string;
@@ -37,6 +38,7 @@ type PaymentScreenProps = {
 };
 
 export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
+  const [showFreeAlert, setShowFreeAlert] = useState(false);
   const { paymentData, amount_to_payment_id } = route.params;
   // LOGS DE DEPURACIÓN
   console.log("[PaymentScreen] paymentData:", paymentData);
@@ -419,20 +421,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
                   await require("../services/walletService").walletService.createPurchaseBecoin(
                     purchaseData
                   );
-                  Alert.alert(
-                    "Compra registrada",
-                    "La entrada gratuita fue registrada correctamente."
-                  );
-
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "MainTabs", params: { screen: "Home" } }],
-                  });
+                  setShowFreeAlert(true);
                 } catch (err) {
-                  Alert.alert(
-                    "Error",
-                    "No se pudo registrar la entrada gratuita"
-                  );
+                  setShowFreeAlert(true);
                 } finally {
                   setIsLoading(false);
                 }
@@ -491,6 +482,30 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({ route }) => {
             <div id="pp-button" style={{ marginBottom: 16 }}></div>
           </div>
         )}
+        {/* CustomAlert para entrada gratuita */}
+        <CustomAlert
+          visible={showFreeAlert}
+          title="Entrada gratuita registrada"
+          message="¡Tu acceso fue confirmado!"
+          type="success"
+          primaryButton={{
+            text: "Ir al inicio",
+            onPress: () => {
+              setShowFreeAlert(false);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "MainTabs", params: { screen: "Home" } }],
+              });
+            },
+          }}
+          onClose={() => {
+            setShowFreeAlert(false);
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "MainTabs", params: { screen: "Home" } }],
+            });
+          }}
+        />
       </div>
     </div>
   );

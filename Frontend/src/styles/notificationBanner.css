@@ -1,0 +1,33 @@
+@keyframes bounceInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(400px) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-20px) scale(1.05);
+  }
+  80% {
+    transform: translateX(10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes bounceOutRight {
+  20% {
+    opacity: 1;
+    transform: translateX(-10px) scale(0.98);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(400px) scale(0.9);
+  }
+}
+.bounce-in {
+  animation: bounceInRight 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bounce-out {
+  animation: bounceOutRight 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
