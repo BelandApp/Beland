@@ -100,6 +100,9 @@ const AppContent = () => {
     "ReceiveScreen",
     "RechargeScreen",
     "WalletHistoryScreen",
+    "PaymentScreen",
+    "PayphoneSuccess",
+    "CobrarScreen",
   ];
 
   const shouldShowQRButton =
