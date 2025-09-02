@@ -1,9 +1,24 @@
 import { io, Socket } from "socket.io-client";
 
 export interface RespSocket {
+  wallet_id: string;
   message: string;
   amount: number;
   success: boolean;
+  amount_payment_id_deleted?: string | null;
+  noHidden: boolean;
+  // Datos adicionales de la entrada y cantidad
+  resource_name?: string;
+  resource_quantity?: number;
+  applied_redemption?: {
+    id: string;
+    code: string;
+    discount_value: number;
+    original_amount: number;
+    discounted_amount: number;
+  };
+  becoins_used?: number;
+  transaction_type?: "free_entry" | "paid_entry" | "redemption_applied";
 }
 
 export class SocketService {
@@ -41,6 +56,11 @@ export class SocketService {
     });
     this.socket.on("disconnect", (reason) => {
       console.warn("[SocketService] Desconectado:", reason);
+    });
+
+    // Escuchar todos los eventos para debugging
+    this.socket.onAny((eventName, ...args) => {
+      console.log(`[SocketService] Evento recibido: ${eventName}`, args);
     });
   }
 

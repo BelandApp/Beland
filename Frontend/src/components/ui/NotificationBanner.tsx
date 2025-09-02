@@ -3,7 +3,7 @@ import "../../styles/notificationBanner.css";
 import { useNotification } from "../../hooks/NotificationContext";
 
 export const NotificationBanner: React.FC = () => {
-  const { notification } = useNotification();
+  const { notification, hideNotification } = useNotification();
 
   if (!notification) return null;
 
@@ -47,6 +47,35 @@ export const NotificationBanner: React.FC = () => {
       {notification.amount !== undefined && (
         <div style={{ fontSize: 15, color: "#ff9800" }}>
           Monto: ${notification.amount}
+        </div>
+      )}
+
+      {/* Botón OK para notificaciones persistentes */}
+      {notification.persistent && (
+        <div style={{ marginTop: 12, textAlign: "center" }}>
+          <button
+            onClick={hideNotification}
+            style={{
+              background: "#2ecc40",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 20px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontFamily: "Montserrat, Arial, sans-serif",
+              transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#27ae60";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#2ecc40";
+            }}
+          >
+            OK
+          </button>
         </div>
       )}
     </div>

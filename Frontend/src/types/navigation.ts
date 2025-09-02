@@ -11,7 +11,7 @@ export type MainTabParamList = {
   QRScanner: undefined;
   Groups: undefined;
   Wallet: undefined;
-  Rewards: undefined;
+  Community: undefined;
   History: undefined;
   Profile: undefined;
 };

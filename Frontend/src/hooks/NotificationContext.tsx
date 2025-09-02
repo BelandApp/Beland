@@ -5,6 +5,7 @@ interface NotificationData {
   message: string;
   amount?: number;
   visible: boolean;
+  persistent?: boolean; // Nueva propiedad para notificaciones persistentes
 }
 
 interface NotificationContextType {
@@ -27,9 +28,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   const showNotification = useCallback(
     (data: Omit<NotificationData, "visible">) => {
       setNotification({ ...data, visible: true });
-      setTimeout(() => {
-        setNotification((prev) => (prev ? { ...prev, visible: false } : null));
-      }, 4000); // Oculta después de 4 segundos
+
+      // Solo aplicar timeout automático si NO es persistente
+      if (!data.persistent) {
+        setTimeout(() => {
+          setNotification((prev) =>
+            prev ? { ...prev, visible: false } : null
+          );
+        }, 4000); // Oculta después de 4 segundos solo para notificaciones normales
+      }
     },
     []
   );

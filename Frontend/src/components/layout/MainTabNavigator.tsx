@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { colors } from "../../styles/colors";
 import { DashboardScreen } from "../../screens/DashboardScreen";
 import { WalletScreen } from "../../screens/WalletScreen";
-import { RewardsScreen } from "../../screens/RewardsScreen";
+import { CommunityScreen } from "../../screens/Community";
 import { CatalogScreen } from "../../screens/CatalogScreen";
 import { HistoryScreen } from "../../screens/HistoryScreen";
 import { GroupsStackNavigator } from "./GroupsStackNavigator";
@@ -42,7 +42,7 @@ export const MainTabNavigator = () => {
               return <QRIcon {...iconProps} />;
             case "Wallet":
               return <WalletIcon {...iconProps} />;
-            case "Rewards":
+            case "Community":
               return <CommunityIcon {...iconProps} />;
             case "Catalog":
               return <CatalogIcon {...iconProps} />;
@@ -122,8 +122,8 @@ export const MainTabNavigator = () => {
         options={{ tabBarLabel: "Wallet" }}
       />
       <Tab.Screen
-        name="Rewards"
-        component={RewardsScreen}
+        name="Community"
+        component={CommunityScreen}
         options={{ tabBarLabel: "Comunidad" }}
       />
       <Tab.Screen

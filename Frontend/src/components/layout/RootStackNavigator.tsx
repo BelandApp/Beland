@@ -24,7 +24,7 @@ export type RootStackParamList = {
   CommerceDashboard: undefined; // Corregido: 'CommerceDashboard' para coincidir con el AppHeader
   // Asegúrate de que todas las demás rutas están aquí, tal como las tenías
   Wallet: undefined;
-  Rewards: undefined;
+  Community: undefined;
   QR: undefined;
   RecyclingMap: undefined;
   CanjearScreen: undefined;
