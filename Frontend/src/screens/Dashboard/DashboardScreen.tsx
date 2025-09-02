@@ -7,11 +7,9 @@ import {
   SafeAreaView,
 } from "react-native";
 import { AppHeader } from "../../components/layout/AppHeader";
-import { BeCoinsBalance } from "../../components/ui/BeCoinsBalance";
-import { RecyclingCard, RewardsCard, ActivitySection } from "./components";
+import { RecyclingCard, CommunityCard, ActivitySection } from "./components";
 import { RecyclingMapWidget } from "./components/RecyclingMapWidget";
 import { useDashboardNavigation, useDashboardData } from "./hooks";
-import Footer from "../Home/components/Footer";
 
 export const DashboardScreen = () => {
   const {
@@ -29,7 +27,7 @@ export const DashboardScreen = () => {
       >
         <AppHeader />
         <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
-        <RewardsCard />
+        <CommunityCard />
         <RecyclingMapWidget onPress={handleRecyclingMapPress} />
         <ActivitySection
           activities={activities}
@@ -46,7 +44,7 @@ export const DashboardScreen = () => {
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <RecyclingCard bottlesRecycled={userStats.bottlesRecycled} />
-          <RewardsCard />
+          <CommunityCard />
           <RecyclingMapWidget onPress={handleRecyclingMapPress} />
           <ActivitySection
             activities={activities}

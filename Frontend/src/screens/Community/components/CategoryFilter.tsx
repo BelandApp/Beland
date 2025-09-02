@@ -1,44 +1,44 @@
 import React from "react";
-import { View, ScrollView, TouchableOpacity, Text } from "react-native";
-import { RewardCategory } from "../types";
-import { REWARD_CATEGORIES } from "../types/rewardsData";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { ResourceCategory } from "../../../types/resource";
 import { categoryStyles } from "../styles";
 
 interface CategoryFilterProps {
-  selectedCategory: RewardCategory;
-  onCategorySelect: (category: RewardCategory) => void;
+  categories: ResourceCategory[];
+  selectedCategory: string;
+  onSelectCategory: (categoryId: string) => void;
 }
 
 export const CategoryFilter: React.FC<CategoryFilterProps> = ({
+  categories,
   selectedCategory,
-  onCategorySelect,
+  onSelectCategory,
 }) => {
   return (
-    <View style={categoryStyles.categoriesSection}>
+    <View style={categoryStyles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={categoryStyles.categoriesScroll}
+        contentContainerStyle={categoryStyles.scrollContainer}
       >
-        {REWARD_CATEGORIES.map((category) => (
+        {categories.map((category) => (
           <TouchableOpacity
-            key={category}
+            key={category.id}
             style={[
               categoryStyles.categoryButton,
-              selectedCategory === category &&
+              selectedCategory === category.id &&
                 categoryStyles.categoryButtonActive,
             ]}
-            onPress={() => onCategorySelect(category)}
-            activeOpacity={0.8}
+            onPress={() => onSelectCategory(category.id)}
           >
             <Text
               style={[
                 categoryStyles.categoryText,
-                selectedCategory === category &&
+                selectedCategory === category.id &&
                   categoryStyles.categoryTextActive,
               ]}
             >
-              {category}
+              {category.category_name}
             </Text>
           </TouchableOpacity>
         ))}
